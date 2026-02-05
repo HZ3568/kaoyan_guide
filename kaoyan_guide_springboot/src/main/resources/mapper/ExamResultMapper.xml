@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.ExamResultMapper">
+
+    <!-- 保存成绩 -->
+    <insert id="insertExamResult" parameterType="com.example.entity.ExamResult">
+        INSERT INTO exam_result(user_id, subject, score, duration_seconds, create_time)
+        VALUES (#{userId}, #{subject}, #{score}, #{durationSeconds}, #{createTime})
+    </insert>
+
+    <!-- 查询用户成绩列表 -->
+    <select id="findByUserId" resultType="com.example.entity.ExamResult">
+        SELECT id, user_id AS userId, subject, score, duration_seconds AS durationSeconds, create_time AS createTime
+        FROM exam_result
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.CommentMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Comment">
+        select comment.*, university.name as universityName, user.name as userName, user.avatar as userAvatar from comment
+        left join university on comment.university_id = university.id
+        left join user on comment.user_id = user.id
+        <where>
+            <if test="universityId != null"> and comment.university_id = #{universityId}</if>
+            <if test="userId != null"> and comment.user_id = #{userId}</if>
+            <if test="details != null"> and comment.details like concat('%', #{details}, '%')</if>
+        </where>
+        order by id desc
+    </select>
+
+    <select id="selectById" resultType="com.example.entity.Comment">
+        select * from `comment`
+        where id = #{id}
+    </select>
+
+    <delete id="deleteById">
+        delete from `comment`
+        where id = #{id}
+    </delete>
+
+    <insert id="insert" parameterType="com.example.entity.Comment" useGeneratedKeys="true" keyProperty="id">
+        insert into `comment`
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="universityId != null">university_id,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="details != null">details,</if>
+            <if test="mark != null">mark,</if>
+            <if test="time != null">time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="universityId != null">#{universityId},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="details != null">#{details},</if>
+            <if test="mark != null">#{mark},</if>
+            <if test="time != null">#{time},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Comment">
+        update `comment`
+        <set>
+            <if test="universityId != null">
+                university_id = #{universityId},
+            </if>
+            <if test="userId != null">
+                user_id = #{userId},
+            </if>
+            <if test="details != null">
+                details = #{details},
+            </if>
+            <if test="mark != null">
+                mark = #{mark},
+            </if>
+            <if test="time != null">
+                time = #{time},
+            </if>
+        </set>
+        where id = #{id} 
+    </update>
+
+</mapper>

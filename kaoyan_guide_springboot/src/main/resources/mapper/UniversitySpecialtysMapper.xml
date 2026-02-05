@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UniversitySpecialtysMapper">
+
+    <select id="selectAll" resultType="com.example.entity.UniversitySpecialtys">
+        select university_specialtys.*, university.name as universityName, categorys.name as categorysName, specialtys.name as specialtysName from university_specialtys
+        left join university on university_specialtys.university_id = university.id
+        left join categorys on university_specialtys.categorys_id = categorys.id
+        left join specialtys on university_specialtys.specialtys_id = specialtys.id
+        <where>
+
+            <if test="universityId != null"> and university_specialtys.university_id = #{universityId}</if>
+            <if test="universityName != null"> and university.name like concat('%', #{universityName}, '%')</if>
+            <if test="categorysId != null"> and university_specialtys.categorys_id = #{categorysId}</if>
+            <if test="categorysName != null"> and categorys.name like concat('%', #{categorysName}, '%')</if>
+            <if test="specialtysId != null"> and university_specialtys.specialtys_id = #{specialtysId}</if>
+            <if test="specialtysName != null"> and specialtys.name like concat('%', #{specialtysName}, '%')</if>
+        </where>
+        order by id desc
+    </select>
+
+    <select id="selectById" resultType="com.example.entity.UniversitySpecialtys">
+        select * from `university_specialtys`
+        where id = #{id}
+    </select>
+
+    <delete id="deleteById">
+        delete from `university_specialtys`
+        where id = #{id}
+    </delete>
+
+    <insert id="insert" parameterType="com.example.entity.UniversitySpecialtys" useGeneratedKeys="true" keyProperty="id">
+        insert into `university_specialtys`
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="universityId != null">university_id,</if>
+            <if test="categorysId != null">categorys_id,</if>
+            <if test="specialtysId != null">specialtys_id,</if>
+            <if test="content != null">content,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="universityId != null">#{universityId},</if>
+            <if test="categorysId != null">#{categorysId},</if>
+            <if test="specialtysId != null">#{specialtysId},</if>
+            <if test="content != null">#{content},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.UniversitySpecialtys">
+        update `university_specialtys`
+        <set>
+            <if test="universityId != null">
+                university_id = #{universityId},
+            </if>
+            <if test="categorysId != null">
+                categorys_id = #{categorysId},
+            </if>
+            <if test="specialtysId != null">
+                specialtys_id = #{specialtysId},
+            </if>
+            <if test="content != null">
+                content = #{content},
+            </if>
+        </set>
+        where id = #{id} 
+    </update>
+
+</mapper>

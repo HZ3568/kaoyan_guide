@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.SpecialtysMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Specialtys">
+        select specialtys.*, categorys.name as categorysName from specialtys
+        left join categorys on specialtys.categorys_id = categorys.id
+        <where>
+            <if test="categorysId != null"> and specialtys.categorys_id = #{categorysId}</if>
+            <if test="categorysName != null"> and categorys.name like concat('%', #{categorysName}, '%')</if>
+            <if test="name != null"> and specialtys.name like concat('%', #{name}, '%')</if>
+        </where>
+        order by id desc
+    </select>
+
+    <select id="selectById" resultType="com.example.entity.Specialtys">
+        select * from `specialtys`
+        where id = #{id}
+    </select>
+
+    <delete id="deleteById">
+        delete from `specialtys`
+        where id = #{id}
+    </delete>
+
+    <insert id="insert" parameterType="com.example.entity.Specialtys" useGeneratedKeys="true" keyProperty="id">
+        insert into `specialtys`
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="categorysId != null">categorys_id,</if>
+            <if test="name != null">name,</if>
+            <if test="specialtyNumber != null">specialty_number,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="categorysId != null">#{categorysId},</if>
+            <if test="name != null">#{name},</if>
+            <if test="specialtyNumber != null">#{specialtyNumber},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Specialtys">
+        update `specialtys`
+        <set>
+            <if test="categorysId != null">
+                categorys_id = #{categorysId},
+            </if>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="specialtyNumber != null">
+                specialty_number = #{specialtyNumber},
+            </if>
+        </set>
+        where id = #{id} 
+    </update>
+
+</mapper>
