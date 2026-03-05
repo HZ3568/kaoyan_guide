@@ -14,12 +14,12 @@
           mode="horizontal"
         >
           <el-menu-item index="/front/home">首页</el-menu-item>
-          <el-menu-item index="/front/addApply">志愿填报</el-menu-item>
+          <!--<el-menu-item index="/front/addApply">志愿填报</el-menu-item>-->
           <el-menu-item index="/front/universityList">院校库</el-menu-item>
           <el-menu-item index="/front/interpretationsList"
             >专业解读</el-menu-item
           >
-          <el-menu-item index="/front/newsList">高考资讯</el-menu-item>
+          <!--<el-menu-item index="/front/newsList">高考资讯</el-menu-item>-->
           <el-menu-item index="/front/policysList">招生政策</el-menu-item>
           <el-menu-item index="/front/simulateExam">考场模拟</el-menu-item>
           <el-menu-item index="/front/consultCollege"
