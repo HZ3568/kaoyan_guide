@@ -25,6 +25,7 @@
           <el-menu-item index="/front/consultCollege"
             >AI院校信息咨询</el-menu-item
           >
+          <el-menu-item index="/front/studyPlan">AI学习规划</el-menu-item>
           <el-menu-item index="/front/test">测试</el-menu-item>
         </el-menu>
       </div>
