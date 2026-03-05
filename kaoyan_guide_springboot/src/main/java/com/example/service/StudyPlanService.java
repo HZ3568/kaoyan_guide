@@ -28,6 +28,13 @@ public class StudyPlanService {
     }
 
     /**
+     * 删除指定日期的计划
+     */
+    public void deletePlan(Integer userId, LocalDate date) {
+        studyPlanMapper.deleteByDate(userId, date);
+    }
+
+    /**
      * 生成今日计划
      */
     public DailyStudyPlan generatePlan(Integer userId, String feedback) {

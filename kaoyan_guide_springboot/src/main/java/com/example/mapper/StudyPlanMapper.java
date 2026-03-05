@@ -1,6 +1,7 @@
 package com.example.mapper;
 
 import com.example.entity.DailyStudyPlan;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -18,6 +19,12 @@ public interface StudyPlanMapper {
     @Insert("INSERT INTO daily_study_plan (user_id, plan_date, user_feedback, ai_advice, daily_tasks, create_time) " +
             "VALUES (#{userId}, #{planDate}, #{userFeedback}, #{aiAdvice}, #{dailyTasks}, #{createTime})")
     void insert(DailyStudyPlan plan);
+
+    /**
+     * 根据用户ID和日期删除计划
+     */
+    @Delete("DELETE FROM daily_study_plan WHERE user_id = #{userId} AND plan_date = #{date}")
+    void deleteByDate(@Param("userId") Integer userId, @Param("date") LocalDate date);
 
     /**
      * 根据用户ID和日期查询计划

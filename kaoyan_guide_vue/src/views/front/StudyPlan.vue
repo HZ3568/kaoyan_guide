@@ -124,6 +124,20 @@
 
           <!-- 场景B：已有计划 -->
           <div v-else-if="currentPlan" class="plan-content">
+            <!-- 顶部操作栏：仅当天可撤回 -->
+            <div class="plan-actions" v-if="isSelectedToday">
+              <el-button
+                type="danger"
+                plain
+                size="small"
+                @click="withdrawPlan"
+                class="withdraw-btn"
+              >
+                <el-icon style="margin-right: 4px"><RefreshLeft /></el-icon>
+                撤回今日计划
+              </el-button>
+            </div>
+
             <!-- 状态反馈 -->
             <div class="section-block">
               <div class="section-header">
@@ -207,7 +221,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
   Calendar as CalendarIcon,
   Notebook,
@@ -218,6 +232,7 @@ import {
   ChatLineRound,
   CircleCheck,
   Check,
+  RefreshLeft,
 } from "@element-plus/icons-vue";
 import request from "@/utils/request";
 
@@ -339,6 +354,37 @@ const generatePlan = () => {
     .finally(() => {
       generating.value = false;
     });
+};
+
+const withdrawPlan = () => {
+  ElMessageBox.confirm(
+    "撤回后将删除今日生成的计划记录，并返回到生成前的状态，确定要撤回吗？",
+    "确认撤回",
+    {
+      confirmButtonText: "确定撤回",
+      cancelButtonText: "取消",
+      type: "warning",
+    }
+  )
+    .then(() => {
+      loading.value = true;
+      request
+        .delete("/study-plan/" + formatDate(selectedDate.value))
+        .then((res) => {
+          if (res.code === "200") {
+            ElMessage.success("撤回成功");
+            currentPlan.value = null;
+            // 重新获取一下（虽然已经置空，但为了保险起见，或者直接置空即可）
+            // fetchPlan(formatDate(selectedDate.value)); // 不需要，因为已经置空了
+          } else {
+            ElMessage.error(res.msg || "撤回失败");
+          }
+        })
+        .finally(() => {
+          loading.value = false;
+        });
+    })
+    .catch(() => {});
 };
 
 const parseTasks = (tasks) => {
@@ -707,7 +753,19 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 32px;
+  position: relative;
 }
+
+.plan-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -20px; /* 拉近与下方内容的距离 */
+}
+
+.withdraw-btn {
+  border-radius: 8px;
+}
+
 .section-header {
   display: flex;
   align-items: center;

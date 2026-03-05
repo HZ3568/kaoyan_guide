@@ -60,4 +60,23 @@ public class StudyPlanController {
             return Result.error("生成计划失败，请稍后重试");
         }
     }
+
+    /**
+     * 撤回（删除）指定日期的计划
+     */
+    @DeleteMapping("/{date}")
+    public Result deletePlan(@PathVariable String date) {
+        Account currentUser = TokenUtils.getCurrentUser();
+        if (currentUser == null || !(currentUser instanceof User)) {
+            return Result.error("401", "请先登录学生账号");
+        }
+
+        try {
+            LocalDate localDate = LocalDate.parse(date);
+            studyPlanService.deletePlan(currentUser.getId(), localDate);
+            return Result.success();
+        } catch (DateTimeParseException e) {
+            return Result.error("日期格式错误，应为 yyyy-MM-dd");
+        }
+    }
 }
