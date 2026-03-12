@@ -4,14 +4,14 @@
       <div style="width: 80%; margin: 20px auto; display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center;">
           <img src="@/assets/imgs/logo.png" alt="" style="height: 80px; margin-right: 20px;">
-          <div style="font-size: 24px; font-weight: bold">高考志愿填报</div>
+          <div style="font-size: 24px; font-weight: bold">研途规划</div>
         </div>
         <div style="text-align: left; line-height: 20px;">
           <div style="margin-bottom: 10px">
             学籍查询 | 学历查询 | 学位查询 | 在线验证 | 出国教育背景服务 | 学信档案 |  高考 | 研招
           </div>
           <div style="margin-bottom: 10px">
-            高考志愿填报平台版权所有
+            研途规划平台版权所有
           </div>
           <div style="margin-bottom: 10px">
             COPYRIGHT © 1998 - 2025 TENCENT. ALL RIGHTS RESERVED.
@@ -35,9 +35,6 @@
 </template>
 <script lang="ts">
 import {defineComponent} from "vue";
-import {Comment} from "@element-plus/icons-vue";
 
-export default defineComponent({
-  components: {Comment}
-})
+export default defineComponent({})
 </script>

@@ -104,12 +104,6 @@
               v-if="data.user.role === 'ADMIN'"
             >专业解读</el-menu-item>
             <el-menu-item index="/manager/universitySpecialtys">学校专业</el-menu-item>
-            <!-- <el-menu-item index="/manager/apply">报考信息</el-menu-item> -->
-            <!-- <el-menu-item
-              index="/manager/news"
-              v-if="data.user.role === 'ADMIN'"
-              >高考资讯</el-menu-item
-            > -->
             <el-menu-item index="/manager/policys">招生政策</el-menu-item>
             <el-menu-item index="/manager/comment">学校评价</el-menu-item>
             <!-- <el-menu-item

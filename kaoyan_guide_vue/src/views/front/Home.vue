@@ -3,17 +3,11 @@
     <div style="display: flex; grid-gap: 10px; margin-bottom: 40px">
       <div style="width: 250px;" class="card">
         <div style="font-size: 22px; font-weight: bold; margin-bottom: 20px"><img alt="" src="@/assets/imgs/快速入口.png" style="width: 20px; height: 20px; margin-right: 10px"> 快速入口</div>
-        <div style="display: flex; grid-gap: 10px; align-items: center; margin-bottom: 20px; cursor: pointer" @click="$router.push('/front/addApply')">
-          <div style="flex: 1; font-size: 16px">志愿填报</div><el-icon style="font-size: 16px"><ArrowRight /></el-icon>
-        </div>
         <div style="display: flex; grid-gap: 10px; align-items: center; margin-bottom: 20px; cursor: pointer" @click="$router.push('/front/universityList')">
           <div style="flex: 1; font-size: 16px">查询院校</div><el-icon style="font-size: 16px"><ArrowRight /></el-icon>
         </div>
         <div style="display: flex; grid-gap: 10px; align-items: center; margin-bottom: 20px; cursor: pointer" @click="$router.push('/front/interpretationsList')">
           <div style="flex: 1; font-size: 16px">专业解读</div><el-icon style="font-size: 16px"><ArrowRight /></el-icon>
-        </div>
-        <div style="display: flex; grid-gap: 10px; align-items: center; margin-bottom: 20px; cursor: pointer" @click="$router.push('/front/newsList')">
-          <div style="flex: 1; font-size: 16px">高考资讯</div><el-icon style="font-size: 16px"><ArrowRight /></el-icon>
         </div>
         <div style="display: flex; grid-gap: 10px; align-items: center; margin-bottom: 20px; cursor: pointer" @click="$router.push('/front/policysList')">
           <div style="flex: 1; font-size: 16px">招生政策</div><el-icon style="font-size: 16px"><ArrowRight /></el-icon>
@@ -87,55 +81,6 @@
       </div>
     </div>
 
-    <div>
-      <div style="display: flex; grid-gap: 10px; align-items: end; margin-bottom: 30px">
-        <div style="flex: 1; ">
-          <span style="font-size: 24px; font-weight: bold;">热门资讯</span>
-          <span style="margin-left: 10px; color: #8c939d">看看最近有什么热门资讯吧</span>
-        </div>
-        <div style="color: #666666; cursor: pointer" @click="$router.push('/front/newsList')">更多>></div>
-      </div>
-      <el-row :gutter="20">
-        <el-col :span="12" v-for="(item,index) in data.newsList" :key="item.id">
-          <div v-if="index % 2 === 0" style="display: flex; grid-gap: 20px; cursor: pointer; margin-bottom: 20px" class="card" @click="$router.push('/front/newsDetail?id=' + item.id)">
-            <img style="width: 150px; height: 100px; border-radius: 5px; cursor: pointer" :src="item.img" alt="" />
-            <div style="flex: 1; width: 0">
-              <div style="font-size: 16px; font-weight: bold" class="line1">{{ item.name }}</div>
-              <div style="margin-top: 10px; line-height: 20px; height: 40px; color: #666" class="line2">{{ item.intro }}</div>
-              <div style="margin-top: 10px; display: flex; align-items: center; color: #666; font-size: 13px">
-                <div style="display: flex; align-items: center; margin-right: 20px">
-                  <el-icon size="16"><View /></el-icon>
-                  <span style="margin-left: 5px">{{ item.viewCount }}</span>
-                </div>
-                <div style="display: flex; align-items: center; margin-right: 20px">
-                  <el-icon size="16"><Clock /></el-icon>
-                  <span style="margin-left: 5px">{{ item.time }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-else style="display: flex; grid-gap: 20px; cursor: pointer; margin-bottom: 20px" class="card" @click="$router.push('/front/newsDetail?id=' + item.id)">
-
-            <div style="flex: 1; width: 0">
-              <div style="font-size: 16px; font-weight: bold" class="line1">{{ item.name }}</div>
-              <div style="margin-top: 10px; line-height: 20px; height: 40px; color: #666" class="line2">{{ item.intro }}</div>
-              <div style="margin-top: 10px; display: flex; align-items: center; color: #666; font-size: 13px">
-                <div style="display: flex; align-items: center; margin-right: 20px">
-                  <el-icon size="16"><View /></el-icon>
-                  <span style="margin-left: 5px">{{ item.viewCount }}</span>
-                </div>
-                <div style="display: flex; align-items: center; margin-right: 20px">
-                  <el-icon size="16"><Clock /></el-icon>
-                  <span style="margin-left: 5px">{{ item.time }}</span>
-                </div>
-              </div>
-            </div>
-            <img style="width: 150px; height: 100px; border-radius: 5px; cursor: pointer" :src="item.img" alt="" />
-          </div>
-        </el-col>
-      </el-row>
-
-    </div>
   </div>
 </template>
 
@@ -150,8 +95,7 @@ const data = reactive({
   slideshowList: [],
   noticeList: [],
   universityList: [],
-  interpretationsList: [],
-  newsList: []
+  interpretationsList: []
 })
 // 获取首页轮播图
 const loadSlideshow = () => {
@@ -201,15 +145,4 @@ const loadHotInterpretations = () => {
 }
 loadHotInterpretations()
 
-// 浏览量前6的资讯信息
-const loadHotNews = () => {
-  request.get( '/news/loadHotNews').then(res => {
-    if (res.code === '200') {
-      data.newsList = res.data
-    } else {
-      ElMessage.error(res.msg)
-    }
-  })
-}
-loadHotNews()
 </script>

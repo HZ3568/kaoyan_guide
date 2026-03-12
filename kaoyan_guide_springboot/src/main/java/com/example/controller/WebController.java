@@ -1,19 +1,17 @@
 package com.example.controller;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.date.DateField;
-import cn.hutool.core.date.DateTime;
-import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.util.ObjectUtil;
 import com.example.common.Result;
 import com.example.common.enums.RoleEnum;
 import com.example.entity.*;
-import com.example.mapper.UniversitySpecialtysMapper;
 import com.example.service.*;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 public class WebController {
@@ -89,26 +87,6 @@ public class WebController {
     @Resource
     private SpecialtysService specialtysService;
 
-    @Resource
-    private ApplyService applyService;
-
-
-    @GetMapping("/line")
-    public Result line() {
-        List<Apply> applyList = applyService.selectAll(null);
-        Date today = new Date();
-        DateTime start = DateUtil.offsetDay(today, -7);
-        List<String> list = DateUtil.rangeToList(start, today, DateField.DAY_OF_YEAR).stream().map(DateUtil::formatDate).toList();
-        Map<String, Object> result = new HashMap<>();
-        result.put("x", list);
-        List<Long> yList = new ArrayList<>();
-        for (String day : list) {
-            Long sum = applyList.stream().filter(x -> ObjectUtil.isNotEmpty(x.getTime()) && x.getTime().contains(day)).count();
-            yList.add(sum);
-        }
-        result.put("y", yList);
-        return Result.success(result);
-    }
 
     @GetMapping("/pie")
     public Result pie() {
@@ -123,38 +101,6 @@ public class WebController {
             list.add(map);
         }
         return Result.success(list);
-    }
-
-    @GetMapping("/bar")
-    public Result bar() {
-        List<Categorys> categorysList = categorysService.selectAll(null);
-        List<Apply> applyList = applyService.selectAll(null);
-        List<String> nameList = new ArrayList<>();
-        List<Integer> totalList = new ArrayList<>();
-        for (Categorys categorys : categorysList) {
-            Integer sum = 0;
-            for (Apply apply : applyList) {
-                Specialtys specialtys1 = specialtysService.selectById(apply.getFirstSpecialtysId());
-                if (specialtys1.getCategorysId() == categorys.getId()) {
-                    sum ++;
-                }
-                Specialtys specialtys2 = specialtysService.selectById(apply.getSecondSpecialtysId());
-                if (specialtys2.getCategorysId() == categorys.getId()) {
-                    sum ++;
-                }
-                Specialtys specialtys3 = specialtysService.selectById(apply.getThirdSpecialtysId());
-                if (specialtys3.getCategorysId() == categorys.getId()) {
-                    sum ++;
-                }
-            }
-            totalList.add(sum);
-            nameList.add(categorys.getName());
-        }
-
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("nameList", nameList);
-        map.put("totalList", totalList);
-        return Result.success(map);
     }
 
     @GetMapping("/count")

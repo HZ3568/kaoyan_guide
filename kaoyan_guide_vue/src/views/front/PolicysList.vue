@@ -29,7 +29,7 @@
           >
             <div
               style="font-size: 20px; font-weight: bold; cursor: pointer"
-              class="line1 news-title"
+              class="line1 policy-title"
               @click="$router.push('/front/policysDetail?id=' + item.id)"
             >
               {{ item.name }}
@@ -119,7 +119,7 @@
             style="margin-bottom: 20px"
           >
             <div
-              class="line1 news-title"
+              class="line1 policy-title"
               @click="$router.push('/front/policysDetail?id=' + item.id)"
             >
               {{ item.name }}
@@ -144,9 +144,8 @@
 <script setup>
 import { reactive } from "vue";
 import request from "@/utils/request";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus";
 
-const baseUrl = import.meta.env.VITE_BASE_URL;
 const data = reactive({
   user: JSON.parse(localStorage.getItem("xm-user") || "{}"),
   tableData: [],
@@ -188,13 +187,13 @@ loadHotPolicys();
 </script>
 
 <style scoped>
-.news-title {
+.policy-title {
   font-size: 16px;
   color: #000;
   margin-bottom: 10px;
   cursor: pointer;
 }
-.news-title:hover {
+.policy-title:hover {
   color: #49c48d;
   font-weight: bold;
 }
