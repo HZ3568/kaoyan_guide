@@ -125,13 +125,33 @@
           <!-- 场景B：已有计划 -->
           <div v-else-if="currentPlan" class="plan-content">
             <!-- 顶部操作栏：仅当天可撤回 -->
-            <div class="plan-actions" v-if="isSelectedToday">
+            <div class="plan-actions">
               <el-button
+                type="primary"
+                plain
+                size="small"
+                @click="openAddTaskDialog"
+                :loading="taskActionLoading"
+              >
+                新增任务
+              </el-button>
+              <el-button
+                type="warning"
+                plain
+                size="small"
+                @click="rolloverAllTasks"
+                :loading="taskActionLoading"
+              >
+                未完成顺延到明天
+              </el-button>
+              <el-button
+                v-if="isSelectedToday"
                 type="danger"
                 plain
                 size="small"
                 @click="withdrawPlan"
                 class="withdraw-btn"
+                :loading="taskActionLoading"
               >
                 <el-icon style="margin-right: 4px"><RefreshLeft /></el-icon>
                 撤回今日计划
@@ -169,7 +189,7 @@
               <div class="task-list-container">
                 <div
                   v-for="(task, index) in taskList"
-                  :key="index"
+                  :key="task.taskId || index"
                   class="task-card"
                   @click="toggleTask(index)"
                   :class="{ 'is-completed': task.completed }"
@@ -201,6 +221,29 @@
                       </div>
                     </div>
                   </div>
+                  <div class="task-actions">
+                    <el-button
+                      link
+                      type="primary"
+                      @click.stop="openEditTaskDialog(task)"
+                    >
+                      编辑
+                    </el-button>
+                    <el-button
+                      link
+                      type="danger"
+                      @click.stop="deleteTask(task)"
+                    >
+                      删除
+                    </el-button>
+                    <el-button
+                      link
+                      type="warning"
+                      @click.stop="rolloverSingleTask(task)"
+                    >
+                      顺延到明天
+                    </el-button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -217,6 +260,66 @@
       </div>
     </div>
   </div>
+
+  <el-dialog v-model="addTaskDialogVisible" title="新增任务" width="480px">
+    <el-form label-width="70px">
+      <el-form-item label="科目">
+        <el-input
+          v-model="addTaskForm.subject"
+          maxlength="20"
+          show-word-limit
+        />
+      </el-form-item>
+      <el-form-item label="内容">
+        <el-input
+          v-model="addTaskForm.content"
+          type="textarea"
+          :rows="4"
+          maxlength="200"
+          show-word-limit
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="addTaskDialogVisible = false">取消</el-button>
+      <el-button
+        type="primary"
+        @click="submitAddTask"
+        :loading="taskActionLoading"
+        >确定</el-button
+      >
+    </template>
+  </el-dialog>
+
+  <el-dialog v-model="editTaskDialogVisible" title="编辑任务" width="480px">
+    <el-form label-width="70px">
+      <el-form-item label="科目">
+        <el-input
+          v-model="editTaskForm.subject"
+          maxlength="20"
+          show-word-limit
+        />
+      </el-form-item>
+      <el-form-item label="内容">
+        <el-input
+          v-model="editTaskForm.content"
+          type="textarea"
+          :rows="4"
+          maxlength="200"
+          show-word-limit
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="editTaskDialogVisible = false">取消</el-button>
+      <el-button
+        type="primary"
+        @click="submitEditTask"
+        :loading="taskActionLoading"
+        >保存</el-button
+      >
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -243,7 +346,19 @@ const currentPlan = ref(null);
 const feedback = ref("");
 const loading = ref(false);
 const generating = ref(false);
+const taskActionLoading = ref(false);
 const daysLeft = ref(0);
+const addTaskDialogVisible = ref(false);
+const editTaskDialogVisible = ref(false);
+const addTaskForm = ref({
+  subject: "",
+  content: "",
+});
+const editTaskForm = ref({
+  taskId: "",
+  subject: "",
+  content: "",
+});
 let timer = null;
 
 // 倒计时逻辑
@@ -304,7 +419,6 @@ const isSelected = (dayStr) => {
 };
 
 const hasPlan = (date) => {
-  // TODO: 后续对接实际数据
   return false;
 };
 
@@ -330,6 +444,10 @@ const fetchPlan = (dateStr) => {
     .finally(() => {
       loading.value = false;
     });
+};
+
+const refreshCurrentDatePlan = () => {
+  return fetchPlan(formatDate(selectedDate.value));
 };
 
 const generatePlan = () => {
@@ -387,6 +505,164 @@ const withdrawPlan = () => {
     .catch(() => {});
 };
 
+const openAddTaskDialog = () => {
+  addTaskForm.value = { subject: "", content: "" };
+  addTaskDialogVisible.value = true;
+};
+
+const submitAddTask = () => {
+  if (!currentPlan.value) {
+    ElMessage.warning("当前日期没有计划，无法新增任务");
+    return;
+  }
+  if (!addTaskForm.value.subject.trim() || !addTaskForm.value.content.trim()) {
+    ElMessage.warning("请填写完整的科目和任务内容");
+    return;
+  }
+  taskActionLoading.value = true;
+  request
+    .post("/study-plan/" + formatDate(selectedDate.value) + "/tasks", {
+      subject: addTaskForm.value.subject,
+      content: addTaskForm.value.content,
+    })
+    .then((res) => {
+      if (res.code === "200") {
+        ElMessage.success("新增任务成功");
+        addTaskDialogVisible.value = false;
+        refreshCurrentDatePlan();
+      } else {
+        ElMessage.error(res.msg || "新增任务失败");
+      }
+    })
+    .finally(() => {
+      taskActionLoading.value = false;
+    });
+};
+
+const openEditTaskDialog = (task) => {
+  editTaskForm.value = {
+    taskId: task.taskId,
+    subject: task.subject || "",
+    content: task.content || "",
+  };
+  editTaskDialogVisible.value = true;
+};
+
+const submitEditTask = () => {
+  if (!editTaskForm.value.taskId) {
+    ElMessage.warning("任务标识缺失");
+    return;
+  }
+  if (
+    !editTaskForm.value.subject.trim() ||
+    !editTaskForm.value.content.trim()
+  ) {
+    ElMessage.warning("请填写完整的科目和任务内容");
+    return;
+  }
+  taskActionLoading.value = true;
+  request
+    .put(
+      "/study-plan/" +
+        formatDate(selectedDate.value) +
+        "/tasks/" +
+        editTaskForm.value.taskId,
+      {
+        subject: editTaskForm.value.subject,
+        content: editTaskForm.value.content,
+      }
+    )
+    .then((res) => {
+      if (res.code === "200") {
+        ElMessage.success("编辑任务成功");
+        editTaskDialogVisible.value = false;
+        refreshCurrentDatePlan();
+      } else {
+        ElMessage.error(res.msg || "编辑任务失败");
+      }
+    })
+    .finally(() => {
+      taskActionLoading.value = false;
+    });
+};
+
+const deleteTask = (task) => {
+  if (!task.taskId) {
+    ElMessage.error("任务标识缺失，无法删除");
+    return;
+  }
+  ElMessageBox.confirm("删除后不可恢复，确定删除该任务吗？", "确认删除", {
+    confirmButtonText: "删除",
+    cancelButtonText: "取消",
+    type: "warning",
+  })
+    .then(() => {
+      taskActionLoading.value = true;
+      request
+        .delete(
+          "/study-plan/" +
+            formatDate(selectedDate.value) +
+            "/tasks/" +
+            task.taskId
+        )
+        .then((res) => {
+          if (res.code === "200") {
+            ElMessage.success("删除任务成功");
+            refreshCurrentDatePlan();
+          } else {
+            ElMessage.error(res.msg || "删除任务失败");
+          }
+        })
+        .finally(() => {
+          taskActionLoading.value = false;
+        });
+    })
+    .catch(() => {});
+};
+
+const rolloverSingleTask = (task) => {
+  if (!task.taskId) {
+    ElMessage.error("任务标识缺失，无法顺延");
+    return;
+  }
+  taskActionLoading.value = true;
+  request
+    .post("/study-plan/" + formatDate(selectedDate.value) + "/tasks/rollover", {
+      onlyTaskIds: [task.taskId],
+    })
+    .then((res) => {
+      if (res.code === "200") {
+        ElMessage.success("任务已顺延到明天");
+        refreshCurrentDatePlan();
+      } else {
+        ElMessage.error(res.msg || "顺延失败");
+      }
+    })
+    .finally(() => {
+      taskActionLoading.value = false;
+    });
+};
+
+const rolloverAllTasks = () => {
+  taskActionLoading.value = true;
+  request
+    .post(
+      "/study-plan/" + formatDate(selectedDate.value) + "/tasks/rollover",
+      {}
+    )
+    .then((res) => {
+      if (res.code === "200") {
+        ElMessage.success("未完成任务已顺延到明天");
+        refreshCurrentDatePlan();
+      } else {
+        ElMessage.error(res.msg || "顺延失败");
+      }
+    })
+    .finally(() => {
+      taskActionLoading.value = false;
+    });
+};
+
 const parseTasks = (tasks) => {
   if (!tasks) return [];
   if (typeof tasks === "string") {
@@ -397,7 +673,7 @@ const parseTasks = (tasks) => {
       return [];
     }
   }
-  return tasks;
+  return Array.isArray(tasks) ? tasks : [];
 };
 
 const getTagType = (subject) => {
@@ -433,12 +709,10 @@ watch(
   (newVal) => {
     if (newVal && newVal.dailyTasks) {
       let tasks = parseTasks(newVal.dailyTasks);
-      // Ensure tasks is an array
-      if (!Array.isArray(tasks)) {
-        tasks = [];
-      }
-      // Initialize completed status if not present
       taskList.value = tasks.map((t) => ({
+        taskId: t.taskId || `${Date.now()}-${Math.random()}`,
+        subject: t.subject || "",
+        content: t.content || "",
         ...t,
         completed: t.completed || false,
       }));
@@ -452,7 +726,6 @@ watch(
 onMounted(() => {
   fetchPlan(formatDate(new Date()));
   updateCountdown();
-  // 每秒检查一次日期变更，实际上不需要太频繁，分钟级即可，但为了秒级响应0点变更
   timer = setInterval(updateCountdown, 1000);
 });
 
@@ -759,7 +1032,8 @@ onUnmounted(() => {
 .plan-actions {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: -20px; /* 拉近与下方内容的距离 */
+  gap: 8px;
+  margin-bottom: -20px;
 }
 
 .withdraw-btn {
@@ -834,7 +1108,9 @@ onUnmounted(() => {
   border-radius: 12px;
   padding: 16px 20px;
   display: flex;
+  justify-content: space-between;
   align-items: flex-start;
+  gap: 12px;
   transition: all 0.2s;
   cursor: pointer;
 }
@@ -858,6 +1134,12 @@ onUnmounted(() => {
   font-size: 15px;
   color: #333;
   line-height: 1.5;
+}
+.task-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 .no-plan-empty {
   padding-top: 60px;

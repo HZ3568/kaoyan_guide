@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -38,4 +39,8 @@ public interface StudyPlanMapper {
     @Select("SELECT * FROM daily_study_plan WHERE user_id = #{userId} AND plan_date BETWEEN #{startDate} AND #{endDate} ORDER BY plan_date ASC")
     List<DailyStudyPlan> selectHistory(@Param("userId") Integer userId, @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
+
+    @Update("UPDATE daily_study_plan SET daily_tasks = #{dailyTasks} WHERE user_id = #{userId} AND plan_date = #{date}")
+    void updateDailyTasksByDate(@Param("userId") Integer userId, @Param("date") LocalDate date,
+            @Param("dailyTasks") String dailyTasks);
 }
