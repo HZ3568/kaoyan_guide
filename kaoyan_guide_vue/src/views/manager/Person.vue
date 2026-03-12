@@ -8,7 +8,7 @@
             :show-file-list="false"
             class="avatar-uploader"
         >
-          <img v-if="data.user.avatar" :src="data.user.avatar" class="avatar" />
+          <img v-if="data.user.avatar" :src="data.user.avatar" class="avatar" @error="handleAvatarError" />
           <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
         </el-upload>
       </el-form-item>
@@ -35,6 +35,7 @@
 import { reactive } from "vue";
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
+import defaultAvatar from "@/assets/imgs/avatar.png";
 
 const baseUrl = import.meta.env.VITE_BASE_URL
 
@@ -44,6 +45,10 @@ const data = reactive({
 
 const handleFileUpload = (res) => {
   data.user.avatar = res.data
+}
+
+const handleAvatarError = (event) => {
+  event.target.src = defaultAvatar
 }
 
 const emit = defineEmits(['updateUser'])

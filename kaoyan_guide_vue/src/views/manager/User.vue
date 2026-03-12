@@ -17,7 +17,11 @@
         <el-table-column prop="avatar" label="头像">
           <template v-slot="scope">
             <el-image style="width: 40px; height: 40px; border-radius: 50%; display: block" v-if="scope.row.avatar"
-                      :src="scope.row.avatar" :preview-src-list="[scope.row.avatar]" preview-teleported></el-image>
+                      :src="scope.row.avatar" :preview-src-list="[scope.row.avatar]" preview-teleported>
+              <template #error>
+                <img :src="defaultAvatar" style="width: 40px; height: 40px; border-radius: 50%; display: block" alt="">
+              </template>
+            </el-image>
           </template>
         </el-table-column>
         <el-table-column prop="name" label="姓名" />
@@ -84,6 +88,7 @@ import {reactive, ref} from "vue";
 import request from "@/utils/request.js";
 import {ElMessage, ElMessageBox} from "element-plus";
 import {Delete, Edit} from "@element-plus/icons-vue";
+import defaultAvatar from "@/assets/imgs/avatar.png";
 
 const baseUrl = import.meta.env.VITE_BASE_URL
 const formRef = ref()

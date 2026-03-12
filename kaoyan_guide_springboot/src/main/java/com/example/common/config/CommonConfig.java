@@ -11,10 +11,10 @@ import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
-import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
+import com.example.service.rag.SchoolAwareContentRetriever;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -83,11 +83,11 @@ public class CommonConfig {
     // 构建向量数据库检索对象
     @Bean
     public ContentRetriever contentRetriever() {
-        return EmbeddingStoreContentRetriever.builder()
-                .embeddingStore(redisEmbeddingStore)
-                .embeddingModel(embeddingModel)
-                .minScore(0.5)
-                .maxResults(3)
-                .build();
+        return new SchoolAwareContentRetriever(
+                redisEmbeddingStore,
+                embeddingModel,
+                0.4,
+                8,
+                3);
     }
 }

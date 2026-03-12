@@ -37,7 +37,11 @@
               :src="scope.row.avatar"
               :preview-src-list="[scope.row.avatar]"
               preview-teleported
-            ></el-image>
+            >
+              <template #error>
+                <img :src="defaultAvatar" style="width: 40px; height: 40px; border-radius: 50%; display: block" alt="">
+              </template>
+            </el-image>
           </template>
         </el-table-column>
         <el-table-column prop="name" label="名称" show-overflow-tooltip />
@@ -198,6 +202,7 @@ import { reactive, ref } from "vue";
 import request from "@/utils/request.js";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Delete, Edit } from "@element-plus/icons-vue";
+import defaultAvatar from "@/assets/imgs/avatar.png";
 
 const baseUrl = import.meta.env.VITE_BASE_URL;
 const formRef = ref();

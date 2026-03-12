@@ -2,14 +2,15 @@
   <div class="manager-container">
     <div class="manager-header">
       <div class="manager-header-left">
-        <img src="@/assets/imgs/logo.png" alt="" />
-        <div class="title">高考志愿填报</div>
+        <img
+          src="@/assets/imgs/logo.png"
+          alt=""
+        />
+        <div class="title">研途规划</div>
       </div>
       <div class="manager-header-center">
         <el-breadcrumb separator="/">
-          <el-breadcrumb-item :to="{ path: '/manager/home' }"
-            >首页</el-breadcrumb-item
-          >
+          <el-breadcrumb-item :to="{ path: '/manager/home' }">首页</el-breadcrumb-item>
           <el-breadcrumb-item>{{
             router.currentRoute.value.meta.name
           }}</el-breadcrumb-item>
@@ -21,31 +22,28 @@
             <img
               style="width: 40px; height: 40px; border-radius: 50%"
               :src="data.user.avatar"
+              @error="handleAvatarError"
               alt=""
             />
             <span style="margin-left: 5px; color: white">{{
               data.user.name
-            }}</span
-            ><el-icon color="#fff"><arrow-down /></el-icon>
+            }}</span><el-icon color="#fff"><arrow-down /></el-icon>
           </div>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item
                 @click="router.push('/manager/universityPerson')"
                 v-if="data.user.role === 'UNIVERSITY'"
-                >学校信息</el-dropdown-item
-              >
-              <el-dropdown-item @click="router.push('/manager/person')" v-else
-                >个人资料</el-dropdown-item
-              >
+              >学校信息</el-dropdown-item>
+              <el-dropdown-item
+                @click="router.push('/manager/person')"
+                v-else
+              >个人资料</el-dropdown-item>
               <el-dropdown-item
                 @click="router.push('/manager/universityCertifications')"
                 v-if="data.user.role === 'UNIVERSITY'"
-                >认证信息</el-dropdown-item
-              >
-              <el-dropdown-item @click="router.push('/manager/password')"
-                >修改密码</el-dropdown-item
-              >
+              >认证信息</el-dropdown-item>
+              <el-dropdown-item @click="router.push('/manager/password')">修改密码</el-dropdown-item>
               <el-dropdown-item @click="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -61,14 +59,18 @@
           router
         >
           <el-menu-item index="/manager/home">
-            <el-icon><HomeFilled /></el-icon>
+            <el-icon>
+              <HomeFilled />
+            </el-icon>
             <span>系统首页</span>
           </el-menu-item>
           <el-menu-item
             index="/manager/dataStatistics"
             v-if="data.user.role === 'ADMIN'"
           >
-            <el-icon><Histogram /></el-icon>
+            <el-icon>
+              <Histogram />
+            </el-icon>
             <span>数据统计</span>
           </el-menu-item>
           <el-sub-menu
@@ -80,32 +82,28 @@
             "
           >
             <template #title>
-              <el-icon><Menu /></el-icon>
+              <el-icon>
+                <Menu />
+              </el-icon>
               <span>信息管理</span>
             </template>
             <el-menu-item
               index="/manager/areas"
               v-if="data.user.role === 'ADMIN'"
-              >地区信息</el-menu-item
-            >
+            >地区信息</el-menu-item>
             <el-menu-item
               index="/manager/categorys"
               v-if="data.user.role === 'ADMIN'"
-              >门类信息</el-menu-item
-            >
+            >门类信息</el-menu-item>
             <el-menu-item
               index="/manager/specialtys"
               v-if="data.user.role === 'ADMIN'"
-              >专业信息</el-menu-item
-            >
+            >专业信息</el-menu-item>
             <el-menu-item
               index="/manager/interpretations"
               v-if="data.user.role === 'ADMIN'"
-              >专业解读</el-menu-item
-            >
-            <el-menu-item index="/manager/universitySpecialtys"
-              >学校专业</el-menu-item
-            >
+            >专业解读</el-menu-item>
+            <el-menu-item index="/manager/universitySpecialtys">学校专业</el-menu-item>
             <!-- <el-menu-item index="/manager/apply">报考信息</el-menu-item> -->
             <!-- <el-menu-item
               index="/manager/news"
@@ -127,19 +125,22 @@
             <el-menu-item
               index="/manager/slideshow"
               v-if="data.user.role === 'ADMIN'"
-              >轮播图信息</el-menu-item
-            >
+            >轮播图信息</el-menu-item>
             <el-menu-item
               index="/manager/notice"
               v-if="data.user.role === 'ADMIN'"
-              >系统公告</el-menu-item
-            >
+            >系统公告</el-menu-item>
 
             <!-- 新菜单 -->
           </el-sub-menu>
-          <el-sub-menu index="2" v-if="data.user.role === 'ADMIN'">
+          <el-sub-menu
+            index="2"
+            v-if="data.user.role === 'ADMIN'"
+          >
             <template #title>
-              <el-icon><UserFilled /></el-icon>
+              <el-icon>
+                <UserFilled />
+              </el-icon>
               <span>用户管理</span>
             </template>
             <el-menu-item index="/manager/admin">管理员信息</el-menu-item>
@@ -160,6 +161,7 @@
 import { reactive } from "vue";
 import router from "@/router/index.js";
 import { ElMessage } from "element-plus";
+import defaultAvatar from "@/assets/imgs/avatar.png";
 
 const data = reactive({
   user: JSON.parse(localStorage.getItem("xm-user") || "{}"),
@@ -172,6 +174,10 @@ const logout = () => {
 
 const updateUser = () => {
   data.user = JSON.parse(localStorage.getItem("xm-user") || "{}");
+};
+
+const handleAvatarError = (event) => {
+  event.target.src = defaultAvatar;
 };
 
 if (!data.user.id) {

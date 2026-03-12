@@ -8,7 +8,7 @@
             :show-file-list="false"
             class="avatar-uploader"
         >
-          <img v-if="data.user.avatar" :src="data.user.avatar" class="avatar" />
+          <img v-if="data.user.avatar" :src="data.user.avatar" class="avatar" @error="handleAvatarError" />
           <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
         </el-upload>
       </el-form-item>
@@ -92,6 +92,7 @@ import {Delete, Edit} from "@element-plus/icons-vue";
 import '@wangeditor/editor/dist/css/style.css' // 引入 css
 import {onBeforeUnmount, shallowRef} from "vue";
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
+import defaultAvatar from "@/assets/imgs/avatar.png";
 
 const baseUrl = import.meta.env.VITE_BASE_URL
 
@@ -111,6 +112,10 @@ const loadAreas = () => {
 loadAreas()
 const handleFileUpload = (res) => {
   data.user.avatar = res.data
+}
+
+const handleAvatarError = (event) => {
+  event.target.src = defaultAvatar
 }
 
 const emit = defineEmits(['updateUser'])

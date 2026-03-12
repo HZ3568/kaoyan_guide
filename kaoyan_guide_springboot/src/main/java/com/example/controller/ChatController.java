@@ -19,7 +19,7 @@ import java.util.UUID;
 public class ChatController {
     @Autowired
     private ChatGatewayService chatGatewayService;
-    
+
     @RequestMapping(value = "/chat", produces = "text/event-stream;charset=UTF-8")
     public Flux<String> chat(@RequestParam("message") String message,
                              @RequestParam("moduleType") String moduleType,
