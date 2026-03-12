@@ -12,11 +12,9 @@ import reactor.core.publisher.Flux;
         chatModel = "openAiChatModel",
         streamingChatModel = "openAiStreamingChatModel",
         chatMemory = "chatMemory",
-        chatMemoryProvider = "chatMemoryProvider",
-        contentRetriever = "contentRetriever",
-        tools = "reservationTool"
+        chatMemoryProvider = "chatMemoryProvider"
 )
-public interface ChatService {
-    @SystemMessage(fromResource = "prompts/volunteer_apply_system_prompt.txt")
+public interface LearningPlanChatService {
+    @SystemMessage(fromResource = "prompts/learning_plan_system_prompt.txt")
     Flux<String> chat(@MemoryId String memoryId, @UserMessage String message);
 }

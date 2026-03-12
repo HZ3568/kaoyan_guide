@@ -82,6 +82,12 @@ public class StudyPlanService {
         // 简单的清洗feedback，防止注入（虽然AI不太怕注入，但保持整洁）
         String cleanFeedback = feedback == null ? "无" : feedback.trim();
         String jsonResult = studyPlanAiService.generatePlan(historyBuilder.toString(), cleanFeedback);
+//        String jsonResult = studyPlanAiService.generateStudyPlanOnly(
+//                userId,
+//                today,
+//                historyBuilder.toString(),
+//                cleanFeedback
+//        );
 
         // 5. 清洗和解析JSON
         String cleanJson = cleanJson(jsonResult);

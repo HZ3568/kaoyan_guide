@@ -174,7 +174,7 @@ let typingIntervals = {}; // 每条消息独立的打字 interval
 
 // 从本地存储加载聊天记录
 const loadChatsFromLocalStorage = () => {
-  const savedChats = localStorage.getItem("college-ai-chats");
+  const savedChats = localStorage.getItem("volunteer-apply-ai-chats");
   if (savedChats) {
     try {
       const parsedChats = JSON.parse(savedChats);
@@ -221,7 +221,7 @@ const floatingInputStyle = computed(() => ({
 
 // 保存聊天记录到本地存储
 const saveChatsToLocalStorage = () => {
-  localStorage.setItem("college-ai-chats", JSON.stringify(chats.value));
+  localStorage.setItem("volunteer-apply-ai-chats", JSON.stringify(chats.value));
 };
 
 // 重命名与删除：编辑状态
@@ -423,9 +423,9 @@ async function sendMessage() {
     const token = user.token || "";
 
     const response = await fetch(
-      `/api/chat?message=${encodeURIComponent(inputText)}&memoryId=${
-        currentChat.value.id
-      }`,
+      `/api/chat?message=${encodeURIComponent(inputText)}&moduleType=volunteer_apply&sessionId=${encodeURIComponent(
+        String(currentChat.value.id)
+      )}`,
       {
         method: "GET",
         headers: {
