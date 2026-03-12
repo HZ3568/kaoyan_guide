@@ -21,7 +21,7 @@ public interface StudyPlanAiService {
             "  \"tasks\": [\n" +
             "    {\n" +
             "      \"taskId\": \"留空字符串即可\",\n" +
-            "      \"subject\": \"科目名称，例如：数学、英语、408专业课等\",\n" +
+            "      \"subject\": \"科目名称，例如：数学、英语、政治、408专业课等\",\n" +
             "      \"content\": \"具体的学习任务，例如：完成高数第二章课后习题并核对答案\",\n" +
             "      \"completed\": false\n" +
             "    },\n" +

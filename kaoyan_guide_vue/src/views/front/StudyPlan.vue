@@ -222,25 +222,13 @@
                     </div>
                   </div>
                   <div class="task-actions">
-                    <el-button
-                      link
-                      type="primary"
-                      @click.stop="openEditTaskDialog(task)"
-                    >
+                    <el-button link type="primary" @click.stop="openEditTaskDialog(task)">
                       编辑
                     </el-button>
-                    <el-button
-                      link
-                      type="danger"
-                      @click.stop="deleteTask(task)"
-                    >
+                    <el-button link type="danger" @click.stop="deleteTask(task)">
                       删除
                     </el-button>
-                    <el-button
-                      link
-                      type="warning"
-                      @click.stop="rolloverSingleTask(task)"
-                    >
+                    <el-button link type="warning" @click.stop="rolloverSingleTask(task)">
                       顺延到明天
                     </el-button>
                   </div>
@@ -264,11 +252,7 @@
   <el-dialog v-model="addTaskDialogVisible" title="新增任务" width="480px">
     <el-form label-width="70px">
       <el-form-item label="科目">
-        <el-input
-          v-model="addTaskForm.subject"
-          maxlength="20"
-          show-word-limit
-        />
+        <el-input v-model="addTaskForm.subject" maxlength="20" show-word-limit />
       </el-form-item>
       <el-form-item label="内容">
         <el-input
@@ -282,10 +266,7 @@
     </el-form>
     <template #footer>
       <el-button @click="addTaskDialogVisible = false">取消</el-button>
-      <el-button
-        type="primary"
-        @click="submitAddTask"
-        :loading="taskActionLoading"
+      <el-button type="primary" @click="submitAddTask" :loading="taskActionLoading"
         >确定</el-button
       >
     </template>
@@ -294,11 +275,7 @@
   <el-dialog v-model="editTaskDialogVisible" title="编辑任务" width="480px">
     <el-form label-width="70px">
       <el-form-item label="科目">
-        <el-input
-          v-model="editTaskForm.subject"
-          maxlength="20"
-          show-word-limit
-        />
+        <el-input v-model="editTaskForm.subject" maxlength="20" show-word-limit />
       </el-form-item>
       <el-form-item label="内容">
         <el-input
@@ -312,10 +289,7 @@
     </el-form>
     <template #footer>
       <el-button @click="editTaskDialogVisible = false">取消</el-button>
-      <el-button
-        type="primary"
-        @click="submitEditTask"
-        :loading="taskActionLoading"
+      <el-button type="primary" @click="submitEditTask" :loading="taskActionLoading"
         >保存</el-button
       >
     </template>
@@ -553,10 +527,7 @@ const submitEditTask = () => {
     ElMessage.warning("任务标识缺失");
     return;
   }
-  if (
-    !editTaskForm.value.subject.trim() ||
-    !editTaskForm.value.content.trim()
-  ) {
+  if (!editTaskForm.value.subject.trim() || !editTaskForm.value.content.trim()) {
     ElMessage.warning("请填写完整的科目和任务内容");
     return;
   }
@@ -646,10 +617,7 @@ const rolloverSingleTask = (task) => {
 const rolloverAllTasks = () => {
   taskActionLoading.value = true;
   request
-    .post(
-      "/study-plan/" + formatDate(selectedDate.value) + "/tasks/rollover",
-      {}
-    )
+    .post("/study-plan/" + formatDate(selectedDate.value) + "/tasks/rollover", {})
     .then((res) => {
       if (res.code === "200") {
         ElMessage.success("未完成任务已顺延到明天");

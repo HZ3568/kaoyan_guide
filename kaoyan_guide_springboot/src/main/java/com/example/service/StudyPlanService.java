@@ -4,9 +4,11 @@ import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.example.entity.DailyStudyPlan;
+import com.example.entity.StudyPlanTask;
 import com.example.mapper.StudyPlanMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -35,12 +37,7 @@ public class StudyPlanService {
         if (plan == null) {
             return null;
         }
-        TaskNormalizeResult normalizeResult = normalizeTaskList(plan.getDailyTasks());
-        plan.setDailyTasks(normalizeResult.tasksJson);
-        if (normalizeResult.changed) {
-            studyPlanMapper.updateDailyTasksByDate(userId, date, normalizeResult.tasksJson);
-        }
-        return plan;
+        return fillPlanTasks(plan, true);
     }
 
     /**
@@ -53,6 +50,7 @@ public class StudyPlanService {
     /**
      * 生成今日计划
      */
+    @Transactional
     public DailyStudyPlan generatePlan(Integer userId, String feedback) {
         LocalDate today = LocalDate.now();
 
@@ -73,8 +71,9 @@ public class StudyPlanService {
             historyBuilder.append("无历史记录，这是第一天学习。");
         } else {
             for (DailyStudyPlan plan : historyPlans) {
+                DailyStudyPlan fullPlan = fillPlanTasks(plan, true);
                 historyBuilder.append("日期: ").append(plan.getPlanDate()).append("\n");
-                historyBuilder.append("任务: ").append(plan.getDailyTasks()).append("\n");
+                historyBuilder.append("任务: ").append(fullPlan.getDailyTasks()).append("\n");
                 historyBuilder.append("反馈: ").append(plan.getUserFeedback()).append("\n\n");
             }
         }
@@ -103,14 +102,18 @@ public class StudyPlanService {
         plan.setPlanDate(today);
         plan.setUserFeedback(cleanFeedback);
         plan.setAiAdvice(advice);
-        plan.setDailyTasks(tasks);
-        plan.setCreateTime(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        plan.setCreateTime(now);
+        plan.setUpdateTime(now);
 
         studyPlanMapper.insert(plan);
+        replacePlanTasks(plan.getId(), normalizeResult.tasks);
+        plan.setDailyTasks(tasks);
 
         return plan;
     }
 
+    @Transactional
     public JSONObject addTask(Integer userId, LocalDate date, String subject, String content) {
         String normalizedSubject = normalizeText(subject);
         String normalizedContent = normalizeText(content);
@@ -119,15 +122,15 @@ public class StudyPlanService {
         if (plan == null) {
             throw new RuntimeException("当日计划不存在，请先生成计划");
         }
-        TaskNormalizeResult normalizeResult = normalizeTaskList(plan.getDailyTasks());
-        List<JSONObject> tasks = normalizeResult.tasks;
+        TaskNormalizeResult normalizeResult = normalizeTaskEntities(studyPlanMapper.selectTasksByPlanId(plan.getId()));
+        List<JSONObject> tasks = new ArrayList<>(normalizeResult.tasks);
         JSONObject task = buildTask(UUID.randomUUID().toString(), normalizedSubject, normalizedContent, false);
         tasks.add(task);
-        String tasksJson = JSONUtil.toJsonStr(tasks);
-        studyPlanMapper.updateDailyTasksByDate(userId, date, tasksJson);
+        replacePlanTasks(plan.getId(), tasks);
         return task;
     }
 
+    @Transactional
     public JSONObject updateTask(Integer userId, LocalDate date, String taskId, String subject, String content) {
         String normalizedSubject = normalizeText(subject);
         String normalizedContent = normalizeText(content);
@@ -136,46 +139,52 @@ public class StudyPlanService {
         if (plan == null) {
             throw new RuntimeException("当日计划不存在");
         }
-        TaskNormalizeResult normalizeResult = normalizeTaskList(plan.getDailyTasks());
-        List<JSONObject> tasks = normalizeResult.tasks;
-        JSONObject target = null;
-        for (JSONObject task : tasks) {
-            if (taskId.equals(task.getStr("taskId"))) {
-                task.set("subject", normalizedSubject);
-                task.set("content", normalizedContent);
-                target = task;
-                break;
-            }
-        }
-        if (target == null) {
+        String normalizedTaskId = normalizeText(taskId);
+        if (isBlank(normalizedTaskId)) {
             throw new RuntimeException("任务不存在");
         }
-        String tasksJson = JSONUtil.toJsonStr(tasks);
-        studyPlanMapper.updateDailyTasksByDate(userId, date, tasksJson);
-        return target;
+        int affected = studyPlanMapper.updateTaskByPlanIdAndTaskId(plan.getId(), normalizedTaskId, normalizedSubject,
+                normalizedContent);
+        if (affected <= 0) {
+            throw new RuntimeException("任务不存在");
+        }
+        TaskNormalizeResult normalizeResult = normalizeTaskEntities(studyPlanMapper.selectTasksByPlanId(plan.getId()));
+        if (normalizeResult.changed) {
+            replacePlanTasks(plan.getId(), normalizeResult.tasks);
+        }
+        for (JSONObject task : normalizeResult.tasks) {
+            if (normalizedTaskId.equals(task.getStr("taskId"))) {
+                return task;
+            }
+        }
+        throw new RuntimeException("任务不存在");
     }
 
+    @Transactional
     public void deleteTask(Integer userId, LocalDate date, String taskId) {
         DailyStudyPlan plan = studyPlanMapper.selectByDate(userId, date);
         if (plan == null) {
             throw new RuntimeException("当日计划不存在");
         }
-        TaskNormalizeResult normalizeResult = normalizeTaskList(plan.getDailyTasks());
-        List<JSONObject> tasks = normalizeResult.tasks;
-        boolean removed = tasks.removeIf(task -> taskId.equals(task.getStr("taskId")));
-        if (!removed) {
+        String normalizedTaskId = normalizeText(taskId);
+        if (isBlank(normalizedTaskId)) {
             throw new RuntimeException("任务不存在");
         }
-        studyPlanMapper.updateDailyTasksByDate(userId, date, JSONUtil.toJsonStr(tasks));
+        int affected = studyPlanMapper.deleteTaskByPlanIdAndTaskId(plan.getId(), normalizedTaskId);
+        if (affected <= 0) {
+            throw new RuntimeException("任务不存在");
+        }
     }
 
+    @Transactional
     public Map<String, Object> rolloverTasks(Integer userId, LocalDate sourceDate, List<String> onlyTaskIds) {
         DailyStudyPlan sourcePlan = studyPlanMapper.selectByDate(userId, sourceDate);
         if (sourcePlan == null) {
             throw new RuntimeException("当日计划不存在");
         }
-        TaskNormalizeResult sourceNormalize = normalizeTaskList(sourcePlan.getDailyTasks());
-        List<JSONObject> sourceTasks = sourceNormalize.tasks;
+        TaskNormalizeResult sourceNormalize = normalizeTaskEntities(
+                studyPlanMapper.selectTasksByPlanId(sourcePlan.getId()));
+        List<JSONObject> sourceTasks = new ArrayList<>(sourceNormalize.tasks);
         Set<String> requiredTaskIds = new HashSet<>();
         if (onlyTaskIds != null) {
             for (String taskId : onlyTaskIds) {
@@ -222,7 +231,7 @@ public class StudyPlanService {
             movingTaskIds.add(task.getStr("taskId"));
         }
         sourceTasks.removeIf(task -> movingTaskIds.contains(task.getStr("taskId")));
-        studyPlanMapper.updateDailyTasksByDate(userId, sourceDate, JSONUtil.toJsonStr(sourceTasks));
+        replacePlanTasks(sourcePlan.getId(), sourceTasks);
 
         LocalDate targetDate = sourceDate.plusDays(1);
         DailyStudyPlan targetPlan = studyPlanMapper.selectByDate(userId, targetDate);
@@ -230,8 +239,9 @@ public class StudyPlanService {
         if (targetPlan == null) {
             targetTasks = new ArrayList<>();
         } else {
-            TaskNormalizeResult targetNormalize = normalizeTaskList(targetPlan.getDailyTasks());
-            targetTasks = targetNormalize.tasks;
+            TaskNormalizeResult targetNormalize = normalizeTaskEntities(
+                    studyPlanMapper.selectTasksByPlanId(targetPlan.getId()));
+            targetTasks = new ArrayList<>(targetNormalize.tasks);
         }
 
         for (JSONObject sourceTask : movableTasks) {
@@ -242,18 +252,20 @@ public class StudyPlanService {
                     false));
         }
 
-        String targetTasksJson = JSONUtil.toJsonStr(targetTasks);
         if (targetPlan == null) {
             DailyStudyPlan newPlan = new DailyStudyPlan();
             newPlan.setUserId(userId);
             newPlan.setPlanDate(targetDate);
             newPlan.setUserFeedback("");
             newPlan.setAiAdvice("由前一日未完成任务自动顺延生成");
-            newPlan.setDailyTasks(targetTasksJson);
-            newPlan.setCreateTime(LocalDateTime.now());
+            LocalDateTime now = LocalDateTime.now();
+            newPlan.setCreateTime(now);
+            newPlan.setUpdateTime(now);
             studyPlanMapper.insert(newPlan);
+            targetPlan = newPlan;
+            replacePlanTasks(targetPlan.getId(), targetTasks);
         } else {
-            studyPlanMapper.updateDailyTasksByDate(userId, targetDate, targetTasksJson);
+            replacePlanTasks(targetPlan.getId(), targetTasks);
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -262,6 +274,36 @@ public class StudyPlanService {
         result.put("movedCount", movableTasks.size());
         result.put("targetTaskTotal", targetTasks.size());
         return result;
+    }
+
+    private DailyStudyPlan fillPlanTasks(DailyStudyPlan plan, boolean normalizeAndPersist) {
+        TaskNormalizeResult normalizeResult = normalizeTaskEntities(studyPlanMapper.selectTasksByPlanId(plan.getId()));
+        plan.setDailyTasks(normalizeResult.tasksJson);
+        if (normalizeAndPersist && normalizeResult.changed) {
+            replacePlanTasks(plan.getId(), normalizeResult.tasks);
+        }
+        return plan;
+    }
+
+    private void replacePlanTasks(Long planId, List<JSONObject> tasks) {
+        studyPlanMapper.deleteTasksByPlanId(planId);
+        if (tasks == null || tasks.isEmpty()) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        for (int i = 0; i < tasks.size(); i++) {
+            JSONObject task = tasks.get(i);
+            StudyPlanTask entity = new StudyPlanTask();
+            entity.setTaskId(task.getStr("taskId"));
+            entity.setPlanId(planId);
+            entity.setSubject(task.getStr("subject"));
+            entity.setContent(task.getStr("content"));
+            entity.setCompleted(Boolean.TRUE.equals(task.getBool("completed")));
+            entity.setSortNo(i);
+            entity.setCreateTime(now);
+            entity.setUpdateTime(now);
+            studyPlanMapper.insertTask(entity);
+        }
     }
 
     /**
@@ -288,6 +330,21 @@ public class StudyPlanService {
         }
     }
 
+    private TaskNormalizeResult normalizeTaskEntities(List<StudyPlanTask> taskEntities) {
+        JSONArray sourceArray = new JSONArray();
+        if (taskEntities != null) {
+            for (StudyPlanTask taskEntity : taskEntities) {
+                JSONObject source = new JSONObject();
+                source.set("taskId", taskEntity.getTaskId());
+                source.set("subject", taskEntity.getSubject());
+                source.set("content", taskEntity.getContent());
+                source.set("completed", Boolean.TRUE.equals(taskEntity.getCompleted()));
+                sourceArray.add(source);
+            }
+        }
+        return normalizeTaskList(sourceArray);
+    }
+
     private TaskNormalizeResult normalizeTaskList(Object tasksRaw) {
         JSONArray sourceArray;
         try {
@@ -303,6 +360,7 @@ public class StudyPlanService {
         }
 
         List<JSONObject> normalizedTasks = new ArrayList<>();
+        Set<String> usedTaskIds = new HashSet<>();
         boolean changed = false;
         for (Object item : sourceArray) {
             JSONObject sourceTask;
@@ -313,10 +371,11 @@ public class StudyPlanService {
                 continue;
             }
             String taskId = normalizeText(sourceTask.getStr("taskId"));
-            if (isBlank(taskId)) {
+            if (isBlank(taskId) || usedTaskIds.contains(taskId)) {
                 taskId = UUID.randomUUID().toString();
                 changed = true;
             }
+            usedTaskIds.add(taskId);
             String subject = normalizeText(sourceTask.getStr("subject"));
             if (subject.length() > 20) {
                 subject = subject.substring(0, 20);

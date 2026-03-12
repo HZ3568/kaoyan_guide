@@ -9,7 +9,7 @@ public class DailyStudyPlan {
     /**
      * 主键
      */
-    private Integer id;
+    private Long id;
 
     /**
      * 用户ID
@@ -40,4 +40,9 @@ public class DailyStudyPlan {
      * 创建时间
      */
     private LocalDateTime createTime;
+
+    /**
+     * 更新时间
+     */
+    private LocalDateTime updateTime;
 }
