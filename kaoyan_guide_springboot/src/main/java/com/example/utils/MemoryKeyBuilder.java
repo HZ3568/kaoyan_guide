@@ -4,11 +4,12 @@ import com.example.common.enums.ModuleType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.util.regex.Pattern;
+
 @Component
 public class MemoryKeyBuilder {
-    private static final String PREFIX = "chat";
-    private static final String DEFAULT_SESSION_ID = "default";
     private static final String REDIS_PREFIX = "chat:memory:";
+    private static final Pattern SESSION_ID_PATTERN = Pattern.compile("^[A-Za-z0-9_-]{1,128}$");
 
     public String build(Integer userId, ModuleType moduleType, String sessionId) {
         if (userId == null) {
@@ -17,46 +18,72 @@ public class MemoryKeyBuilder {
         if (moduleType == null) {
             throw new IllegalArgumentException("moduleType不能为空");
         }
-        String normalizedSessionId = normalizeSessionId(sessionId);
-        return PREFIX + ":" + userId + ":" + moduleType.getCode() + ":" + normalizedSessionId;
+        if (!StringUtils.hasText(sessionId)) {
+            throw new IllegalArgumentException("sessionId不能为空");
+        }
+        String normalizedSessionId = sessionId.trim();
+        if (!isValidSessionId(normalizedSessionId)) {
+            throw new IllegalArgumentException("sessionId格式非法");
+        }
+        return userId + ":" + moduleType.getCode() + ":" + normalizedSessionId;
     }
 
-    public String toRedisKey(Object memoryId) {
+    public String toRedisKey(String memoryId) {
         return REDIS_PREFIX + memoryId;
     }
 
-    public String normalizeSessionId(String sessionId) {
-        if (!StringUtils.hasText(sessionId)) {
-            return DEFAULT_SESSION_ID;
-        }
-        String normalized = sessionId.trim().replace(":", "_");
-        if (!StringUtils.hasText(normalized)) {
-            return DEFAULT_SESSION_ID;
-        }
-        return normalized;
-    }
-
-    public String extractModuleType(String memoryKey) {
-        String[] parts = split(memoryKey);
-        return parts == null ? "" : parts[2];
-    }
-
-    public String extractSessionId(String memoryKey) {
-        String[] parts = split(memoryKey);
-        return parts == null ? "" : parts[3];
-    }
-
-    private String[] split(String memoryKey) {
-        if (!StringUtils.hasText(memoryKey)) {
+    public MemoryIdentity parseMemoryId(String memoryId) {
+        if (!StringUtils.hasText(memoryId)) {
             return null;
         }
-        String[] parts = memoryKey.split(":", 4);
-        if (parts.length < 4) {
+        String[] parts = memoryId.trim().split(":");
+        if (parts.length != 3) {
             return null;
         }
-        if (!PREFIX.equals(parts[0])) {
+        Integer userId;
+        try {
+            userId = Integer.valueOf(parts[0]);
+        } catch (NumberFormatException e) {
             return null;
         }
-        return parts;
+        ModuleType moduleType;
+        try {
+            moduleType = ModuleType.fromCode(parts[1]);
+        } catch (Exception e) {
+            return null;
+        }
+        String sessionId = parts[2].trim();
+        if (!isValidSessionId(sessionId)) {
+            return null;
+        }
+        return new MemoryIdentity(userId, moduleType.getCode(), sessionId);
+    }
+
+    private boolean isValidSessionId(String sessionId) {
+        return SESSION_ID_PATTERN.matcher(sessionId).matches();
+    }
+
+    public static class MemoryIdentity {
+        private final Integer userId;
+        private final String moduleType;
+        private final String sessionId;
+
+        public MemoryIdentity(Integer userId, String moduleType, String sessionId) {
+            this.userId = userId;
+            this.moduleType = moduleType;
+            this.sessionId = sessionId;
+        }
+
+        public Integer getUserId() {
+            return userId;
+        }
+
+        public String getModuleType() {
+            return moduleType;
+        }
+
+        public String getSessionId() {
+            return sessionId;
+        }
     }
 }

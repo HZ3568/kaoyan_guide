@@ -172,6 +172,21 @@ const chatArea = ref(null);
 let controller = null; // 用于取消请求的控制器
 let typingIntervals = {}; // 每条消息独立的打字 interval
 
+const createSessionId = () => {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const ensureChatSessionId = (chat) => {
+  if (!chat) return createSessionId();
+  if (!chat.sessionId) {
+    chat.sessionId = createSessionId();
+  }
+  return chat.sessionId;
+};
+
 // 从本地存储加载聊天记录
 const loadChatsFromLocalStorage = () => {
   const savedChats = localStorage.getItem("volunteer-apply-ai-chats");
@@ -179,7 +194,10 @@ const loadChatsFromLocalStorage = () => {
     try {
       const parsedChats = JSON.parse(savedChats);
       if (Array.isArray(parsedChats) && parsedChats.length > 0) {
-        return parsedChats;
+        return parsedChats.map((chat) => ({
+          ...chat,
+          sessionId: chat.sessionId || createSessionId(),
+        }));
       }
     } catch (e) {
       console.error("加载聊天记录失败:", e);
@@ -193,6 +211,7 @@ const chats = ref(
   loadChatsFromLocalStorage() || [
     {
       id: Date.now(),
+      sessionId: createSessionId(),
       title: "院校咨询",
       messages: [
         {
@@ -421,10 +440,11 @@ async function sendMessage() {
     // 读取本地登录信息，注入后端拦截器需要的 token
     const user = JSON.parse(localStorage.getItem("xm-user") || "{}");
     const token = user.token || "";
+    const activeSessionId = ensureChatSessionId(currentChat.value);
 
     const response = await fetch(
       `/api/chat?message=${encodeURIComponent(inputText)}&moduleType=volunteer_apply&sessionId=${encodeURIComponent(
-        String(currentChat.value.id)
+        activeSessionId
       )}`,
       {
         method: "GET",
@@ -435,6 +455,10 @@ async function sendMessage() {
         signal: controller.signal,
       }
     );
+    const responseSessionId = response.headers.get("X-Session-Id");
+    if (responseSessionId) {
+      currentChat.value.sessionId = responseSessionId;
+    }
 
     clearTimeout(timeoutId);
 
@@ -550,6 +574,7 @@ function createNewChat() {
   const newId = Date.now();
   chats.value.push({
     id: newId,
+    sessionId: createSessionId(),
     title: `新建聊天 ${chats.value.length + 1}`,
     messages: [
       {

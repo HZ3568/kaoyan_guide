@@ -46,10 +46,10 @@ public class ChatGatewayService {
     }
 
     public Flux<String> chat(Integer userId, ModuleType moduleType, String sessionId, String message) {
-        String memoryKey = memoryKeyBuilder.build(userId, moduleType, sessionId);
-        SessionContext sessionContext = new SessionContext(userId, moduleType,
-                memoryKeyBuilder.normalizeSessionId(sessionId), memoryKey);
-        List<ChatMessage> historyMessages = readHistory(memoryKey);
+        String memoryId = memoryKeyBuilder.build(userId, moduleType, sessionId);
+        SessionContext sessionContext = new SessionContext(userId, moduleType, sessionId, memoryId);
+        boolean useMemory = moduleType == ModuleType.VOLUNTEER_APPLY;
+        List<ChatMessage> historyMessages = useMemory ? readHistory(memoryId) : Collections.emptyList();
         String promptResource = conversationContextService.getPromptResource(moduleType);
         List<String> toolNames = resolveSelectedTools(moduleType);
         boolean includeRag = conversationContextService.isRagEnabled(moduleType);
@@ -57,7 +57,7 @@ public class ChatGatewayService {
                 promptResource);
 
         log.info(
-                "chat_context moduleType={} userId={} sessionId={} memoryKey={} selectedTools={} contextParts={} finalPromptSource={} messageCount={}",
+                "chat_context moduleType={} userId={} sessionId={} memoryId={} selectedTools={} contextParts={} finalPromptSource={} messageCount={} whetherUseMemory={} retrievalEnabled={}",
                 sessionContext.getModuleType().getCode(),
                 sessionContext.getUserId(),
                 sessionContext.getSessionId(),
@@ -65,11 +65,13 @@ public class ChatGatewayService {
                 toolNames,
                 promptAssembly.getContextParts(),
                 promptAssembly.getFinalPromptSource(),
-                promptAssembly.getMessageCount());
+                promptAssembly.getMessageCount(),
+                useMemory,
+                includeRag);
 
         Flux<String> rawResponse = switch (moduleType) {
-            case LEARNING_PLAN -> learningPlanChatService.chat(memoryKey, message);
-            case VOLUNTEER_APPLY -> volunteerApplyChatService.chat(memoryKey, message);
+            case LEARNING_PLAN -> learningPlanChatService.chat(sessionContext.getSessionId(), message);
+            case VOLUNTEER_APPLY -> volunteerApplyChatService.chat(memoryId, message);
         };
         return sanitizeResponse(rawResponse);
     }

@@ -6,6 +6,8 @@ import cn.hutool.json.JSONUtil;
 import com.example.entity.DailyStudyPlan;
 import com.example.entity.StudyPlanTask;
 import com.example.mapper.StudyPlanMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,7 @@ import java.util.UUID;
 
 @Service
 public class StudyPlanService {
+    private static final Logger log = LoggerFactory.getLogger(StudyPlanService.class);
 
     @Autowired
     private StudyPlanMapper studyPlanMapper;
@@ -81,13 +84,14 @@ public class StudyPlanService {
         // 4. 调用AI生成规划
         // 简单的清洗feedback，防止注入（虽然AI不太怕注入，但保持整洁）
         String cleanFeedback = feedback == null ? "无" : feedback.trim();
-        String jsonResult = studyPlanAiService.generatePlan(historyBuilder.toString(), cleanFeedback);
-//        String jsonResult = studyPlanAiService.generateStudyPlanOnly(
-//                userId,
-//                today,
-//                historyBuilder.toString(),
-//                cleanFeedback
-//        );
+        String finalPrompt = studyPlanAiService.buildPrompt(historyBuilder.toString(), cleanFeedback);
+        log.info(
+                "study_plan_ai_request userId={} date={} finalPromptPreview={} finalMessagesCount={} whetherUseMemory=false selectedTools=[] retrievalEnabled=false",
+                userId,
+                today,
+                previewText(finalPrompt),
+                1);
+        String jsonResult = studyPlanAiService.generatePlan(finalPrompt);
 
         // 5. 清洗和解析JSON
         String cleanJson = cleanJson(jsonResult);
@@ -95,6 +99,12 @@ public class StudyPlanService {
         try {
             jsonObject = JSONUtil.parseObj(cleanJson);
         } catch (Exception e) {
+            log.warn("study_plan_ai_parse_failed userId={} date={} rawPreview={} cleanPreview={}",
+                    userId,
+                    today,
+                    previewText(jsonResult),
+                    previewText(cleanJson),
+                    e);
             throw new RuntimeException("AI响应格式异常，请稍后重试");
         }
 
@@ -316,9 +326,19 @@ public class StudyPlanService {
      * 清洗AI返回的Markdown代码块标记
      */
     private String cleanJson(String result) {
-        if (result == null)
+        if (result == null) {
             return "{}";
-        String content = result.trim();
+        }
+        String content = stripCodeFence(result.trim());
+        int firstBrace = content.indexOf("{");
+        int lastBrace = content.lastIndexOf("}");
+        if (firstBrace >= 0 && lastBrace > firstBrace) {
+            return content.substring(firstBrace, lastBrace + 1).trim();
+        }
+        return content.trim();
+    }
+
+    private String stripCodeFence(String content) {
         if (content.startsWith("```json")) {
             content = content.substring(7);
         } else if (content.startsWith("```")) {
@@ -430,6 +450,17 @@ public class StudyPlanService {
 
     private boolean isBlank(String text) {
         return text == null || text.trim().isEmpty();
+    }
+
+    private String previewText(String text) {
+        if (text == null) {
+            return "";
+        }
+        String normalized = text.replace("\r", " ").replace("\n", " ").trim();
+        if (normalized.length() <= 300) {
+            return normalized;
+        }
+        return normalized.substring(0, 300) + "...";
     }
 
     private static class TaskNormalizeResult {

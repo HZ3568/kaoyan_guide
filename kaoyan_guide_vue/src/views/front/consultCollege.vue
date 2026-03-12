@@ -1,17 +1,30 @@
 <template>
-  <div class="container" :class="{ dark: isDark }">
+  <div
+    class="container"
+    :class="{ dark: isDark }"
+  >
     <!-- 侧边栏 -->
-    <div class="sidebar" :class="{ collapsed: !isSidebarOpen }">
+    <div
+      class="sidebar"
+      :class="{ collapsed: !isSidebarOpen }"
+    >
       <!-- 侧边栏头部 - 始终可见的切换按钮 -->
-      <div class="sidebar-header" :class="{ collapsed: !isSidebarOpen }">
+      <div
+        class="sidebar-header"
+        :class="{ collapsed: !isSidebarOpen }"
+      >
         <!-- 折叠/展开按钮 -->
         <button
           class="sidebar-toggle-btn"
           @click="toggleSidebar"
           title="折叠/展开侧边栏"
         >
-          <el-icon v-if="isSidebarOpen"><Fold /></el-icon>
-          <el-icon v-else><Expand /></el-icon>
+          <el-icon v-if="isSidebarOpen">
+            <Fold />
+          </el-icon>
+          <el-icon v-else>
+            <Expand />
+          </el-icon>
         </button>
 
         <!-- 展开状态下的标题和新建按钮 -->
@@ -22,9 +35,18 @@
 
       <!-- 侧边栏内容 - 使用过渡动画 -->
       <transition name="sidebar-content">
-        <div v-if="isSidebarOpen" class="chat-list">
-          <button class="new-chat-btn" @click="createNewChat" title="新建聊天">
-            <el-icon><Plus /></el-icon>
+        <div
+          v-if="isSidebarOpen"
+          class="chat-list"
+        >
+          <button
+            class="new-chat-btn"
+            @click="createNewChat"
+            title="新建聊天"
+          >
+            <el-icon>
+              <Plus />
+            </el-icon>
             <span>新建聊天</span>
           </button>
           <div
@@ -35,7 +57,10 @@
             @click="switchChat(index)"
           >
             <div class="chat-item-row">
-              <span class="chat-title" v-if="editingChatId !== chat.id">
+              <span
+                class="chat-title"
+                v-if="editingChatId !== chat.id"
+              >
                 {{ chat.title }}
               </span>
               <input
@@ -54,14 +79,18 @@
                   title="重命名"
                   @click.stop="startRename(chat)"
                 >
-                  <el-icon><Edit /></el-icon>
+                  <el-icon>
+                    <Edit />
+                  </el-icon>
                 </button>
                 <button
                   class="icon-btn danger"
                   title="删除"
                   @click.stop="requestDeleteChat(index)"
                 >
-                  <el-icon><Delete /></el-icon>
+                  <el-icon>
+                    <Delete />
+                  </el-icon>
                 </button>
               </div>
             </div>
@@ -75,14 +104,24 @@
       <!-- 顶部标题栏 -->
       <div class="top-bar">
         <h2>{{ currentChat.title }}</h2>
-        <button class="toggle-theme-btn" @click="toggleTheme">
-          <el-icon v-if="!isDark"><Moon /></el-icon>
-          <el-icon v-else><Sunny /></el-icon>
+        <button
+          class="toggle-theme-btn"
+          @click="toggleTheme"
+        >
+          <el-icon v-if="!isDark">
+            <Moon />
+          </el-icon>
+          <el-icon v-else>
+            <Sunny />
+          </el-icon>
         </button>
       </div>
 
       <!-- 聊天内容区 -->
-      <div class="chat-area" ref="chatArea">
+      <div
+        class="chat-area"
+        ref="chatArea"
+      >
         <div
           v-for="msg in currentChat.messages"
           :key="msg.id"
@@ -113,8 +152,7 @@
                 <span
                   v-if="msg.isStreaming"
                   :class="['cursor', typingConfig?.paused ? 'paused' : '']"
-                  >|</span
-                >
+                >|</span>
               </template>
               <p v-else>{{ msg.text }}</p>
             </div>
@@ -126,7 +164,10 @@
       </div>
 
       <!-- 底部输入区 -->
-      <div class="input-area" :style="floatingInputStyle">
+      <div
+        class="input-area"
+        :style="floatingInputStyle"
+      >
         <div class="input-container">
           <textarea
             v-model="input"
@@ -138,7 +179,9 @@
             @click="sendMessage"
             :disabled="controller !== null"
           >
-            <el-icon><Promotion /></el-icon>
+            <el-icon>
+              <Promotion />
+            </el-icon>
           </button>
         </div>
       </div>
@@ -172,6 +215,21 @@ const chatArea = ref(null);
 let controller = null; // 用于取消请求的控制器
 let typingIntervals = {}; // 每条消息独立的打字 interval
 
+const createSessionId = () => {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const ensureChatSessionId = (chat) => {
+  if (!chat) return createSessionId();
+  if (!chat.sessionId) {
+    chat.sessionId = createSessionId();
+  }
+  return chat.sessionId;
+};
+
 // 从本地存储加载聊天记录
 const loadChatsFromLocalStorage = () => {
   const savedChats = localStorage.getItem("volunteer-apply-ai-chats");
@@ -179,7 +237,10 @@ const loadChatsFromLocalStorage = () => {
     try {
       const parsedChats = JSON.parse(savedChats);
       if (Array.isArray(parsedChats) && parsedChats.length > 0) {
-        return parsedChats;
+        return parsedChats.map((chat) => ({
+          ...chat,
+          sessionId: chat.sessionId || createSessionId(),
+        }));
       }
     } catch (e) {
       console.error("加载聊天记录失败:", e);
@@ -193,6 +254,7 @@ const chats = ref(
   loadChatsFromLocalStorage() || [
     {
       id: Date.now(),
+      sessionId: createSessionId(),
       title: "院校咨询",
       messages: [
         {
@@ -365,24 +427,23 @@ const startTypingEffect = (msg) => {
   }, typingSpeed);
 };
 
-// 发送消息
 async function sendMessage() {
   const inputText = input.value.trim();
 
-  // 输入验证
   const validation = validateUserInput(inputText);
   if (!validation.valid || !inputText) {
     ElMessage.warning(validation.message || "请输入消息内容");
     return;
   }
 
-  // 防止重复发送
+  // 如果有旧请求，先取消
   if (controller) {
     controller.abort();
+    controller = null;
   }
+
   controller = new AbortController();
 
-  // 用户消息
   const userMsg = {
     id: Date.now(),
     role: "user",
@@ -393,7 +454,6 @@ async function sendMessage() {
   input.value = "";
   scrollToBottom();
 
-  // 机器人响应消息
   const assistantMsg = {
     id: Date.now() + 1,
     role: "assistant",
@@ -404,62 +464,77 @@ async function sendMessage() {
   };
   currentChat.value.messages.push(assistantMsg);
   scrollToBottom();
-
-  // 保存聊天记录
   saveChatsToLocalStorage();
 
+  let timeoutId = null;
+  let receivedFirstData = false;
+
   try {
-    // 添加调试输出，帮助定位问题
     console.log("开始发送消息:", inputText);
-    console.log("聊天ID:", currentChat.value.id);
 
-    // 设置超时
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
+    // 首包超时适当放宽
+    timeoutId = setTimeout(() => {
+      if (controller) {
+        controller.abort();
+      }
+    }, 15000);
 
-    // 使用正确的API路径，添加/api前缀以便正确代理到后端
-    // 读取本地登录信息，注入后端拦截器需要的 token
     const user = JSON.parse(localStorage.getItem("xm-user") || "{}");
     const token = user.token || "";
+    const activeSessionId = ensureChatSessionId(currentChat.value);
 
     const response = await fetch(
-      `/api/chat?message=${encodeURIComponent(inputText)}&moduleType=volunteer_apply&sessionId=${encodeURIComponent(
-        String(currentChat.value.id)
+      `/api/chat?message=${encodeURIComponent(
+        inputText
+      )}&moduleType=volunteer_apply&sessionId=${encodeURIComponent(
+        activeSessionId
       )}`,
       {
         method: "GET",
         headers: {
-          Accept: "text/html;charset=UTF-8",
+          Accept: "text/event-stream",
           token: token,
         },
         signal: controller.signal,
       }
     );
 
-    clearTimeout(timeoutId);
+    const responseSessionId = response.headers.get("X-Session-Id");
+    if (responseSessionId) {
+      currentChat.value.sessionId = responseSessionId;
+    }
 
-    // 添加更详细的错误处理
     if (!response.ok) {
+      clearTimeout(timeoutId);
       console.error("HTTP错误:", response.status, response.statusText);
       throw new Error(
         `HTTP error! status: ${response.status}, ${response.statusText}`
       );
     }
 
-    console.log("收到响应:", response.status);
+    if (!response.body) {
+      clearTimeout(timeoutId);
+      throw new Error("响应体为空，无法读取流式内容");
+    }
+
+    console.log(
+      "收到响应头:",
+      response.status,
+      response.headers.get("content-type")
+    );
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
-    let buffer = "";
 
-    // 先清除之前的打字效果
+    let rawBuffer = "";
+    let finalText = "";
+
+    // 清理旧 interval
     if (typingIntervals[assistantMsg.id]) {
       clearInterval(typingIntervals[assistantMsg.id]);
       typingIntervals[assistantMsg.id] = null;
     }
 
-    // 开始流式处理
-    console.log("开始流式处理响应");
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
@@ -468,80 +543,115 @@ async function sendMessage() {
       }
 
       const chunk = decoder.decode(value, { stream: true });
-      console.log("收到数据块:", chunk.length, "字节");
-      buffer += chunk;
+      rawBuffer += chunk;
 
-      // 直接更新内容
-      assistantMsg.text = buffer;
+      // 按 SSE 事件块拆分（空行分隔）
+      const events = rawBuffer.split("\n\n");
+      rawBuffer = events.pop() || "";
 
-      // 启动打字效果
-      if (!typingIntervals[assistantMsg.id]) {
-        typingIntervals[assistantMsg.id] = setInterval(() => {
-          startTypingEffect(assistantMsg);
-        }, 20); // 调整这个值可以改变打字速度
+      for (const eventBlock of events) {
+        const lines = eventBlock.split("\n");
+        for (const line of lines) {
+          // 只处理 data: 行
+          if (!line.startsWith("data:")) continue;
+
+          const data = line.slice(5).trim();
+
+          // 忽略结束标记
+          if (!data || data === "[DONE]") continue;
+
+          if (!receivedFirstData) {
+            receivedFirstData = true;
+            clearTimeout(timeoutId);
+          }
+
+          finalText += data;
+          assistantMsg.text = finalText;
+
+          // 启动打字效果
+          if (!typingIntervals[assistantMsg.id]) {
+            typingIntervals[assistantMsg.id] = setInterval(() => {
+              startTypingEffect(assistantMsg);
+            }, 20);
+          }
+        }
       }
 
       scrollToBottom();
       saveChatsToLocalStorage();
     }
+
+    // 如果后端不是严格 SSE，而是直接返回纯文本块，这里兜底
+    if (!receivedFirstData && rawBuffer.trim()) {
+      clearTimeout(timeoutId);
+      assistantMsg.text = rawBuffer.trim();
+
+      if (!typingIntervals[assistantMsg.id]) {
+        typingIntervals[assistantMsg.id] = setInterval(() => {
+          startTypingEffect(assistantMsg);
+        }, 20);
+      }
+    }
   } catch (err) {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
     if (err.name === "AbortError") {
-      console.log("请求被用户中止或超时");
-      // 统一以 Markdown 呈现超时信息
+      console.log("请求被取消或超时");
       const mdTimeout = [
         "### 请求超时",
         "- 原因：网络波动或后端响应缓慢",
         "- 建议：稍后重试或检查网络连接",
       ].join("\n");
+
       assistantMsg.text = mdTimeout;
       assistantMsg.displayedText = "";
-      assistantMsg.isStreaming = true; // 继续通过打字效果显示Markdown内容
+      assistantMsg.isStreaming = true;
       ElMessage.warning("请求超时");
     } else {
       console.error("请求出错:", err);
-      // 统一以 Markdown 呈现错误信息，移除非Markdown纯文本提示
+
       const mdError = [
         "### 请求失败",
         `- 类型：${err.name || "未知错误"}`,
-        `- 信息：${err && err.message ? err.message : "无"}`,
+        `- 信息：${err?.message || "无"}`,
         "- 建议：检查网络或稍后重试",
       ].join("\n");
 
       assistantMsg.text = mdError;
       assistantMsg.displayedText = "";
-      assistantMsg.isStreaming = true; // 打字机渲染Markdown错误内容
-
-      // 保留轻量提示，但删除冗余纯文本细节
+      assistantMsg.isStreaming = true;
       ElMessage.error("请求错误");
+    }
 
-      // 移除将聊天标题改为纯文本的逻辑
-      // if (currentChat.value.messages.length <= 2) {
-      //   currentChat.value.title = "请求失败的聊天";
-      // }
-
-      saveChatsToLocalStorage();
+    if (!typingIntervals[assistantMsg.id]) {
+      typingIntervals[assistantMsg.id] = setInterval(() => {
+        startTypingEffect(assistantMsg);
+      }, 20);
     }
   } finally {
-    const lastMessage =
-      currentChat.value.messages[currentChat.value.messages.length - 1];
-    lastMessage.isStreaming = false;
-
-    // 确保所有字符都可见
-    if (
-      lastMessage.displayedText &&
-      lastMessage.displayedText.length < lastMessage.text.length
-    ) {
-      lastMessage.displayedText = lastMessage.text;
+    if (timeoutId) {
+      clearTimeout(timeoutId);
     }
 
-    controller = null;
+    if (
+      assistantMsg.displayedText &&
+      assistantMsg.displayedText.length < assistantMsg.text.length
+    ) {
+      assistantMsg.displayedText = assistantMsg.text;
+    }
+
+    assistantMsg.isStreaming = false;
 
     if (typingIntervals[assistantMsg.id]) {
       clearInterval(typingIntervals[assistantMsg.id]);
       typingIntervals[assistantMsg.id] = null;
     }
 
+    controller = null;
     scrollToBottom();
+    saveChatsToLocalStorage();
   }
 }
 
@@ -550,6 +660,7 @@ function createNewChat() {
   const newId = Date.now();
   chats.value.push({
     id: newId,
+    sessionId: createSessionId(),
     title: `新建聊天 ${chats.value.length + 1}`,
     messages: [
       {
@@ -1263,7 +1374,8 @@ textarea {
   border-top: 1px solid #e0e0e0;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
   padding: 10px 16px;
-  transition: left 0.3s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  transition: left 0.3s ease, box-shadow 0.2s ease, background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .input-area .input-container {
@@ -1309,7 +1421,8 @@ textarea {
   justify-content: center;
   gap: 6px;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.06s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.06s ease,
+    box-shadow 0.2s ease, opacity 0.2s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
