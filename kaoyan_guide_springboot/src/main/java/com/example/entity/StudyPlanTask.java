@@ -12,6 +12,7 @@ public class StudyPlanTask {
     private String subject;
     private String content;
     private Boolean completed;
+    private String taskSource;
     private Integer sortNo;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

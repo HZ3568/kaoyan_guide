@@ -34,7 +34,7 @@ public class StudyPlanController {
         try {
             LocalDate localDate = LocalDate.parse(date);
             DailyStudyPlan plan = studyPlanService.getPlanByDate(currentUser.getId(), localDate);
-            return Result.success(plan);
+            return Result.success(studyPlanService.buildPlanResponse(plan));
         } catch (DateTimeParseException e) {
             return Result.error("日期格式错误，应为 yyyy-MM-dd");
         }
@@ -53,7 +53,7 @@ public class StudyPlanController {
         String feedback = body.get("feedback");
         try {
             DailyStudyPlan plan = studyPlanService.generatePlan(currentUser.getId(), feedback);
-            return Result.success(plan);
+            return Result.success(studyPlanService.buildPlanResponse(plan));
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
         } catch (Exception e) {

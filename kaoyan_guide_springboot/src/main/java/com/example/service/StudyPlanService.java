@@ -25,6 +25,10 @@ import java.util.UUID;
 @Service
 public class StudyPlanService {
     private static final Logger log = LoggerFactory.getLogger(StudyPlanService.class);
+    private static final String PLAN_STATUS_PENDING = "PENDING";
+    private static final String PLAN_STATUS_GENERATED = "GENERATED";
+    private static final String TASK_SOURCE_DEFERRED = "DEFERRED";
+    private static final String TASK_SOURCE_GENERATED = "GENERATED";
 
     @Autowired
     private StudyPlanMapper studyPlanMapper;
@@ -56,33 +60,30 @@ public class StudyPlanService {
     @Transactional
     public DailyStudyPlan generatePlan(Integer userId, String feedback) {
         LocalDate today = LocalDate.now();
-
-        // 1. 检查今日计划是否已存在
-        DailyStudyPlan existingPlan = studyPlanMapper.selectByDate(userId, today);
-        if (existingPlan != null) {
+        DailyStudyPlan plan = studyPlanMapper.selectByDate(userId, today);
+        if (plan != null && PLAN_STATUS_GENERATED.equalsIgnoreCase(plan.getPlanStatus())) {
             throw new RuntimeException("今日计划已生成，请直接查看");
         }
 
-        // 2. 获取前3天历史记录
+        // 1. 获取前3天历史记录
         LocalDate startDate = today.minusDays(3);
         LocalDate endDate = today.minusDays(1);
         List<DailyStudyPlan> historyPlans = studyPlanMapper.selectHistory(userId, startDate, endDate);
 
-        // 3. 组装历史上下文
+        // 2. 组装历史上下文
         StringBuilder historyBuilder = new StringBuilder();
         if (historyPlans.isEmpty()) {
             historyBuilder.append("无历史记录，这是第一天学习。");
         } else {
-            for (DailyStudyPlan plan : historyPlans) {
-                DailyStudyPlan fullPlan = fillPlanTasks(plan, true);
-                historyBuilder.append("日期: ").append(plan.getPlanDate()).append("\n");
+            for (DailyStudyPlan historyPlan : historyPlans) {
+                DailyStudyPlan fullPlan = fillPlanTasks(historyPlan, true);
+                historyBuilder.append("日期: ").append(historyPlan.getPlanDate()).append("\n");
                 historyBuilder.append("任务: ").append(fullPlan.getDailyTasks()).append("\n");
-                historyBuilder.append("反馈: ").append(plan.getUserFeedback()).append("\n\n");
+                historyBuilder.append("反馈: ").append(historyPlan.getUserFeedback()).append("\n\n");
             }
         }
 
-        // 4. 调用AI生成规划
-        // 简单的清洗feedback，防止注入（虽然AI不太怕注入，但保持整洁）
+        // 3. 调用AI生成规划
         String cleanFeedback = feedback == null ? "无" : feedback.trim();
         String finalPrompt = studyPlanAiService.buildPrompt(historyBuilder.toString(), cleanFeedback);
         log.info(
@@ -93,7 +94,7 @@ public class StudyPlanService {
                 1);
         String jsonResult = studyPlanAiService.generatePlan(finalPrompt);
 
-        // 5. 清洗和解析JSON
+        // 4. 清洗和解析JSON
         String cleanJson = cleanJson(jsonResult);
         JSONObject jsonObject;
         try {
@@ -110,21 +111,51 @@ public class StudyPlanService {
 
         String advice = jsonObject.getStr("advice");
         TaskNormalizeResult normalizeResult = normalizeTaskList(jsonObject.get("tasks"));
-        String tasks = normalizeResult.tasksJson;
+        List<JSONObject> generatedTasks = new ArrayList<>();
+        for (JSONObject task : normalizeResult.tasks) {
+            generatedTasks.add(buildTask(
+                    UUID.randomUUID().toString(),
+                    task.getStr("subject"),
+                    task.getStr("content"),
+                    false,
+                    TASK_SOURCE_GENERATED));
+        }
 
-        // 6. 落库
-        DailyStudyPlan plan = new DailyStudyPlan();
-        plan.setUserId(userId);
-        plan.setPlanDate(today);
+        // 5. 落库（保留后延任务，补充生成任务，最终状态改为 GENERATED）
+        LocalDateTime now = LocalDateTime.now();
+        if (plan == null) {
+            plan = new DailyStudyPlan();
+            plan.setUserId(userId);
+            plan.setPlanDate(today);
+            plan.setUserFeedback(cleanFeedback);
+            plan.setAiAdvice(advice);
+            plan.setPlanStatus(PLAN_STATUS_PENDING);
+            plan.setCreateTime(now);
+            plan.setUpdateTime(now);
+            studyPlanMapper.insert(plan);
+        }
+
+        TaskNormalizeResult existingNormalize = normalizeTaskEntities(
+                studyPlanMapper.selectTasksByPlanId(plan.getId()));
+        List<JSONObject> mergedTasks = new ArrayList<>(existingNormalize.tasks);
+        Set<String> existingSignatures = new HashSet<>();
+        for (JSONObject task : mergedTasks) {
+            existingSignatures.add(taskSignature(task));
+        }
+        for (JSONObject task : generatedTasks) {
+            String signature = taskSignature(task);
+            if (!existingSignatures.contains(signature)) {
+                mergedTasks.add(task);
+                existingSignatures.add(signature);
+            }
+        }
+        replacePlanTasks(plan.getId(), mergedTasks);
+        plan.setDailyTasks(JSONUtil.toJsonStr(mergedTasks));
         plan.setUserFeedback(cleanFeedback);
         plan.setAiAdvice(advice);
-        LocalDateTime now = LocalDateTime.now();
-        plan.setCreateTime(now);
+        plan.setPlanStatus(PLAN_STATUS_GENERATED);
         plan.setUpdateTime(now);
-
-        studyPlanMapper.insert(plan);
-        replacePlanTasks(plan.getId(), normalizeResult.tasks);
-        plan.setDailyTasks(tasks);
+        studyPlanMapper.updatePlanCoreById(plan);
 
         return plan;
     }
@@ -140,7 +171,12 @@ public class StudyPlanService {
         }
         TaskNormalizeResult normalizeResult = normalizeTaskEntities(studyPlanMapper.selectTasksByPlanId(plan.getId()));
         List<JSONObject> tasks = new ArrayList<>(normalizeResult.tasks);
-        JSONObject task = buildTask(UUID.randomUUID().toString(), normalizedSubject, normalizedContent, false);
+        JSONObject task = buildTask(
+                UUID.randomUUID().toString(),
+                normalizedSubject,
+                normalizedContent,
+                false,
+                TASK_SOURCE_GENERATED);
         tasks.add(task);
         replacePlanTasks(plan.getId(), tasks);
         return task;
@@ -286,12 +322,24 @@ public class StudyPlanService {
             targetTasks = new ArrayList<>(targetNormalize.tasks);
         }
 
+        Set<String> targetSignatures = new HashSet<>();
+        for (JSONObject targetTask : targetTasks) {
+            targetSignatures.add(taskSignature(targetTask));
+        }
+        int movedCount = 0;
         for (JSONObject sourceTask : movableTasks) {
-            targetTasks.add(buildTask(
+            JSONObject deferredTask = buildTask(
                     UUID.randomUUID().toString(),
                     sourceTask.getStr("subject"),
                     sourceTask.getStr("content"),
-                    false));
+                    false,
+                    TASK_SOURCE_DEFERRED);
+            String signature = taskSignature(deferredTask);
+            if (!targetSignatures.contains(signature)) {
+                targetTasks.add(deferredTask);
+                targetSignatures.add(signature);
+                movedCount++;
+            }
         }
 
         if (targetPlan == null) {
@@ -300,6 +348,7 @@ public class StudyPlanService {
             newPlan.setPlanDate(targetDate);
             newPlan.setUserFeedback("");
             newPlan.setAiAdvice("由前一日未完成任务自动顺延生成");
+            newPlan.setPlanStatus(PLAN_STATUS_PENDING);
             LocalDateTime now = LocalDateTime.now();
             newPlan.setCreateTime(now);
             newPlan.setUpdateTime(now);
@@ -307,15 +356,37 @@ public class StudyPlanService {
             targetPlan = newPlan;
             replacePlanTasks(targetPlan.getId(), targetTasks);
         } else {
+            if (isBlank(targetPlan.getPlanStatus())) {
+                studyPlanMapper.updatePlanStatusById(targetPlan.getId(), PLAN_STATUS_PENDING, LocalDateTime.now());
+            }
             replacePlanTasks(targetPlan.getId(), targetTasks);
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("sourceDate", sourceDate.toString());
         result.put("targetDate", targetDate.toString());
-        result.put("movedCount", movableTasks.size());
+        result.put("movedCount", movedCount);
         result.put("targetTaskTotal", targetTasks.size());
         return result;
+    }
+
+    public Map<String, Object> buildPlanResponse(DailyStudyPlan plan) {
+        if (plan == null) {
+            return null;
+        }
+        TaskNormalizeResult normalizeResult = normalizeTaskEntities(studyPlanMapper.selectTasksByPlanId(plan.getId()));
+        if (normalizeResult.changed) {
+            replacePlanTasks(plan.getId(), normalizeResult.tasks);
+        }
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("planId", plan.getId());
+        response.put("planDate", plan.getPlanDate());
+        response.put("planStatus", isBlank(plan.getPlanStatus()) ? PLAN_STATUS_PENDING : plan.getPlanStatus());
+        response.put("userFeedback", plan.getUserFeedback());
+        response.put("aiAdvice", plan.getAiAdvice());
+        response.put("taskList", normalizeResult.tasks);
+        response.put("dailyTasks", normalizeResult.tasksJson);
+        return response;
     }
 
     private DailyStudyPlan fillPlanTasks(DailyStudyPlan plan, boolean normalizeAndPersist) {
@@ -341,6 +412,7 @@ public class StudyPlanService {
             entity.setSubject(task.getStr("subject"));
             entity.setContent(task.getStr("content"));
             entity.setCompleted(Boolean.TRUE.equals(task.getBool("completed")));
+            entity.setTaskSource(resolveTaskSource(task.getStr("taskSource")));
             entity.setSortNo(i);
             entity.setCreateTime(now);
             entity.setUpdateTime(now);
@@ -391,6 +463,7 @@ public class StudyPlanService {
                 source.set("subject", taskEntity.getSubject());
                 source.set("content", taskEntity.getContent());
                 source.set("completed", Boolean.TRUE.equals(taskEntity.getCompleted()));
+                source.set("taskSource", resolveTaskSource(taskEntity.getTaskSource()));
                 sourceArray.add(source);
             }
         }
@@ -440,6 +513,7 @@ public class StudyPlanService {
             }
             Boolean completedRaw = sourceTask.getBool("completed");
             boolean completed = completedRaw != null && completedRaw;
+            String taskSource = resolveTaskSource(sourceTask.getStr("taskSource"));
             if (completedRaw == null) {
                 changed = true;
             }
@@ -452,19 +526,35 @@ public class StudyPlanService {
             if (!content.equals(normalizeText(sourceTask.getStr("content")))) {
                 changed = true;
             }
-            normalizedTasks.add(buildTask(taskId, subject, content, completed));
+            if (!taskSource.equals(resolveTaskSource(sourceTask.getStr("taskSource")))) {
+                changed = true;
+            }
+            normalizedTasks.add(buildTask(taskId, subject, content, completed, taskSource));
         }
         String tasksJson = JSONUtil.toJsonStr(normalizedTasks);
         return new TaskNormalizeResult(normalizedTasks, tasksJson, changed);
     }
 
-    private JSONObject buildTask(String taskId, String subject, String content, boolean completed) {
+    private JSONObject buildTask(String taskId, String subject, String content, boolean completed, String taskSource) {
         JSONObject task = new JSONObject();
         task.set("taskId", taskId);
         task.set("subject", normalizeText(subject));
         task.set("content", normalizeText(content));
         task.set("completed", completed);
+        task.set("taskSource", resolveTaskSource(taskSource));
         return task;
+    }
+
+    private String resolveTaskSource(String taskSource) {
+        String normalizedSource = normalizeText(taskSource).toUpperCase();
+        if (TASK_SOURCE_DEFERRED.equals(normalizedSource)) {
+            return TASK_SOURCE_DEFERRED;
+        }
+        return TASK_SOURCE_GENERATED;
+    }
+
+    private String taskSignature(JSONObject task) {
+        return normalizeText(task.getStr("subject")) + "||" + normalizeText(task.getStr("content"));
     }
 
     private String normalizeText(String text) {

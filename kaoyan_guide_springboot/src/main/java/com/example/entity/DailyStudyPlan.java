@@ -32,6 +32,11 @@ public class DailyStudyPlan {
     private String aiAdvice;
 
     /**
+     * 计划状态：PENDING/GENERATED
+     */
+    private String planStatus;
+
+    /**
      * 每日任务列表（JSON字符串）
      */
     private String dailyTasks;

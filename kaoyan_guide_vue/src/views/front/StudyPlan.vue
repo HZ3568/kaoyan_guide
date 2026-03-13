@@ -145,7 +145,7 @@
                 未完成顺延到明天
               </el-button>
               <el-button
-                v-if="isSelectedToday"
+                v-if="isSelectedToday && planStatus === 'GENERATED'"
                 type="danger"
                 plain
                 size="small"
@@ -156,6 +156,43 @@
                 <el-icon style="margin-right: 4px"><RefreshLeft /></el-icon>
                 撤回今日计划
               </el-button>
+            </div>
+
+            <div
+              v-if="canGenerateTodayPlan"
+              class="generate-section plan-generate-inline"
+            >
+              <div class="empty-placeholder">
+                <div class="empty-text">
+                  当前仅有后延任务，继续生成可补充完整的今日学习计划。
+                </div>
+              </div>
+              <div class="input-area">
+                <div class="input-label">
+                  <el-icon><EditPen /></el-icon> 昨天的学习状态 / 今日心情
+                </div>
+                <el-input
+                  type="textarea"
+                  :rows="3"
+                  placeholder="例如：昨天高数刷题完成较好，今天想补上英语长难句..."
+                  v-model="feedback"
+                  maxlength="200"
+                  show-word-limit
+                  class="custom-textarea"
+                ></el-input>
+              </div>
+              <div class="action-area">
+                <el-button
+                  type="primary"
+                  class="generate-btn"
+                  @click="generatePlan"
+                  :loading="generating"
+                  round
+                >
+                  生成今日专属规划
+                  <el-icon class="el-icon--right"><MagicStick /></el-icon>
+                </el-button>
+              </div>
             </div>
 
             <!-- 状态反馈 -->
@@ -181,7 +218,7 @@
             </div>
 
             <!-- 任务清单 -->
-            <div class="section-block">
+            <div v-if="hasTasks" class="section-block">
               <div class="section-header">
                 <el-icon color="#5B50E7"><CircleCheck /></el-icon>
                 <span>专属任务清单</span>
@@ -222,19 +259,36 @@
                     </div>
                   </div>
                   <div class="task-actions">
-                    <el-button link type="primary" @click.stop="openEditTaskDialog(task)">
+                    <el-button
+                      link
+                      type="primary"
+                      @click.stop="openEditTaskDialog(task)"
+                    >
                       编辑
                     </el-button>
-                    <el-button link type="danger" @click.stop="deleteTask(task)">
+                    <el-button
+                      link
+                      type="danger"
+                      @click.stop="deleteTask(task)"
+                    >
                       删除
                     </el-button>
-                    <el-button link type="warning" @click.stop="rolloverSingleTask(task)">
+                    <el-button
+                      link
+                      type="warning"
+                      @click.stop="rolloverSingleTask(task)"
+                    >
                       顺延到明天
                     </el-button>
                   </div>
                 </div>
               </div>
             </div>
+            <el-empty
+              v-else
+              description="当前暂无任务，可先生成今日计划或新增任务"
+              :image-size="100"
+            />
           </div>
 
           <!-- 场景C：无计划且不是今天 -->
@@ -252,7 +306,11 @@
   <el-dialog v-model="addTaskDialogVisible" title="新增任务" width="480px">
     <el-form label-width="70px">
       <el-form-item label="科目">
-        <el-input v-model="addTaskForm.subject" maxlength="20" show-word-limit />
+        <el-input
+          v-model="addTaskForm.subject"
+          maxlength="20"
+          show-word-limit
+        />
       </el-form-item>
       <el-form-item label="内容">
         <el-input
@@ -266,7 +324,10 @@
     </el-form>
     <template #footer>
       <el-button @click="addTaskDialogVisible = false">取消</el-button>
-      <el-button type="primary" @click="submitAddTask" :loading="taskActionLoading"
+      <el-button
+        type="primary"
+        @click="submitAddTask"
+        :loading="taskActionLoading"
         >确定</el-button
       >
     </template>
@@ -275,7 +336,11 @@
   <el-dialog v-model="editTaskDialogVisible" title="编辑任务" width="480px">
     <el-form label-width="70px">
       <el-form-item label="科目">
-        <el-input v-model="editTaskForm.subject" maxlength="20" show-word-limit />
+        <el-input
+          v-model="editTaskForm.subject"
+          maxlength="20"
+          show-word-limit
+        />
       </el-form-item>
       <el-form-item label="内容">
         <el-input
@@ -289,7 +354,10 @@
     </el-form>
     <template #footer>
       <el-button @click="editTaskDialogVisible = false">取消</el-button>
-      <el-button type="primary" @click="submitEditTask" :loading="taskActionLoading"
+      <el-button
+        type="primary"
+        @click="submitEditTask"
+        :loading="taskActionLoading"
         >保存</el-button
       >
     </template>
@@ -382,6 +450,15 @@ const getWeekday = (date) => {
 
 const isSelectedToday = computed(() => {
   return formatDate(selectedDate.value) === formatDate(new Date());
+});
+
+const planStatus = computed(() => {
+  if (!currentPlan.value) return "PENDING";
+  return currentPlan.value.planStatus || "PENDING";
+});
+
+const canGenerateTodayPlan = computed(() => {
+  return isSelectedToday.value && planStatus.value !== "GENERATED";
 });
 
 const isToday = (dayStr) => {
@@ -527,7 +604,10 @@ const submitEditTask = () => {
     ElMessage.warning("任务标识缺失");
     return;
   }
-  if (!editTaskForm.value.subject.trim() || !editTaskForm.value.content.trim()) {
+  if (
+    !editTaskForm.value.subject.trim() ||
+    !editTaskForm.value.content.trim()
+  ) {
     ElMessage.warning("请填写完整的科目和任务内容");
     return;
   }
@@ -617,7 +697,10 @@ const rolloverSingleTask = (task) => {
 const rolloverAllTasks = () => {
   taskActionLoading.value = true;
   request
-    .post("/study-plan/" + formatDate(selectedDate.value) + "/tasks/rollover", {})
+    .post(
+      "/study-plan/" + formatDate(selectedDate.value) + "/tasks/rollover",
+      {}
+    )
     .then((res) => {
       if (res.code === "200") {
         ElMessage.success("未完成任务已顺延到明天");
@@ -659,6 +742,10 @@ const completedCount = computed(() => {
 
 const totalTasks = computed(() => {
   return taskList.value.length;
+});
+
+const hasTasks = computed(() => {
+  return taskList.value.length > 0;
 });
 
 const completionPercentage = computed(() => {
@@ -706,12 +793,18 @@ const toggleTask = (index) => {
 watch(
   currentPlan,
   (newVal) => {
-    if (newVal && newVal.dailyTasks) {
-      let tasks = parseTasks(newVal.dailyTasks);
+    if (newVal) {
+      let tasks = [];
+      if (Array.isArray(newVal.taskList)) {
+        tasks = newVal.taskList;
+      } else if (newVal.dailyTasks) {
+        tasks = parseTasks(newVal.dailyTasks);
+      }
       taskList.value = tasks.map((t) => ({
         taskId: t.taskId || `${Date.now()}-${Math.random()}`,
         subject: t.subject || "",
         content: t.content || "",
+        taskSource: t.taskSource || "GENERATED",
         ...t,
         completed: t.completed || false,
       }));

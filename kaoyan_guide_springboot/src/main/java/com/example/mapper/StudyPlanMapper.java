@@ -19,8 +19,9 @@ public interface StudyPlanMapper {
         /**
          * 插入新的学习计划
          */
-        @Insert("INSERT INTO study_plan (user_id, plan_date, user_feedback, ai_advice, create_time, update_time) " +
-                        "VALUES (#{userId}, #{planDate}, #{userFeedback}, #{aiAdvice}, #{createTime}, #{updateTime})")
+        @Insert("INSERT INTO study_plan (user_id, plan_date, user_feedback, ai_advice, plan_status, create_time, update_time) "
+                        +
+                        "VALUES (#{userId}, #{planDate}, #{userFeedback}, #{aiAdvice}, #{planStatus}, #{createTime}, #{updateTime})")
         @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
         void insert(DailyStudyPlan plan);
 
@@ -43,9 +44,9 @@ public interface StudyPlanMapper {
         List<DailyStudyPlan> selectHistory(@Param("userId") Integer userId, @Param("startDate") LocalDate startDate,
                         @Param("endDate") LocalDate endDate);
 
-        @Insert("INSERT INTO study_plan_task (task_id, plan_id, subject, content, completed, sort_no, create_time, update_time) "
+        @Insert("INSERT INTO study_plan_task (task_id, plan_id, subject, content, completed, task_source, sort_no, create_time, update_time) "
                         +
-                        "VALUES (#{taskId}, #{planId}, #{subject}, #{content}, #{completed}, #{sortNo}, #{createTime}, #{updateTime})")
+                        "VALUES (#{taskId}, #{planId}, #{subject}, #{content}, #{completed}, #{taskSource}, #{sortNo}, #{createTime}, #{updateTime})")
         void insertTask(StudyPlanTask task);
 
         @Select("SELECT * FROM study_plan_task WHERE plan_id = #{planId} ORDER BY sort_no ASC, id ASC")
@@ -69,6 +70,13 @@ public interface StudyPlanMapper {
                         "WHERE plan_id = #{planId} AND task_id = #{taskId}")
         int updateTaskByPlanIdAndTaskId(@Param("planId") Long planId, @Param("taskId") String taskId,
                         @Param("subject") String subject, @Param("content") String content);
+
+        @Update("UPDATE study_plan SET user_feedback = #{userFeedback}, ai_advice = #{aiAdvice}, plan_status = #{planStatus}, update_time = #{updateTime} WHERE id = #{id}")
+        int updatePlanCoreById(DailyStudyPlan plan);
+
+        @Update("UPDATE study_plan SET plan_status = #{planStatus}, update_time = #{updateTime} WHERE id = #{id}")
+        int updatePlanStatusById(@Param("id") Long id, @Param("planStatus") String planStatus,
+                        @Param("updateTime") java.time.LocalDateTime updateTime);
 
         @Update("UPDATE study_plan_task SET completed = #{completed} " +
                         "WHERE plan_id = #{planId} AND task_id = #{taskId}")
