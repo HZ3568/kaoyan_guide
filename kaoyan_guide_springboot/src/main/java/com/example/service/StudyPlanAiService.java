@@ -14,10 +14,17 @@ public class StudyPlanAiService {
 
     private final ChatModel openAiChatModel;
 
+    /**
+     * 注入学习规划使用的对话模型。
+     */
     public StudyPlanAiService(@Qualifier("openAiChatModel") ChatModel openAiChatModel) {
         this.openAiChatModel = openAiChatModel;
     }
 
+    /**
+     * 调用大模型生成学习计划原始文本（期望为 JSON）。
+     * 当模型返回为空时，兜底为 "{}" 避免上游空指针。
+     */
     public String generatePlan(String finalPrompt) {
         ChatRequest request = ChatRequest.builder()
                 .messages(List.of(UserMessage.from(finalPrompt)))
@@ -29,6 +36,10 @@ public class StudyPlanAiService {
         return response.aiMessage().text();
     }
 
+    /**
+     * 组装学习规划提示词。
+     * 核心约束：仅输出 JSON，且内容聚焦学习任务，不引入志愿填报信息。
+     */
     public String buildPrompt(String history, String feedback) {
         return "你是一位专业的考研学习规划师。请根据考生前3天的学习记录和昨天的真实学习反馈，为他制定今天的学习规划。\n"
                 + "\n"
@@ -60,6 +71,9 @@ public class StudyPlanAiService {
                 + "}";
     }
 
+    /**
+     * 文本安全处理：null 转空串并去除首尾空白。
+     */
     private String safeText(String text) {
         if (text == null) {
             return "";

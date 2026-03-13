@@ -22,7 +22,8 @@ public class StudyPlanController {
     private StudyPlanService studyPlanService;
 
     /**
-     * 获取指定日期的计划
+     * 获取指定日期的学习计划详情。
+     * 返回内容会包含计划基础信息与归一化后的任务列表。
      */
     @GetMapping("/{date}")
     public Result getPlan(@PathVariable String date) {
@@ -41,7 +42,8 @@ public class StudyPlanController {
     }
 
     /**
-     * 生成今日计划
+     * 生成“今日计划”。
+     * 读取用户反馈并触发学习规划生成逻辑，最终返回最新计划。
      */
     @PostMapping("/generate")
     public Result generatePlan(@RequestBody Map<String, String> body) {
@@ -63,7 +65,7 @@ public class StudyPlanController {
     }
 
     /**
-     * 撤回（删除）指定日期的计划
+     * 撤回（删除）指定日期的学习计划。
      */
     @DeleteMapping("/{date}")
     public Result deletePlan(@PathVariable String date) {
@@ -81,6 +83,9 @@ public class StudyPlanController {
         }
     }
 
+    /**
+     * 手动新增一条任务到指定日期的计划中。
+     */
     @PostMapping("/{date}/tasks")
     public Result addTask(@PathVariable String date, @RequestBody Map<String, String> body) {
         Account currentUser = TokenUtils.getCurrentUser();
@@ -101,6 +106,9 @@ public class StudyPlanController {
         }
     }
 
+    /**
+     * 修改指定任务的科目与内容。
+     */
     @PutMapping("/{date}/tasks/{taskId}")
     public Result updateTask(@PathVariable String date, @PathVariable String taskId,
             @RequestBody Map<String, String> body) {
@@ -123,6 +131,9 @@ public class StudyPlanController {
         }
     }
 
+    /**
+     * 删除指定任务。
+     */
     @DeleteMapping("/{date}/tasks/{taskId}")
     public Result deleteTask(@PathVariable String date, @PathVariable String taskId) {
         Account currentUser = TokenUtils.getCurrentUser();
@@ -140,6 +151,9 @@ public class StudyPlanController {
         }
     }
 
+    /**
+     * 将指定任务标记为已完成。
+     */
     @PutMapping("/{date}/tasks/{taskId}/complete")
     public Result completeTask(@PathVariable String date, @PathVariable String taskId) {
         Account currentUser = TokenUtils.getCurrentUser();
@@ -156,6 +170,9 @@ public class StudyPlanController {
         }
     }
 
+    /**
+     * 将指定任务从已完成恢复为未完成。
+     */
     @PutMapping("/{date}/tasks/{taskId}/uncomplete")
     public Result uncompleteTask(@PathVariable String date, @PathVariable String taskId) {
         Account currentUser = TokenUtils.getCurrentUser();
@@ -172,6 +189,10 @@ public class StudyPlanController {
         }
     }
 
+    /**
+     * 顺延任务到次日。
+     * onlyTaskIds 为空时顺延所有未完成任务；不为空时仅顺延指定任务。
+     */
     @PostMapping("/{date}/tasks/rollover")
     public Result rolloverTasks(@PathVariable String date,
             @RequestBody(required = false) Map<String, List<String>> body) {

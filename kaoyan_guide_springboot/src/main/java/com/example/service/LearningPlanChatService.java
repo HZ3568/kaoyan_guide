@@ -22,11 +22,18 @@ public class LearningPlanChatService {
     private final ChatModel openAiChatModel;
     private final String systemPrompt;
 
+    /**
+     * 初始化学习规划聊天服务，并预加载系统提示词。
+     */
     public LearningPlanChatService(@Qualifier("openAiChatModel") ChatModel openAiChatModel) {
         this.openAiChatModel = openAiChatModel;
         this.systemPrompt = loadSystemPrompt();
     }
 
+    /**
+     * 学习规划模块对话入口。
+     * 当前为单轮调用：每次仅拼接系统提示词 + 本轮用户消息，不读取历史记忆。
+     */
     public Flux<String> chat(String sessionId, String message) {
         List<ChatMessage> messages = new ArrayList<>();
         if (StringUtils.hasText(systemPrompt)) {
@@ -43,6 +50,10 @@ public class LearningPlanChatService {
         return Flux.just(response.aiMessage().text());
     }
 
+    /**
+     * 从类路径加载学习规划系统提示词。
+     * 文件不存在或读取失败时返回空串，保证服务可降级运行。
+     */
     private String loadSystemPrompt() {
         ClassPathResource resource = new ClassPathResource("prompts/learning_plan_system_prompt.txt");
         if (!resource.exists()) {

@@ -9,19 +9,30 @@
         </div>
         <div class="nav-list">
           <div class="nav-item" @click="$router.push('/front/universityList')">
-            <div class="nav-label"><el-icon><School /></el-icon> 查院校</div>
+            <div class="nav-label">
+              <el-icon><School /></el-icon> 查院校
+            </div>
             <el-icon class="arrow"><ArrowRight /></el-icon>
           </div>
-          <div class="nav-item" @click="$router.push('/front/interpretationsList')">
-            <div class="nav-label"><el-icon><Reading /></el-icon> 查专业</div>
+          <div
+            class="nav-item"
+            @click="$router.push('/front/interpretationsList')"
+          >
+            <div class="nav-label">
+              <el-icon><Reading /></el-icon> 查专业
+            </div>
             <el-icon class="arrow"><ArrowRight /></el-icon>
           </div>
           <div class="nav-item" @click="$router.push('/front/policysList')">
-            <div class="nav-label"><el-icon><Document /></el-icon> 招生政策</div>
+            <div class="nav-label">
+              <el-icon><Document /></el-icon> 招生政策
+            </div>
             <el-icon class="arrow"><ArrowRight /></el-icon>
           </div>
           <div class="nav-item" @click="$router.push('/front/simulateExam')">
-            <div class="nav-label"><el-icon><Timer /></el-icon> 模拟考试</div>
+            <div class="nav-label">
+              <el-icon><Timer /></el-icon> 模拟考试
+            </div>
             <el-icon class="arrow"><ArrowRight /></el-icon>
           </div>
         </div>
@@ -30,10 +41,16 @@
       <!-- 中间轮播图 -->
       <div class="hero-center">
         <el-carousel :interval="4000" height="380px" class="main-carousel">
-          <el-carousel-item v-for="item in data.slideshowList" :key="item.id" @click="$router.push('/front/universityDetail?id=' + item.universityId)">
-            <img :src="item.img" alt="轮播图" class="carousel-img">
+          <el-carousel-item
+            v-for="item in data.slideshowList"
+            :key="item.id"
+            @click="
+              $router.push('/front/universityDetail?id=' + item.universityId)
+            "
+          >
+            <img :src="item.img" alt="轮播图" class="carousel-img" />
             <div class="carousel-overlay">
-              <h3>{{ item.title || '开启你的考研成功之路' }}</h3>
+              <h3>{{ item.title || "开启你的考研成功之路" }}</h3>
             </div>
           </el-carousel-item>
         </el-carousel>
@@ -42,19 +59,36 @@
       <!-- 右侧公告 -->
       <div class="hero-right card">
         <div class="section-title">
-          <div><el-icon><Bell /></el-icon> <span>最新公告</span></div>
-          <span class="more-link" @click="$router.push('/front/noticeList')">更多</span>
+          <div>
+            <el-icon><Bell /></el-icon> <span>最新公告</span>
+          </div>
+          <span class="more-link" @click="$router.push('/front/noticeList')"
+            >更多</span
+          >
         </div>
         <div class="notice-list">
-          <div v-for="item in data.noticeList" :key="item.id" class="notice-item" @click="$router.push('/front/noticeList')">
+          <div
+            v-for="item in data.noticeList"
+            :key="item.id"
+            class="notice-item"
+            @click="$router.push('/front/noticeList')"
+          >
             <span class="notice-dot"></span>
             <span class="notice-title line1">{{ item.title }}</span>
-            <span class="notice-time">{{ item.time ? item.time.substring(5, 10) : '' }}</span>
+            <span class="notice-time">{{
+              item.time ? item.time.substring(5, 10) : ""
+            }}</span>
           </div>
         </div>
         <!-- 登录/个人中心引导小卡片 (可选) -->
         <div class="user-action-area" v-if="!data.user.id">
-          <el-button type="primary" round class="w-100" @click="$router.push('/login')">立即登录</el-button>
+          <el-button
+            type="primary"
+            round
+            class="w-100"
+            @click="$router.push('/login')"
+            >立即登录</el-button
+          >
         </div>
       </div>
     </div>
@@ -67,8 +101,13 @@
       </div>
       <el-row :gutter="20">
         <el-col :span="6">
-          <div class="feature-card" @click="$router.push('/front/consultCollege')">
-            <div class="feature-icon blue-bg"><el-icon><ChatDotRound /></el-icon></div>
+          <div
+            class="feature-card"
+            @click="$router.push('/front/consultCollege')"
+          >
+            <div class="feature-icon blue-bg">
+              <el-icon><ChatDotRound /></el-icon>
+            </div>
             <div class="feature-info">
               <h3>AI 智能咨询</h3>
               <p>24小时在线，解答报考疑惑</p>
@@ -77,7 +116,9 @@
         </el-col>
         <el-col :span="6">
           <div class="feature-card" @click="$router.push('/front/studyPlan')">
-            <div class="feature-icon green-bg"><el-icon><DataAnalysis /></el-icon></div>
+            <div class="feature-icon green-bg">
+              <el-icon><DataAnalysis /></el-icon>
+            </div>
             <div class="feature-info">
               <h3>智能学习规划</h3>
               <p>量身定制，科学安排复习进度</p>
@@ -85,8 +126,13 @@
           </div>
         </el-col>
         <el-col :span="6">
-          <div class="feature-card" @click="$router.push('/front/universityList')">
-            <div class="feature-icon orange-bg"><el-icon><School /></el-icon></div>
+          <div
+            class="feature-card"
+            @click="$router.push('/front/universityList')"
+          >
+            <div class="feature-icon orange-bg">
+              <el-icon><School /></el-icon>
+            </div>
             <div class="feature-info">
               <h3>院校大数据</h3>
               <p>海量院校库，全方位数据分析</p>
@@ -94,8 +140,13 @@
           </div>
         </el-col>
         <el-col :span="6">
-          <div class="feature-card" @click="$router.push('/front/simulateExam')">
-            <div class="feature-icon purple-bg"><el-icon><Edit /></el-icon></div>
+          <div
+            class="feature-card"
+            @click="$router.push('/front/simulateExam')"
+          >
+            <div class="feature-icon purple-bg">
+              <el-icon><Edit /></el-icon>
+            </div>
             <div class="feature-info">
               <h3>全真模拟考试</h3>
               <p>实战演练，检验复习成果</p>
@@ -135,23 +186,53 @@
           <span class="title">热门院校</span>
           <span class="subtitle">根据用户满意度与关注度实时推荐</span>
         </div>
-        <div class="header-right" @click="$router.push('/front/universityList')">
+        <div
+          class="header-right"
+          @click="$router.push('/front/universityList')"
+        >
           查看更多 <el-icon><ArrowRight /></el-icon>
         </div>
       </div>
       <el-row :gutter="20">
         <el-col :span="12" v-for="item in data.universityList" :key="item.id">
-          <div class="uni-card card-hover" @click="$router.push('/front/universityDetail?id=' + item.id)">
-            <img :src="item.avatar" alt="校徽" class="uni-avatar">
+          <div
+            class="uni-card card-hover"
+            @click="$router.push('/front/universityDetail?id=' + item.id)"
+          >
+            <img :src="item.avatar" alt="校徽" class="uni-avatar" />
             <div class="uni-info">
-              <div class="uni-name">{{item.name}}</div>
+              <div class="uni-name">{{ item.name }}</div>
               <div class="uni-tags">
-                <el-tag size="small" effect="plain">{{item.department}}</el-tag>
-                <el-tag size="small" effect="plain" type="info">{{item.areasName}}</el-tag>
+                <el-tag size="small" effect="plain">{{
+                  item.schoolType || "院校"
+                }}</el-tag>
+                <el-tag size="small" effect="plain" type="info">{{
+                  item.provinceName || "-"
+                }}</el-tag>
+                <el-tag
+                  size="small"
+                  effect="plain"
+                  type="danger"
+                  v-if="item.is985"
+                  >985</el-tag
+                >
+                <el-tag
+                  size="small"
+                  effect="plain"
+                  type="warning"
+                  v-if="item.is211"
+                  >211</el-tag
+                >
+                <el-tag
+                  size="small"
+                  effect="plain"
+                  type="success"
+                  v-if="item.isDoubleFirstClass"
+                  >双一流</el-tag
+                >
               </div>
               <div class="uni-rate">
-                <span>满意度：</span>
-                <el-rate v-model="item.mark" disabled show-score text-color="#ff9900" score-template="{value}"/>
+                <span>办学层次：{{ item.educationLevel || "-" }}</span>
               </div>
             </div>
           </div>
@@ -166,26 +247,37 @@
           <span class="title">热门专业解读</span>
           <span class="subtitle">深度解析热门专业就业前景与考研难度</span>
         </div>
-        <div class="header-right" @click="$router.push('/front/interpretationsList')">
+        <div
+          class="header-right"
+          @click="$router.push('/front/interpretationsList')"
+        >
           查看更多 <el-icon><ArrowRight /></el-icon>
         </div>
       </div>
       <el-row :gutter="20">
-        <el-col :span="8" v-for="item in data.interpretationsList" :key="item.id">
-          <div class="inter-card card-hover" @click="$router.push('/front/interpretationsDetail?id=' + item.id)">
+        <el-col
+          :span="8"
+          v-for="item in data.interpretationsList"
+          :key="item.id"
+        >
+          <div
+            class="inter-card card-hover"
+            @click="$router.push('/front/interpretationsDetail?id=' + item.id)"
+          >
             <div class="inter-img-box">
-              <img :src="item.img" alt="专业图片" class="inter-img">
-              <div class="inter-view"><el-icon><View /></el-icon> {{item.viewCount}}</div>
+              <img :src="item.img" alt="专业图片" class="inter-img" />
+              <div class="inter-view">
+                <el-icon><View /></el-icon> {{ item.viewCount }}
+              </div>
             </div>
             <div class="inter-info">
-              <div class="inter-title line1">{{item.name}}</div>
-              <div class="inter-desc line2">{{item.intro}}</div>
+              <div class="inter-title line1">{{ item.name }}</div>
+              <div class="inter-desc line2">{{ item.intro }}</div>
             </div>
           </div>
         </el-col>
       </el-row>
     </div>
-
   </div>
 </template>
 
@@ -195,60 +287,60 @@ import request from "@/utils/request.js";
 import { ElMessage } from "element-plus";
 
 const data = reactive({
-  user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
+  user: JSON.parse(localStorage.getItem("xm-user") || "{}"),
   slideshowList: [],
   noticeList: [],
   universityList: [],
-  interpretationsList: []
-})
+  interpretationsList: [],
+});
 
 // 获取首页轮播图
 const loadSlideshow = () => {
-  request.get('/slideshow/selectAll').then(res => {
-    if (res.code === '200') {
-      data.slideshowList = res.data
+  request.get("/slideshow/selectAll").then((res) => {
+    if (res.code === "200") {
+      data.slideshowList = res.data;
     } else {
-      ElMessage.error(res.msg)
+      ElMessage.error(res.msg);
     }
-  })
-}
-loadSlideshow()
+  });
+};
+loadSlideshow();
 
 // 获取最新公告
 const loadNotice = () => {
-  request.get('/notice/selectAll').then(res => {
-    if (res.code === '200') {
-      data.noticeList = res.data.splice(0, 5) // 稍微多展示一条
+  request.get("/notice/selectAll").then((res) => {
+    if (res.code === "200") {
+      data.noticeList = res.data.splice(0, 5); // 稍微多展示一条
     } else {
-      ElMessage.error(res.msg)
+      ElMessage.error(res.msg);
     }
-  })
-}
-loadNotice()
+  });
+};
+loadNotice();
 
 // 满意度最高的前6个学校
 const loadHotUniversity = () => {
-  request.get('/university/loadHotUniversity').then(res => {
-    if (res.code === '200') {
-      data.universityList = res.data
+  request.get("/university/loadHotUniversity").then((res) => {
+    if (res.code === "200") {
+      data.universityList = res.data;
     } else {
-      ElMessage.error(res.msg)
+      ElMessage.error(res.msg);
     }
-  })
-}
-loadHotUniversity()
+  });
+};
+loadHotUniversity();
 
 // 浏览量前6的专业解读
 const loadHotInterpretations = () => {
-  request.get('/interpretations/loadHotInterpretations').then(res => {
-    if (res.code === '200') {
-      data.interpretationsList = res.data
+  request.get("/interpretations/loadHotInterpretations").then((res) => {
+    if (res.code === "200") {
+      data.interpretationsList = res.data;
     } else {
-      ElMessage.error(res.msg)
+      ElMessage.error(res.msg);
     }
-  })
-}
-loadHotInterpretations()
+  });
+};
+loadHotInterpretations();
 </script>
 
 <style scoped>
@@ -329,7 +421,7 @@ loadHotInterpretations()
 
 .section-title .el-icon {
   margin-right: 8px;
-  color: #409EFF;
+  color: #409eff;
 }
 
 .more-link {
@@ -340,7 +432,7 @@ loadHotInterpretations()
 }
 
 .more-link:hover {
-  color: #409EFF;
+  color: #409eff;
 }
 
 /* 导航列表 */
@@ -398,7 +490,7 @@ loadHotInterpretations()
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
   padding: 20px;
   color: #fff;
 }
@@ -423,7 +515,7 @@ loadHotInterpretations()
 }
 
 .notice-item:hover .notice-title {
-  color: #409EFF;
+  color: #409eff;
 }
 
 .notice-dot {
@@ -435,7 +527,7 @@ loadHotInterpretations()
 }
 
 .notice-item:hover .notice-dot {
-  background: #409EFF;
+  background: #409eff;
 }
 
 .notice-title {
@@ -509,10 +601,21 @@ loadHotInterpretations()
   color: #fff;
 }
 
-.blue-bg { background: linear-gradient(135deg, #36D1DC, #5B86E5); }
-.green-bg { background: linear-gradient(135deg, #42e695, #3bb2b8); }
-.orange-bg { background: linear-gradient(135deg, #ff9a9e, #fecfef); color: #fff; background-color: #ff9900; background: linear-gradient(135deg, #FFB75E, #ED8F03); }
-.purple-bg { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+.blue-bg {
+  background: linear-gradient(135deg, #36d1dc, #5b86e5);
+}
+.green-bg {
+  background: linear-gradient(135deg, #42e695, #3bb2b8);
+}
+.orange-bg {
+  background: linear-gradient(135deg, #ff9a9e, #fecfef);
+  color: #fff;
+  background-color: #ff9900;
+  background: linear-gradient(135deg, #ffb75e, #ed8f03);
+}
+.purple-bg {
+  background: linear-gradient(135deg, #a18cd1, #fbc2eb);
+}
 
 .feature-info h3 {
   margin: 0 0 5px 0;
@@ -528,7 +631,7 @@ loadHotInterpretations()
 
 /* 平台数据/特色 */
 .platform-stats {
-  background: linear-gradient(to right, #409EFF, #337ecc);
+  background: linear-gradient(to right, #409eff, #337ecc);
   border-radius: 12px;
   padding: 30px;
   display: flex;
@@ -592,7 +695,7 @@ loadHotInterpretations()
 }
 
 .header-right:hover {
-  color: #409EFF;
+  color: #409eff;
 }
 
 /* 院校卡片 */

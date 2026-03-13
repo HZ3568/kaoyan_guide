@@ -17,6 +17,11 @@ import reactor.core.publisher.Flux;
         tools = "reservationTool"
 )
 public interface ChatService {
+    /**
+     * 志愿填报模块对话入口。
+     * memoryId 用于隔离用户在该模块下的会话记忆；
+     * message 为本轮用户输入，返回流式模型输出。
+     */
     @SystemMessage(fromResource = "prompts/volunteer_apply_system_prompt.txt")
     Flux<String> chat(@MemoryId String memoryId, @UserMessage String message);
 }

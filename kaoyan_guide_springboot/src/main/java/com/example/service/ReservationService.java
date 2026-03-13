@@ -11,12 +11,16 @@ public class ReservationService {
     @Autowired
     private ReservationMapper reservationMapper;
 
-    // 添加预约信息
+    /**
+     * 新增志愿填报预约记录。
+     */
     public void insert(Reservation reservation){
         reservationMapper.insert(reservation);
     }
 
-    // 查询预约信息
+    /**
+     * 按手机号查询预约记录。
+     */
     public Reservation selectByPhone(String phone){
         return reservationMapper.selectByPhone(phone);
     }

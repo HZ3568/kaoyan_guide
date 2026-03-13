@@ -4,17 +4,19 @@
 <mapper namespace="com.example.mapper.UniversityMapper">
 
     <select id="selectAll" resultType="com.example.entity.University">
-        select university.*, areas.name as areasName from `university`
-        left join areas on areas.id = university.areas_id
+        select u.*, p.name as provinceName
+        from university u
+        left join areas p on p.id = u.province_id
         <where>
-            <if test="name != null"> and university.name like concat('%', #{name}, '%')</if>
-            <if test="areasId != null"> and university.areas_id = #{areasId}</if>
-            <if test="status != null"> and university.status like concat('%', #{status}, '%')</if>
-            <if test="department != null"> and university.department like concat('%', #{department}, '%')</if>
-            <if test="characters != null"> and university.characters like concat('%', #{characters}, '%')</if>
-            <if test="level != null"> and university.level like concat('%', #{level}, '%')</if>
+            <if test="name != null and name != ''"> and u.name like concat('%', #{name}, '%')</if>
+            <if test="provinceId != null"> and u.province_id = #{provinceId}</if>
+            <if test="schoolType != null and schoolType != ''"> and u.school_type = #{schoolType}</if>
+            <if test="educationLevel != null and educationLevel != ''"> and u.education_level = #{educationLevel}</if>
+            <if test="is985 != null"> and u.is_985 = #{is985}</if>
+            <if test="is211 != null"> and u.is_211 = #{is211}</if>
+            <if test="isDoubleFirstClass != null"> and u.is_double_first_class = #{isDoubleFirstClass}</if>
         </where>
-        order by id desc
+        order by u.id desc
     </select>
 
     <delete id="deleteById">
@@ -26,97 +28,69 @@
         insert into `university`
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">id,</if>
-            <if test="username != null">username,</if>
-            <if test="password != null">password,</if>
             <if test="name != null">name,</if>
-            <if test="phone != null">phone,</if>
-            <if test="email != null">email,</if>
             <if test="avatar != null">avatar,</if>
-            <if test="role != null">role,</if>
-            <if test="status != null">status,</if>
-
-            <if test="areasId != null">areas_id,</if>
+            <if test="provinceId != null">province_id,</if>
             <if test="address != null">address,</if>
-            <if test="department != null">department,</if>
-            <if test="characters != null">`characters`,</if>
+            <if test="schoolType != null">school_type,</if>
+            <if test="educationLevel != null">education_level,</if>
+            <if test="is985 != null">is_985,</if>
+            <if test="is211 != null">is_211,</if>
+            <if test="isDoubleFirstClass != null">is_double_first_class,</if>
             <if test="officialWebsite != null">official_website,</if>
-            <if test="content != null">content,</if>
-            <if test="mark != null">mark,</if>
-            <if test="level != null">`level`,</if>
+            <if test="description != null">description,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
-            <if test="username != null">#{username},</if>
-            <if test="password != null">#{password},</if>
             <if test="name != null">#{name},</if>
-            <if test="phone != null">#{phone},</if>
-            <if test="email != null">#{email},</if>
             <if test="avatar != null">#{avatar},</if>
-            <if test="role != null">#{role},</if>
-            <if test="status != null">#{status},</if>
-
-            <if test="areasId != null">#{areasId},</if>
+            <if test="provinceId != null">#{provinceId},</if>
             <if test="address != null">#{address},</if>
-            <if test="department != null">#{department},</if>
-            <if test="characters != null">#{characters},</if>
+            <if test="schoolType != null">#{schoolType},</if>
+            <if test="educationLevel != null">#{educationLevel},</if>
+            <if test="is985 != null">#{is985},</if>
+            <if test="is211 != null">#{is211},</if>
+            <if test="isDoubleFirstClass != null">#{isDoubleFirstClass},</if>
             <if test="officialWebsite != null">#{officialWebsite},</if>
-            <if test="content != null">#{content},</if>
-            <if test="mark != null">#{mark},</if>
-            <if test="level != null">#{level},</if>
+            <if test="description != null">#{description},</if>
         </trim>
     </insert>
 
     <update id="updateById" parameterType="com.example.entity.University">
         update `university`
         <set>
-            <if test="username != null">
-                username = #{username},
-            </if>
-            <if test="password != null">
-                password = #{password},
-            </if>
             <if test="name != null">
                 name = #{name},
-            </if>
-            <if test="phone != null">
-                phone = #{phone},
-            </if>
-            <if test="email != null">
-                email = #{email},
             </if>
             <if test="avatar != null">
                 avatar = #{avatar},
             </if>
-            <if test="role != null">
-                role = #{role},
-            </if>
-            <if test="status != null">
-                status = #{status},
-            </if>
-
-            <if test="areasId != null">
-                areas_id = #{areasId},
+            <if test="provinceId != null">
+                province_id = #{provinceId},
             </if>
             <if test="address != null">
                 address = #{address},
             </if>
-            <if test="department != null">
-                department = #{department},
+            <if test="schoolType != null">
+                school_type = #{schoolType},
             </if>
-            <if test="characters != null">
-                `characters` = #{characters},
+            <if test="educationLevel != null">
+                education_level = #{educationLevel},
+            </if>
+            <if test="is985 != null">
+                is_985 = #{is985},
+            </if>
+            <if test="is211 != null">
+                is_211 = #{is211},
+            </if>
+            <if test="isDoubleFirstClass != null">
+                is_double_first_class = #{isDoubleFirstClass},
             </if>
             <if test="officialWebsite != null">
                 official_website = #{officialWebsite},
             </if>
-            <if test="content != null">
-                content = #{content},
-            </if>
-            <if test="mark != null">
-                mark = #{mark},
-            </if>
-            <if test="level != null">
-                `level` = #{level},
+            <if test="description != null">
+                description = #{description},
             </if>
         </set>
         where id = #{id}

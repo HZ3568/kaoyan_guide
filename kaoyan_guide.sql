@@ -626,4 +626,8 @@ DROP TABLE IF EXISTS `user_certification`;
 -- 数据清理：统一移除大学端角色残留
 UPDATE `university` SET `role` = 'USER' WHERE `role` = 'UNIVERSITY';
 
+-- 数据清理：移除认证状态字段
+ALTER TABLE `university` DROP COLUMN IF EXISTS `status`;
+ALTER TABLE `user` DROP COLUMN IF EXISTS `status`;
+
 SET FOREIGN_KEY_CHECKS = 1;

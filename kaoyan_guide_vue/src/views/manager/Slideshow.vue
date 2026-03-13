@@ -95,11 +95,7 @@ const handleImgSuccess = (res) => {
 }
 
 const loadUniversity = () => {
-  request.get('/university/selectAll', {
-    params: {
-      status: "审核通过"
-    }
-  }).then(res => {
+  request.get('/university/selectAll').then(res => {
     if (res.code === '200') {
       data.universityList = res.data
     } else {

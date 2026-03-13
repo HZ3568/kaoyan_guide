@@ -3,143 +3,76 @@
     <div
       style="
         border: 1px solid #eeeeee;
-        padding: 15px 30px;
-        border-radius: 5px;
+        padding: 20px 24px;
+        border-radius: 8px;
         margin-bottom: 20px;
       "
     >
-      <div style="display: flex">
+      <div
+        style="
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        "
+      >
         <el-input
           v-model="data.name"
-          placeholder="请输入学校名称查询"
-          style="width: 400px; height: 40px"
+          placeholder="学校名称"
           clearable
-          @clear="load"
           @keyup.enter="load"
-        ></el-input>
-        <el-button
-          type="info"
-          plain
-          style="margin-left: 10px; height: 40px; width: 100px"
-          @click="load"
-          >查询</el-button
+        />
+        <el-select
+          v-model="data.provinceId"
+          placeholder="省份"
+          clearable
+          filterable
         >
-      </div>
-      <div
-        style="
-          display: flex;
-          align-items: center;
-          border-bottom: 1px solid #eeeeee;
-          padding: 10px 0;
-        "
-      >
-        <div style="width: 90px">院校所在地：</div>
-        <div style="flex: 1">
-          <div style="display: flex; align-items: center; flex-wrap: wrap">
-            <div
-              @click="changeAreasFlag(null)"
-              style="
-                padding-bottom: 5px;
-                margin-right: 20px;
-                cursor: pointer;
-                margin-bottom: 10px;
-              "
-              :class="{ 'category-active': data.areasFlag === null }"
-            >
-              全部
-            </div>
-            <div
-              @click="changeAreasFlag(item.id)"
-              style="
-                padding-bottom: 5px;
-                margin-right: 20px;
-                cursor: pointer;
-                margin-bottom: 10px;
-              "
-              :class="{ 'category-active': data.areasFlag === item.id }"
-              v-for="item in data.areasData"
-              :key="item.id"
-            >
-              {{ item.name }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style="display: flex; align-items: center; padding: 10px 0">
-        <div style="width: 90px">主管部门：</div>
-        <div style="flex: 1">
-          <div style="display: flex; align-items: center; flex-wrap: wrap">
-            <div
-              @click="changeDepartmentFlag(null)"
-              class="category-item"
-              :class="{ 'category-active': data.departmentFlag === null }"
-            >
-              全部
-            </div>
-            <div
-              @click="changeDepartmentFlag(item)"
-              class="category-item"
-              :class="{ 'category-active': data.departmentFlag === item }"
-              v-for="item in data.departmentData"
-              :key="item"
-            >
-              {{ item }}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div style="display: flex; align-items: center; padding: 10px 0">
-        <div style="width: 90px">办学层次：</div>
-        <div style="flex: 1">
-          <div style="display: flex; align-items: center; flex-wrap: wrap">
-            <div
-              @click="changeLevelFlag(null)"
-              class="category-item"
-              :class="{ 'category-active': data.levelFlag === null }"
-            >
-              全部
-            </div>
-            <div
-              @click="changeLevelFlag(item)"
-              class="category-item"
-              :class="{ 'category-active': data.levelFlag === item }"
-              v-for="item in data.levelData"
-              :key="item"
-            >
-              {{ item }}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div
-        style="
-          display: flex;
-          align-items: center;
-          border-bottom: 1px solid #eeeeee;
-          padding: 10px 0;
-        "
-      >
-        <div style="width: 90px">院校特性：</div>
-        <div style="flex: 1">
-          <div style="display: flex; align-items: center">
-            <div
-              @click="changeCharacterFlag(null)"
-              class="category-item"
-              :class="{ 'category-active': data.characterFlag === null }"
-            >
-              全部
-            </div>
-            <div
-              @click="changeCharacterFlag(item)"
-              class="category-item"
-              :class="{ 'category-active': data.characterFlag === item }"
-              v-for="item in data.characterData"
-              :key="item"
-            >
-              {{ item }}
-            </div>
-          </div>
+          <el-option
+            v-for="item in data.areasData"
+            :key="'p' + item.id"
+            :label="item.name"
+            :value="item.id"
+          />
+        </el-select>
+        <el-select v-model="data.schoolType" placeholder="院校类型" clearable>
+          <el-option
+            v-for="item in data.schoolTypeOptions"
+            :key="item"
+            :label="item"
+            :value="item"
+          />
+        </el-select>
+        <el-select
+          v-model="data.educationLevel"
+          placeholder="办学层次"
+          clearable
+        >
+          <el-option
+            v-for="item in data.educationLevelOptions"
+            :key="item"
+            :label="item"
+            :value="item"
+          />
+        </el-select>
+        <el-select v-model="data.is985" placeholder="985" clearable>
+          <el-option label="是" :value="1" />
+          <el-option label="否" :value="0" />
+        </el-select>
+        <el-select v-model="data.is211" placeholder="211" clearable>
+          <el-option label="是" :value="1" />
+          <el-option label="否" :value="0" />
+        </el-select>
+        <el-select
+          v-model="data.isDoubleFirstClass"
+          placeholder="双一流"
+          clearable
+        >
+          <el-option label="是" :value="1" />
+          <el-option label="否" :value="0" />
+        </el-select>
+        <div style="display: flex; gap: 8px">
+          <el-button type="primary" @click="load">查询</el-button>
+          <el-button @click="reset">重置</el-button>
         </div>
       </div>
     </div>
@@ -169,21 +102,51 @@
               >
                 {{ item.name }}
               </div>
-              <div
-                style="display: flex; align-items: center; margin-bottom: 10px"
-              >
-                满意度：<el-rate
-                  v-model="item.mark"
-                  disabled
-                  show-score
-                  text-color="#ff9900"
-                  score-template="满意度{value}"
-                />
+              <div style="margin-bottom: 8px">
+                <el-tag size="small" type="danger" v-if="item.is985"
+                  >985</el-tag
+                >
+                <el-tag
+                  size="small"
+                  type="warning"
+                  v-if="item.is211"
+                  style="margin-left: 6px"
+                  >211</el-tag
+                >
+                <el-tag
+                  size="small"
+                  type="success"
+                  v-if="item.isDoubleFirstClass"
+                  style="margin-left: 6px"
+                  >双一流</el-tag
+                >
               </div>
-              <div style="margin-bottom: 10px">
-                主管部门：{{ item.department }}
+              <div style="margin-bottom: 6px">
+                省份：{{ item.provinceName || "-" }}
               </div>
-              <div>地区：{{ item.areasName }}</div>
+              <div style="margin-bottom: 6px">
+                详细地址：{{ item.address || "-" }}
+              </div>
+              <div style="margin-bottom: 6px">
+                院校类型：{{ item.schoolType || "-" }}
+              </div>
+              <div style="margin-bottom: 6px">
+                办学层次：{{ item.educationLevel || "-" }}
+              </div>
+              <div style="margin-bottom: 6px">
+                官网：
+                <a
+                  v-if="item.officialWebsite"
+                  :href="item.officialWebsite"
+                  target="_blank"
+                  @click.stop
+                  >{{ item.officialWebsite }}</a
+                >
+                <span v-else>-</span>
+              </div>
+              <div style="margin-bottom: 6px; color: #999">
+                更新时间：{{ item.updateTime || "-" }}
+              </div>
             </div>
           </div>
         </el-col>
@@ -202,27 +165,32 @@
 </template>
 
 <script setup>
-import { reactive, ref } from "vue";
+import { reactive } from "vue";
 import request from "@/utils/request.js";
 import { ElMessage } from "element-plus";
-import router from "@/router/index.js";
 
 const data = reactive({
-  departmentFlag: null,
-  areasFlag: null,
-  levelFlag: null,
-  characterFlag: null,
+  provinceId: null,
+  schoolType: null,
+  educationLevel: null,
+  is985: null,
+  is211: null,
+  isDoubleFirstClass: null,
   name: null,
-  departmentData: ["教育部", "其他部委", "地方", "军校"],
   areasData: [],
-  levelData: ["本科", "高职(专科)"],
-  characterData: [
-    "“双一流”建设高校",
-    "民办高校",
-    "独立学院",
-    "中外合作办学",
-    "内地与港澳台地区合作办学",
+  schoolTypeOptions: [
+    "综合类",
+    "理工类",
+    "师范类",
+    "财经类",
+    "医药类",
+    "农林类",
+    "政法类",
+    "艺术类",
+    "语言类",
+    "体育类",
   ],
+  educationLevelOptions: ["本科", "专科"],
   pageNum: 1,
   pageSize: 8,
   total: 0,
@@ -234,12 +202,13 @@ const load = () => {
       params: {
         pageNum: data.pageNum,
         pageSize: data.pageSize,
-        department: data.departmentFlag,
-        areasId: data.areasFlag,
-        level: data.levelFlag,
-        characters: data.characterFlag,
         name: data.name,
-        status: "审核通过",
+        provinceId: data.provinceId,
+        schoolType: data.schoolType,
+        educationLevel: data.educationLevel,
+        is985: data.is985,
+        is211: data.is211,
+        isDoubleFirstClass: data.isDoubleFirstClass,
       },
     })
     .then((res) => {
@@ -260,31 +229,18 @@ const loadAreas = () => {
     }
   });
 };
-
-const changeDepartmentFlag = (id) => {
-  data.departmentFlag = id;
-  load();
-};
-const changeAreasFlag = (id) => {
-  data.areasFlag = id;
-  load();
-};
-const changeLevelFlag = (id) => {
-  data.levelFlag = id;
-  load();
-};
-
-const changeCharacterFlag = (id) => {
-  data.characterFlag = id;
+const reset = () => {
+  data.name = null;
+  data.provinceId = null;
+  data.schoolType = null;
+  data.educationLevel = null;
+  data.is985 = null;
+  data.is211 = null;
+  data.isDoubleFirstClass = null;
+  data.pageNum = 1;
   load();
 };
 loadAreas();
 load();
 </script>
-
-<style scoped>
-.category-active {
-  color: #006cff;
-  border-bottom: 2px solid #006cff;
-}
-</style>
+<style scoped></style>

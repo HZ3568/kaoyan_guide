@@ -36,7 +36,6 @@ public class UserService {
         if (ObjectUtil.isEmpty(user.getName())) {
             user.setName(user.getUsername());
         }
-        user.setStatus("待认证");
         user.setRole(RoleEnum.USER.name());
         userMapper.insert(user);
     }

@@ -1,0 +1,19 @@
+DROP TABLE IF EXISTS `university`;
+
+CREATE TABLE `university` (
+  `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `name` VARCHAR(255) NOT NULL COMMENT '学校名称',
+  `avatar` VARCHAR(255) DEFAULT NULL COMMENT '学校图片/校徽',
+  `province_id` INT DEFAULT NULL COMMENT '省份ID',
+  `address` VARCHAR(255) DEFAULT NULL COMMENT '详细地址',
+  `school_type` VARCHAR(50) DEFAULT NULL COMMENT '院校类型：综合类/理工类/师范类/财经类等',
+  `education_level` VARCHAR(50) DEFAULT NULL COMMENT '办学层次：本科/专科',
+  `is_985` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否985',
+  `is_211` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否211',
+  `is_double_first_class` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否双一流',
+  `official_website` VARCHAR(255) DEFAULT NULL COMMENT '官方网址',
+  `description` LONGTEXT COMMENT '院校简介',
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='院校信息表';

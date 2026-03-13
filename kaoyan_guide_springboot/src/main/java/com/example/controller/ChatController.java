@@ -20,37 +20,29 @@ public class ChatController {
     @Autowired
     private ChatGatewayService chatGatewayService;
 
+    /**
+     * 统一聊天入口（SSE）。
+     * 作用：
+     * 1) 校验当前登录用户；
+     * 2) 优先使用前端传入的 sessionId，缺失时自动生成新的 UUID；
+     * 3) 回传 X-Session-Id，便于前端后续请求复用同一会话；
+     * 4) 根据 moduleType 路由到对应业务模块（志愿填报 / 学习规划）。
+     */
     @RequestMapping(value = "/chat", produces = "text/event-stream;charset=UTF-8")
     public Flux<String> chat(@RequestParam("message") String message,
-                             @RequestParam("moduleType") String moduleType,
-                             @RequestParam(value = "sessionId", required = false) String sessionId,
-                             @RequestParam(value = "memoryId", required = false) String legacyMemoryId,
-                             HttpServletResponse response) {
+            @RequestParam("moduleType") String moduleType,
+            @RequestParam(value = "sessionId", required = false) String sessionId,
+            HttpServletResponse response) {
         Account currentUser = TokenUtils.getCurrentUser();
         if (currentUser == null || currentUser.getId() == null) {
             throw new RuntimeException("未登录或登录已失效");
         }
         String effectiveSessionId = sessionId;
         if (!StringUtils.hasText(effectiveSessionId)) {
-            effectiveSessionId = resolveLegacySessionId(legacyMemoryId);
-        }
-        if (!StringUtils.hasText(effectiveSessionId)) {
             effectiveSessionId = UUID.randomUUID().toString();
         }
         response.setHeader("X-Session-Id", effectiveSessionId);
         ModuleType targetModule = ModuleType.fromCode(moduleType);
         return chatGatewayService.chat(currentUser.getId(), targetModule, effectiveSessionId, message);
-    }
-
-    private String resolveLegacySessionId(String legacyMemoryId) {
-        if (!StringUtils.hasText(legacyMemoryId)) {
-            return null;
-        }
-        String normalized = legacyMemoryId.trim();
-        int index = normalized.lastIndexOf(':');
-        if (index < 0 || index == normalized.length() - 1) {
-            return normalized;
-        }
-        return normalized.substring(index + 1).trim();
     }
 }

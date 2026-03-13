@@ -18,42 +18,66 @@
         >
           {{ data.universityData.name }}
         </div>
+        <div style="margin-bottom: 10px">
+          <el-tag
+            size="small"
+            type="danger"
+            v-if="data.universityData.is985"
+          >985</el-tag>
+          <el-tag
+            size="small"
+            type="warning"
+            v-if="data.universityData.is211"
+            style="margin-left: 8px"
+          >211</el-tag>
+          <el-tag
+            size="small"
+            type="success"
+            v-if="data.universityData.isDoubleFirstClass"
+            style="margin-left: 8px"
+          >双一流</el-tag>
+        </div>
+        <div style="font-weight: bold; margin-bottom: 10px">基础信息</div>
         <div style="color: #666666ff; margin-bottom: 10px">
-          教育行政主管部门：{{ data.universityData.department }}
+          省份：{{ data.universityData.provinceName || "-" }}
         </div>
         <div style="color: #666666ff; margin-bottom: 10px">
-          院校特性：{{ data.universityData.characters }}
+          详细地址：{{ data.universityData.address || "-" }}
+        </div>
+        <div style="font-weight: bold; margin: 16px 0 10px">院校属性</div>
+        <div style="color: #666666ff; margin-bottom: 10px">
+          院校类型：{{ data.universityData.schoolType || "-" }}
         </div>
         <div style="color: #666666ff; margin-bottom: 10px">
-          所在地：{{
-            data.universityData.address || data.universityData.areasName
-          }}
+          办学层次：{{ data.universityData.educationLevel || "-" }}
         </div>
         <div style="color: #666666ff; margin-bottom: 10px">
-          详细地址：{{ data.universityData.address }}
+          985：{{ data.universityData.is985 ? "是" : "否" }}
         </div>
         <div style="color: #666666ff; margin-bottom: 10px">
-          官方网址：{{ data.universityData.officialWebsite }}
+          211：{{ data.universityData.is211 ? "是" : "否" }}
         </div>
         <div style="color: #666666ff; margin-bottom: 10px">
-          官方电话：{{ data.universityData.phone }}
+          双一流：{{ data.universityData.isDoubleFirstClass ? "是" : "否" }}
         </div>
+        <div style="font-weight: bold; margin: 16px 0 10px">其他信息</div>
         <div style="color: #666666ff; margin-bottom: 10px">
-          满意度：<el-rate
-            v-model="data.universityData.mark"
-            disabled
-            show-score
-            text-color="#ff9900"
-            score-template="满意度{value}"
-          />
+          官方网址：
+          <a
+            v-if="data.universityData.officialWebsite"
+            :href="data.universityData.officialWebsite"
+            target="_blank"
+          >
+            {{ data.universityData.officialWebsite }}
+          </a>
+          <span v-else>-</span>
         </div>
         <div style="display: flex; grid-gap: 10px; align-items: center">
           <el-button
             type="warning"
             @click="showComment"
             :disabled="data.universityData.commentFlag"
-            >评价</el-button
-          >
+          >评价</el-button>
           <div style="color: red">（每人每个学校只能评价一次）</div>
         </div>
       </div>
@@ -63,31 +87,37 @@
             style="font-size: 24px; cursor: pointer"
             v-if="!data.universityData.collectFlag"
             @click="collectGoods(data.universityData.collectFlag)"
-            ><Star
-          /></el-icon>
+          >
+            <Star />
+          </el-icon>
           <div v-if="!data.universityData.collectFlag">收藏</div>
           <el-icon
             style="font-size: 24px; color: red; cursor: pointer"
             v-if="data.universityData.collectFlag"
             @click="collectGoods(data.universityData.collectFlag)"
-            ><Star
-          /></el-icon>
-          <div v-if="data.universityData.collectFlag" style="color: red">
+          >
+            <Star />
+          </el-icon>
+          <div
+            v-if="data.universityData.collectFlag"
+            style="color: red"
+          >
             取消收藏
           </div>
         </div>
       </div>
     </div>
-    <div class="front-card" style="margin-bottom: 20px">
-      <div
-        style="
+    <div
+      class="front-card"
+      style="margin-bottom: 20px"
+    >
+      <div style="
           display: flex;
           align-items: center;
           justify-content: center;
           grid-gap: 40px;
           margin-bottom: 20px;
-        "
-      >
+        ">
         <div
           @click="changeCategory(item)"
           style="font-size: 18px; padding-bottom: 5px; cursor: pointer"
@@ -99,7 +129,7 @@
         </div>
       </div>
       <div v-if="data.selectType === '学校简介'">
-        <div v-html="data.universityData.content"></div>
+        <div v-html="data.universityData.description"></div>
       </div>
       <div v-if="data.selectType === '专业介绍'">
         <div
@@ -108,16 +138,14 @@
           style="margin-bottom: 20px"
         >
           <div>
-            <div
-              style="
+            <div style="
                 width: 60px;
                 padding-bottom: 10px;
                 border-bottom: 3px solid #49c48d;
                 font-size: 18px;
                 font-weight: bold;
                 margin-bottom: 10px;
-              "
-            >
+              ">
               {{ categorysItem.name }}
             </div>
             <div style="display: flex; align-items: center">
@@ -143,7 +171,10 @@
         </div>
       </div>
 
-      <div v-if="data.selectType === '学校评价'" style="padding: 20px">
+      <div
+        v-if="data.selectType === '学校评价'"
+        style="padding: 20px"
+      >
         <div
           style="margin-bottom: 20px"
           v-for="item in data.commentList"
@@ -163,7 +194,10 @@
               </div>
               <div style="display: flex; align-items: center; grid-gap: 10px">
                 <div style="color: #7a7a7aff">{{ item.time }}</div>
-                <el-rate v-model="item.mark" disabled />
+                <el-rate
+                  v-model="item.mark"
+                  disabled
+                />
               </div>
             </div>
           </div>
@@ -186,7 +220,10 @@
         label-width="80px"
         style="padding: 20px"
       >
-        <el-form-item prop="details" label="评价内容">
+        <el-form-item
+          prop="details"
+          label="评价内容"
+        >
           <el-input
             v-model="data.form.details"
             placeholder="请输入评价内容"
@@ -194,14 +231,20 @@
             rows="4"
           ></el-input>
         </el-form-item>
-        <el-form-item prop="mark" label="评分">
+        <el-form-item
+          prop="mark"
+          label="评分"
+        >
           <el-rate v-model="data.form.mark" />
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="data.formVisible = false">取 消</el-button>
-          <el-button type="primary" @click="addComment">确 定</el-button>
+          <el-button
+            type="primary"
+            @click="addComment"
+          >确 定</el-button>
         </span>
       </template>
     </el-dialog>
@@ -211,9 +254,7 @@
 <script setup>
 import { reactive, onMounted, ref } from "vue";
 import request from "@/utils/request";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { ChatDotRound } from "@element-plus/icons-vue";
-import router from "@/router/index.js";
+import { ElMessage } from "element-plus";
 import { useRoute } from "vue-router";
 const route = useRoute();
 const formRef = ref();

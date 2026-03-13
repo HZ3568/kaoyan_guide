@@ -12,7 +12,11 @@ public class ConversationContextService {
     private final Map<ModuleType, ModuleToolProvider> toolProviders = new EnumMap<>(ModuleType.class);
     private final Map<ModuleType, ModulePromptProvider> promptProviders = new EnumMap<>(ModuleType.class);
 
-    public ConversationContextService(List<ModuleToolProvider> toolProviderList, List<ModulePromptProvider> promptProviderList) {
+    /**
+     * 收集各模块的工具提供器与提示词提供器，建立模块到配置的映射表。
+     */
+    public ConversationContextService(List<ModuleToolProvider> toolProviderList,
+            List<ModulePromptProvider> promptProviderList) {
         for (ModuleToolProvider provider : toolProviderList) {
             toolProviders.put(provider.moduleType(), provider);
         }
@@ -21,6 +25,10 @@ public class ConversationContextService {
         }
     }
 
+    /**
+     * 获取模块可用工具名列表。
+     * 学习规划模块强制返回空列表，确保不会挂载外部工具。
+     */
     public List<String> getTools(ModuleType moduleType) {
         ModuleToolProvider provider = toolProviders.get(moduleType);
         if (provider == null) {
@@ -32,6 +40,10 @@ public class ConversationContextService {
         return List.copyOf(provider.toolNames());
     }
 
+    /**
+     * 获取模块系统提示词资源路径。
+     * 若模块未注册提示词，直接抛错，避免静默使用错误配置。
+     */
     public String getPromptResource(ModuleType moduleType) {
         ModulePromptProvider provider = promptProviders.get(moduleType);
         if (provider == null) {
@@ -40,6 +52,10 @@ public class ConversationContextService {
         return provider.promptResource();
     }
 
+    /**
+     * 判断是否启用 RAG 检索增强。
+     * 当前仅志愿填报模块启用检索。
+     */
     public boolean isRagEnabled(ModuleType moduleType) {
         return moduleType == ModuleType.VOLUNTEER_APPLY;
     }

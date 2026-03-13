@@ -29,6 +29,9 @@ public class ChatGatewayService {
     private final MemoryKeyBuilder memoryKeyBuilder;
     private final ChatMemoryStore chatMemoryStore;
 
+    /**
+     * 构造聊天网关，注入模块路由与上下文组装所需依赖。
+     */
     public ChatGatewayService(ChatService volunteerApplyChatService,
             LearningPlanChatService learningPlanChatService,
             ConversationContextService conversationContextService,
@@ -45,6 +48,15 @@ public class ChatGatewayService {
         this.chatMemoryStore = chatMemoryStore;
     }
 
+    /**
+     * 聊天网关主入口。
+     * 核心流程：
+     * 1) 组装 memoryId 与会话上下文；
+     * 2) 按模块决定是否读取历史消息（仅志愿填报启用记忆）；
+     * 3) 解析提示词、工具与是否启用 RAG；
+     * 4) 分发到对应模块服务；
+     * 5) 对模型输出进行统一清洗后返回。
+     */
     public Flux<String> chat(Integer userId, ModuleType moduleType, String sessionId, String message) {
         String memoryId = memoryKeyBuilder.build(userId, moduleType, sessionId);
         SessionContext sessionContext = new SessionContext(userId, moduleType, sessionId, memoryId);
@@ -76,6 +88,10 @@ public class ChatGatewayService {
         return sanitizeResponse(rawResponse);
     }
 
+    /**
+     * 从持久化记忆中读取历史消息。
+     * 读取失败时降级为空历史，避免影响本次对话可用性。
+     */
     private List<ChatMessage> readHistory(String memoryKey) {
         try {
             List<ChatMessage> messages = chatMemoryStore.getMessages(memoryKey);
@@ -89,6 +105,10 @@ public class ChatGatewayService {
         }
     }
 
+    /**
+     * 按模块解析可用工具列表。
+     * 学习规划模块显式禁用工具，避免误触发志愿填报工具调用。
+     */
     private List<String> resolveSelectedTools(ModuleType moduleType) {
         if (moduleType == ModuleType.LEARNING_PLAN) {
             return List.of();
@@ -96,6 +116,10 @@ public class ChatGatewayService {
         return conversationContextService.getTools(moduleType);
     }
 
+    /**
+     * 聚合流式分片并做统一文本清洗。
+     * 这里将 Flux 分片合并为完整文本再清洗，确保清洗规则对整体输出生效。
+     */
     private Flux<String> sanitizeResponse(Flux<String> rawResponse) {
         return rawResponse.collectList()
                 .map(chunks -> String.join("", chunks))

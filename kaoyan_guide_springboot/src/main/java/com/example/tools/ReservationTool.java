@@ -14,8 +14,10 @@ public class ReservationTool {
     @Autowired
     private ReservationService reservationService;
 
-
-    // 1. 添加预约信息
+    /**
+     * 提供给大模型调用的预约写入工具。
+     * 当对话中用户明确给出预约关键信息后，模型可调用该函数落库。
+     */
     @Tool("预约志愿填报服务")
     public void addReservation(
             @P("考生姓名") String name,
@@ -28,7 +30,10 @@ public class ReservationTool {
         reservationService.insert(reservation);
     }
 
-    // 2. 查询预约信息
+    /**
+     * 提供给大模型调用的预约查询工具。
+     * 用于根据手机号回查用户是否已有预约及预约详情。
+     */
     @Tool("根据考生手机号查询预约信息")
     public Reservation queryReservationByPhone(
             @P("考生手机号") String phone) {

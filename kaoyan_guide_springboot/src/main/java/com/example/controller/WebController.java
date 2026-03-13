@@ -104,11 +104,8 @@ public class WebController {
         List<Specialtys> specialtysList = specialtysService.selectAll(null);
         map.put("specialtysNumber", specialtysList.size());
 
-        Long userNumber = userService.selectAll(null).stream().filter(x -> x.getStatus().equals("审核通过")).count();
-        map.put("userNumber", userNumber.intValue());
-
-        Long universityNumber = universityService.selectAll(null).stream().filter(x -> x.getStatus().equals("审核通过")).count();
-        map.put("universityNumber", universityNumber.intValue());
+        map.put("userNumber", userService.selectAll(null).size());
+        map.put("universityNumber", universityService.selectAll(null).size());
 
         return Result.success(map);
     }
