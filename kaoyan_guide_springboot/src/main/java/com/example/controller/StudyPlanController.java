@@ -102,7 +102,8 @@ public class StudyPlanController {
     }
 
     @PutMapping("/{date}/tasks/{taskId}")
-    public Result updateTask(@PathVariable String date, @PathVariable String taskId, @RequestBody Map<String, String> body) {
+    public Result updateTask(@PathVariable String date, @PathVariable String taskId,
+            @RequestBody Map<String, String> body) {
         Account currentUser = TokenUtils.getCurrentUser();
         if (currentUser == null || !(currentUser instanceof User)) {
             return Result.error("401", "请先登录学生账号");
@@ -139,8 +140,41 @@ public class StudyPlanController {
         }
     }
 
+    @PutMapping("/{date}/tasks/{taskId}/complete")
+    public Result completeTask(@PathVariable String date, @PathVariable String taskId) {
+        Account currentUser = TokenUtils.getCurrentUser();
+        if (currentUser == null || !(currentUser instanceof User)) {
+            return Result.error("401", "请先登录学生账号");
+        }
+        try {
+            LocalDate localDate = LocalDate.parse(date);
+            return Result.success(studyPlanService.updateTaskCompleted(currentUser.getId(), localDate, taskId, true));
+        } catch (DateTimeParseException e) {
+            return Result.error("日期格式错误，应为 yyyy-MM-dd");
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{date}/tasks/{taskId}/uncomplete")
+    public Result uncompleteTask(@PathVariable String date, @PathVariable String taskId) {
+        Account currentUser = TokenUtils.getCurrentUser();
+        if (currentUser == null || !(currentUser instanceof User)) {
+            return Result.error("401", "请先登录学生账号");
+        }
+        try {
+            LocalDate localDate = LocalDate.parse(date);
+            return Result.success(studyPlanService.updateTaskCompleted(currentUser.getId(), localDate, taskId, false));
+        } catch (DateTimeParseException e) {
+            return Result.error("日期格式错误，应为 yyyy-MM-dd");
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
     @PostMapping("/{date}/tasks/rollover")
-    public Result rolloverTasks(@PathVariable String date, @RequestBody(required = false) Map<String, List<String>> body) {
+    public Result rolloverTasks(@PathVariable String date,
+            @RequestBody(required = false) Map<String, List<String>> body) {
         Account currentUser = TokenUtils.getCurrentUser();
         if (currentUser == null || !(currentUser instanceof User)) {
             return Result.error("401", "请先登录学生账号");

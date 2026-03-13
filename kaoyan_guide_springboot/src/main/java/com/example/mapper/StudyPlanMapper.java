@@ -70,6 +70,11 @@ public interface StudyPlanMapper {
         int updateTaskByPlanIdAndTaskId(@Param("planId") Long planId, @Param("taskId") String taskId,
                         @Param("subject") String subject, @Param("content") String content);
 
+        @Update("UPDATE study_plan_task SET completed = #{completed} " +
+                        "WHERE plan_id = #{planId} AND task_id = #{taskId}")
+        int updateTaskCompletedByPlanIdAndTaskId(@Param("planId") Long planId, @Param("taskId") String taskId,
+                        @Param("completed") Boolean completed);
+
         @Delete("DELETE FROM study_plan_task WHERE plan_id = #{planId} AND task_id = #{taskId}")
         int deleteTaskByPlanIdAndTaskId(@Param("planId") Long planId, @Param("taskId") String taskId);
 

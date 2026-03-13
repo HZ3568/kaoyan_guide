@@ -667,9 +667,40 @@ const completionPercentage = computed(() => {
 });
 
 const toggleTask = (index) => {
-  if (taskList.value[index]) {
-    taskList.value[index].completed = !taskList.value[index].completed;
+  if (taskActionLoading.value) {
+    return;
   }
+  const task = taskList.value[index];
+  if (!task) {
+    return;
+  }
+  if (!task.taskId) {
+    ElMessage.error("任务标识缺失，无法更新状态");
+    return;
+  }
+  const targetCompleted = !task.completed;
+  taskActionLoading.value = true;
+  request
+    .put(
+      "/study-plan/" +
+        formatDate(selectedDate.value) +
+        "/tasks/" +
+        task.taskId +
+        (targetCompleted ? "/complete" : "/uncomplete")
+    )
+    .then((res) => {
+      if (res.code === "200") {
+        task.completed = targetCompleted;
+      } else {
+        ElMessage.error(res.msg || "更新任务状态失败");
+      }
+    })
+    .catch(() => {
+      ElMessage.error("更新任务状态失败");
+    })
+    .finally(() => {
+      taskActionLoading.value = false;
+    });
 };
 
 watch(

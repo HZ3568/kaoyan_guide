@@ -177,6 +177,32 @@ public class StudyPlanService {
     }
 
     @Transactional
+    public JSONObject updateTaskCompleted(Integer userId, LocalDate date, String taskId, boolean completed) {
+        DailyStudyPlan plan = studyPlanMapper.selectByDate(userId, date);
+        if (plan == null) {
+            throw new RuntimeException("当日计划不存在");
+        }
+        String normalizedTaskId = normalizeText(taskId);
+        if (isBlank(normalizedTaskId)) {
+            throw new RuntimeException("任务不存在");
+        }
+        int affected = studyPlanMapper.updateTaskCompletedByPlanIdAndTaskId(plan.getId(), normalizedTaskId, completed);
+        if (affected <= 0) {
+            throw new RuntimeException("任务不存在");
+        }
+        TaskNormalizeResult normalizeResult = normalizeTaskEntities(studyPlanMapper.selectTasksByPlanId(plan.getId()));
+        if (normalizeResult.changed) {
+            replacePlanTasks(plan.getId(), normalizeResult.tasks);
+        }
+        for (JSONObject task : normalizeResult.tasks) {
+            if (normalizedTaskId.equals(task.getStr("taskId"))) {
+                return task;
+            }
+        }
+        throw new RuntimeException("任务不存在");
+    }
+
+    @Transactional
     public void deleteTask(Integer userId, LocalDate date, String taskId) {
         DailyStudyPlan plan = studyPlanMapper.selectByDate(userId, date);
         if (plan == null) {
