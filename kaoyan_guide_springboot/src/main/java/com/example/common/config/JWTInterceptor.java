@@ -11,7 +11,6 @@ import com.example.common.enums.RoleEnum;
 import com.example.entity.Account;
 import com.example.exception.CustomException;
 import com.example.service.AdminService;
-import com.example.service.UniversityService;
 import com.example.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,9 +29,6 @@ public class JWTInterceptor implements HandlerInterceptor {
 
     @Resource
     private UserService userService;
-
-    @Resource
-    private UniversityService universityService;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -56,8 +52,6 @@ public class JWTInterceptor implements HandlerInterceptor {
                 account = adminService.selectById(Integer.valueOf(userId));
             } else if (RoleEnum.USER.name().equals(role)) {
                 account = userService.selectById(Integer.valueOf(userId));
-            } else if (RoleEnum.UNIVERSITY.name().equals(role)) {
-                account = universityService.selectById(Integer.valueOf(userId));
             }
         } catch (Exception e) {
             throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR);

@@ -33,7 +33,6 @@
         <el-form-item prop="role">
           <el-select size="large" v-model="data.form.role">
             <el-option value="ADMIN" label="管理员"></el-option>
-            <el-option value="UNIVERSITY" label="大学"></el-option>
             <el-option value="USER" label="学生"></el-option>
           </el-select>
         </el-form-item>

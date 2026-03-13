@@ -32,17 +32,8 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item
-                @click="router.push('/manager/universityPerson')"
-                v-if="data.user.role === 'UNIVERSITY'"
-              >学校信息</el-dropdown-item>
-              <el-dropdown-item
                 @click="router.push('/manager/person')"
-                v-else
               >个人资料</el-dropdown-item>
-              <el-dropdown-item
-                @click="router.push('/manager/universityCertifications')"
-                v-if="data.user.role === 'UNIVERSITY'"
-              >认证信息</el-dropdown-item>
               <el-dropdown-item @click="router.push('/manager/password')">修改密码</el-dropdown-item>
               <el-dropdown-item @click="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
@@ -75,11 +66,7 @@
           </el-menu-item>
           <el-sub-menu
             index="1"
-            v-if="
-              (data.user.role === 'UNIVERSITY' &&
-                data.user.status === '审核通过') ||
-              data.user.role === 'ADMIN'
-            "
+            v-if="data.user.role === 'ADMIN'"
           >
             <template #title>
               <el-icon>
@@ -106,16 +93,6 @@
             <el-menu-item index="/manager/universitySpecialtys">学校专业</el-menu-item>
             <el-menu-item index="/manager/policys">招生政策</el-menu-item>
             <el-menu-item index="/manager/comment">学校评价</el-menu-item>
-            <!-- <el-menu-item
-              index="/manager/universityCertification"
-              v-if="data.user.role === 'ADMIN'"
-              >大学认证信息</el-menu-item
-            > -->
-            <!-- <el-menu-item
-              index="/manager/userCertification"
-              v-if="data.user.role === 'ADMIN'"
-              >学籍认证信息</el-menu-item
-            > -->
             <el-menu-item
               index="/manager/slideshow"
               v-if="data.user.role === 'ADMIN'"

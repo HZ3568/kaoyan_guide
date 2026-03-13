@@ -4,7 +4,5 @@ public enum RoleEnum {
     // 管理员
     ADMIN,
 //    用户
-    USER,
-//    大学
-    UNIVERSITY
+    USER
 }

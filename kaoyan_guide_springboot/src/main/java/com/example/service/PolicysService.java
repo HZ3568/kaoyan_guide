@@ -2,7 +2,6 @@ package com.example.service;
 
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
-import com.example.common.enums.RoleEnum;
 import com.example.entity.Account;
 import com.example.entity.Policys;
 import com.example.entity.University;
@@ -84,10 +83,6 @@ public class PolicysService {
      * 分页查询
      */
     public PageInfo<Policys> selectPage(Policys policys, Integer pageNum, Integer pageSize) {
-        Account currentUser = TokenUtils.getCurrentUser();
-        if (RoleEnum.UNIVERSITY.name().equals(currentUser.getRole())) {
-            policys.setUniversityId(currentUser.getId());
-        }
         PageHelper.startPage(pageNum, pageSize);
         List<Policys> list = this.selectAll(policys);
         return PageInfo.of(list);

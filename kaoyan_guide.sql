@@ -518,38 +518,7 @@ INSERT INTO `university` VALUES (13, 'sx', '123', '山西大学', 'http://localh
 INSERT INTO `university` VALUES (14, 'nmgtzdz', '123', '内蒙古丰州职业学院', 'http://localhost:9090/files/download/1761034500951-1752132633950-内蒙古丰州职业学院.jpg', 'UNIVERSITY', '18847130994', NULL, '审核通过', 27, '中山分院：呼和浩特市乌兰察布东路统计局街5号（南校区）', '地方', '独立学院', 'http://nmgzsxy.cn/', '高职(专科)', '<h2 style=\"text-align: left;\">学校简介</h2><p style=\"text-indent: 2em;\"> &nbsp;内蒙古丰州职业学院是经自治区政府批准，国家教育部备案，是自治区最早由国家教育部批准的高等职业院校。是办学的先进单位，全国职业院校就业先进单位。1985年列入全国普通高校系列，成为有学历教育和非学历教育资质的普通全日制普通高校。</p><p style=\"text-indent: 2em;\"> &nbsp;学院注重对学生就业观念的培养，突出“职业教育即就业教育”的理念。把就业指导课程纳入教学计划，定期举办就业指导专家讲座，并积极开展对外交流合作，与区内外多家单位建立了稳定的毕业生就业合作关系。学院还充分利用民主党派办学的优势，广泛联络民主党派人士办企业，扩展毕业生就业渠道。自2007年以来，我校的就业率均保持在90%以上。</p><p style=\"text-indent: 2em;\"> &nbsp;学院提倡“双证教育”，是国家劳动部批准认定的国家职业技能培训定点单位和国家信息产业部IT技术资格认证定点院校。学生毕业前，经职业资格培训和技能鉴定合格后，可取得中、高级职业技能等级证书和电子信息产业技术资格证书，为学生就业上岗提供了有力的保证。</p><p style=\"text-indent: 2em;\"> </p><h2 style=\"text-align: left;\">周边环境</h2><p style=\"text-indent: 2em;\"> &nbsp; &nbsp;学院周边分布有内蒙古图书馆、文化商城、内蒙古医院、内蒙古植物园，人文环境优雅，交通便利，生活设施完善。部分专业在大学城教学。</p><h2 style=\"text-align: left;\">通讯地址</h2><p>中山分院：呼和浩特市乌兰察布东路统计局街5号（南校区）；乌兰察布街69号（北校区） 青城分院：呼和浩特赛罕区兴安南路59号（校本部）；呼和浩特大学城 （新校区）</p>', 3.33);
 INSERT INTO `university` VALUES (15, 'hgd', '123', 'hgd', NULL, 'UNIVERSITY', NULL, NULL, '待认证', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
--- ----------------------------
--- Table structure for university_certification
--- ----------------------------
-DROP TABLE IF EXISTS `university_certification`;
-CREATE TABLE `university_certification`  (
-  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `university_id` int NULL DEFAULT NULL COMMENT '大学ID',
-  `university_code` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '学校代码',
-  `license_img` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '办学许可证',
-  `qualifications_img` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '招生资格认证',
-  `status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '认证状态',
-  `refuse_reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '拒绝理由',
-  `time` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '创建时间',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 14 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '大学认证' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of university_certification
--- ----------------------------
-INSERT INTO `university_certification` VALUES (1, 2, '10001', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', '', '2025-07-08 10:43:36');
-INSERT INTO `university_certification` VALUES (2, 8, '14626', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', NULL, '2025-07-08 11:39:11');
-INSERT INTO `university_certification` VALUES (3, 9, '12056', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', NULL, '2025-07-08 11:44:12');
-INSERT INTO `university_certification` VALUES (4, 10, '10037', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', NULL, '2025-07-08 11:50:23');
-INSERT INTO `university_certification` VALUES (5, 3, '10003', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', NULL, '2025-07-08 11:51:22');
-INSERT INTO `university_certification` VALUES (6, 4, '10002', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', NULL, '2025-07-08 16:34:22');
-INSERT INTO `university_certification` VALUES (7, 11, '10055', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', NULL, '2025-07-10 14:37:54');
-INSERT INTO `university_certification` VALUES (8, 7, '10006', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', NULL, '2025-07-10 14:43:47');
-INSERT INTO `university_certification` VALUES (9, 6, '10005', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', NULL, '2025-07-10 14:47:52');
-INSERT INTO `university_certification` VALUES (10, 5, '10004', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', NULL, '2025-07-10 15:00:04');
-INSERT INTO `university_certification` VALUES (11, 12, '10075', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', NULL, '2025-07-10 15:13:48');
-INSERT INTO `university_certification` VALUES (12, 13, '10108', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', NULL, '2025-07-10 15:19:04');
-INSERT INTO `university_certification` VALUES (13, 14, '11429', 'http://localhost:9090/files/download/1752134902203-办学许可证.jpg', 'http://localhost:9090/files/download/1752134904995-招生资格.jpg', '审核通过', NULL, '2025-07-10 15:32:17');
+-- university_certification 模块已下线，相关表与测试数据已删除
 
 -- ----------------------------
 -- Table structure for university_specialtys
@@ -649,37 +618,12 @@ INSERT INTO `user` VALUES (8, 'ggg', '123', '张志强', 'http://localhost:9090/
 INSERT INTO `user` VALUES (9, 'kkk', '123', 'kkk', NULL, 'USER', NULL, NULL, '审核通过');
 INSERT INTO `user` VALUES (10, 'lll', '123', 'lll', 'http://localhost:9090/files/download/1757468534363-logo.png', 'USER', NULL, NULL, '审核通过');
 
--- ----------------------------
--- Table structure for user_certification
--- ----------------------------
-DROP TABLE IF EXISTS `user_certification`;
-CREATE TABLE `user_certification`  (
-  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `user_id` int NULL DEFAULT NULL COMMENT '学生ID',
-  `candidate_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '考生号',
-  `examination_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '准考证号',
-  `score` int NULL DEFAULT NULL COMMENT '高考分数',
-  `ranking` int NULL DEFAULT NULL COMMENT '省排名',
-  `areas_id` int NULL DEFAULT NULL COMMENT '地区ID',
-  `identity_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '身份证号',
-  `identity_img` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '身份证照片',
-  `status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '认证状态',
-  `refuse_reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '拒绝理由',
-  `time` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '创建时间',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学生认证' ROW_FORMAT = DYNAMIC;
+-- user_certification 模块已下线，相关表与测试数据已删除
 
--- ----------------------------
--- Records of user_certification
--- ----------------------------
-INSERT INTO `user_certification` VALUES (1, 2, '23440101132001', '23440101000123', 625, 11255, 31, '341623200509089022', 'http://localhost:9090/files/download/1752141865212-身份证反面.png', '审核通过', '', '2025-07-08 16:34:22');
-INSERT INTO `user_certification` VALUES (2, 3, '23440101132002', '23440101000124', 505, 98892, 20, '341623200409088022', 'http://localhost:9090/files/download/1752141865212-身份证反面.png', '审核通过', NULL, '2025-07-10 16:10:33');
-INSERT INTO `user_certification` VALUES (3, 4, '23440101132003', '23440101000125', 600, 87890, 21, '321627200309079022', 'http://localhost:9090/files/download/1752141865212-身份证反面.png', '审核通过', NULL, '2025-07-10 16:14:25');
-INSERT INTO `user_certification` VALUES (4, 5, '23440101132004', '23440101000126', 710, 25, 31, '241623200406079022', 'http://localhost:9090/files/download/1752141865212-身份证反面.png', '审核通过', NULL, '2025-07-10 16:20:46');
-INSERT INTO `user_certification` VALUES (5, 6, '23440101132005', '23440101000127', 650, 10567, 30, '321627200407099022', 'http://localhost:9090/files/download/1752141865212-身份证反面.png', '审核通过', '', '2025-07-10 16:23:18');
-INSERT INTO `user_certification` VALUES (6, 7, '23440101132006', '23440101000128', 680, 4300, 16, '252413200409089022', 'http://localhost:9090/files/download/1752141865212-身份证反面.png', '审核通过', NULL, '2025-07-10 17:37:50');
-INSERT INTO `user_certification` VALUES (7, 8, '23440101132007', '23440101000129', 450, 205345, 29, '341627200408099022', 'http://localhost:9090/files/download/1752141865212-身份证反面.png', '审核通过', NULL, '2025-07-10 18:04:26');
-INSERT INTO `user_certification` VALUES (8, 9, '111', '11', 1, 1, 31, '111', 'http://localhost:9090/files/download/1757467602833-logo.png', '审核通过', NULL, '2025-09-10 09:26:44');
-INSERT INTO `user_certification` VALUES (9, 10, '123444444211', '122232131321', 568, 17899, 31, '1232131214241421', 'http://localhost:9090/files/download/1757467989021-logo.png', '审核通过', NULL, '2025-09-10 09:33:14');
+DROP TABLE IF EXISTS `university_certification`;
+DROP TABLE IF EXISTS `user_certification`;
+
+-- 数据清理：统一移除大学端角色残留
+UPDATE `university` SET `role` = 'USER' WHERE `role` = 'UNIVERSITY';
 
 SET FOREIGN_KEY_CHECKS = 1;

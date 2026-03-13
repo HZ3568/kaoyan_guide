@@ -7,7 +7,6 @@ import com.example.common.Constants;
 import com.example.common.enums.RoleEnum;
 import com.example.entity.Account;
 import com.example.service.AdminService;
-import com.example.service.UniversityService;
 import com.example.service.UserService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
@@ -37,16 +36,10 @@ public class TokenUtils {
 
     private static UserService staticUserService;
 
-    @Resource
-    private UniversityService universityService;
-
-    private static UniversityService staticUniversityService;
-
     @PostConstruct
     public void init() {
         staticAdminService = adminService;
         staticUserService = userService;
-        staticUniversityService = universityService;
     }
 
     /**
@@ -75,8 +68,6 @@ public class TokenUtils {
                 return staticAdminService.selectById(userId);
             } else if (RoleEnum.USER.name().equals(role)) {
                 return staticUserService.selectById(userId);
-            } else if (RoleEnum.UNIVERSITY.name().equals(role)) {
-                return staticUniversityService.selectById(userId);
             }
         } catch (Exception e) {
             log.error("获取当前登录用户出错", e);

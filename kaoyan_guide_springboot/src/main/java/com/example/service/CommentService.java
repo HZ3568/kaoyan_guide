@@ -3,7 +3,6 @@ package com.example.service;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
-import com.example.common.enums.RoleEnum;
 import com.example.entity.Account;
 import com.example.entity.Comment;
 import com.example.entity.University;
@@ -102,10 +101,6 @@ public class CommentService {
      * 分页查询
      */
     public PageInfo<Comment> selectPage(Comment comment, Integer pageNum, Integer pageSize) {
-        Account currentUser = TokenUtils.getCurrentUser();
-        if (RoleEnum.UNIVERSITY.name().equals(currentUser.getRole())) {
-            comment.setUniversityId(currentUser.getId());
-        }
         PageHelper.startPage(pageNum, pageSize);
         List<Comment> list = this.selectAll(comment);
         return PageInfo.of(list);

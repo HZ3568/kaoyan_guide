@@ -12,9 +12,6 @@
         <div style="display: flex; grid-gap: 10px; align-items: center; margin-bottom: 20px; cursor: pointer" @click="$router.push('/front/policysList')">
           <div style="flex: 1; font-size: 16px">招生政策</div><el-icon style="font-size: 16px"><ArrowRight /></el-icon>
         </div>
-        <div style="display: flex; grid-gap: 10px; align-items: center; cursor: pointer" @click="$router.push('/front/certification')">
-          <div style="flex: 1; font-size: 16px">学籍认证</div><el-icon style="font-size: 16px"><ArrowRight /></el-icon>
-        </div>
       </div>
       <div style="flex: 1;">
         <!--    首页轮播图-->

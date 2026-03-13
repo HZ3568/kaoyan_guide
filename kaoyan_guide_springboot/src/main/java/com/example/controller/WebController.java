@@ -43,8 +43,6 @@ public class WebController {
             loginAccount = adminService.login(account);
         } else if (RoleEnum.USER.name().equals(account.getRole())) {
             loginAccount = userService.login(account);
-        } else if (RoleEnum.UNIVERSITY.name().equals(account.getRole())) {
-            loginAccount = universityService.login(account);
         }
         return Result.success(loginAccount);
     }
@@ -58,10 +56,6 @@ public class WebController {
             User user = new User();
             BeanUtil.copyProperties(account, user);
             userService.add(user);
-        } else if (RoleEnum.UNIVERSITY.name().equals(account.getRole())) {
-            University university = new University();
-            BeanUtil.copyProperties(account, university);
-            universityService.add(university);
         }
         return Result.success();
     }
@@ -75,8 +69,6 @@ public class WebController {
             adminService.updatePassword(account);
         } else if (RoleEnum.USER.name().equals(account.getRole())) {
             userService.updatePassword(account);
-        } else if (RoleEnum.UNIVERSITY.name().equals(account.getRole())) {
-            universityService.updatePassword(account);
         }
         return Result.success();
     }

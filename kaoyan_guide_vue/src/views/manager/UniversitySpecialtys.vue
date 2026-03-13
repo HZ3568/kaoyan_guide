@@ -7,7 +7,6 @@
     </div>
 
     <div class="card" style="margin-bottom: 5px">
-      <el-button type="primary" plain @click="handleAdd" v-if="data.user.role === 'UNIVERSITY'">新增</el-button>
       <el-button type="danger" plain @click="delBatch">批量删除</el-button>
     </div>
 
@@ -24,7 +23,6 @@
         </el-table-column>
         <el-table-column label="操作" width="100" fixed="right">
           <template v-slot="scope">
-            <el-button type="primary" circle :icon="Edit" @click="handleEdit(scope.row)" v-if="data.user.role === 'UNIVERSITY'"></el-button>
             <el-button type="danger" circle :icon="Delete" @click="del(scope.row.id)"></el-button>
           </template>
         </el-table-column>

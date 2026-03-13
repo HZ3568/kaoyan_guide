@@ -1,7 +1,6 @@
 package com.example.service;
 
 import cn.hutool.core.util.ObjectUtil;
-import com.example.common.enums.RoleEnum;
 import com.example.entity.*;
 import com.example.exception.CustomException;
 import com.example.mapper.CategorysMapper;
@@ -110,10 +109,6 @@ public class UniversitySpecialtysService {
      * 分页查询
      */
     public PageInfo<UniversitySpecialtys> selectPage(UniversitySpecialtys universitySpecialtys, Integer pageNum, Integer pageSize) {
-        Account currentUser = TokenUtils.getCurrentUser();
-        if (RoleEnum.UNIVERSITY.name().equals(currentUser.getRole())) {
-            universitySpecialtys.setUniversityId(currentUser.getId());
-        }
         PageHelper.startPage(pageNum, pageSize);
         List<UniversitySpecialtys> list = this.selectAll(universitySpecialtys);
         return PageInfo.of(list);

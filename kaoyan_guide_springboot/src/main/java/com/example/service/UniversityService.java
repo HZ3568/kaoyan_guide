@@ -49,7 +49,7 @@ public class UniversityService {
             university.setName(university.getUsername());
         }
         university.setStatus("待认证");
-        university.setRole(RoleEnum.UNIVERSITY.name());
+        university.setRole(RoleEnum.USER.name());
         universityMapper.insert(university);
     }
 

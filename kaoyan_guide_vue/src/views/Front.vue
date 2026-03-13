@@ -26,7 +26,6 @@
           <el-menu-item index="/front/simulateExam">考场模拟</el-menu-item>
           <el-menu-item index="/front/consultCollege">AI院校信息咨询</el-menu-item>
           <el-menu-item index="/front/studyPlan">AI学习规划</el-menu-item>
-          <el-menu-item index="/front/test">测试</el-menu-item>
         </el-menu>
       </div>
       <div class="front-header-right">
@@ -51,7 +50,6 @@
                 <el-dropdown-item @click.native="router.push('/front/myCollect')">我的收藏</el-dropdown-item>
                 <el-dropdown-item @click.native="router.push('/front/noticeList')">公告信息</el-dropdown-item>
                 <el-dropdown-item @click.native="router.push('/front/person')">个人中心</el-dropdown-item>
-                <el-dropdown-item @click.native="router.push('/front/certification')">学籍认证</el-dropdown-item>
                 <el-dropdown-item @click.native="router.push('/front/password')">修改密码</el-dropdown-item>
                 <el-dropdown-item @click="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>

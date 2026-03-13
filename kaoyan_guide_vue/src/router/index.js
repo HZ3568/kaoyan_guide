@@ -23,11 +23,6 @@ const router = createRouter({
         { path: 'comment', meta: { name: '学校评价' }, component: () => import('@/views/manager/Comment.vue')},
         { path: 'policys', meta: { name: '招生政策' }, component: () => import('@/views/manager/Policys.vue')},
         { path: 'universitySpecialtys', meta: { name: '学校专业' }, component: () => import('@/views/manager/UniversitySpecialtys.vue')},
-        { path: 'universityCertification', meta: { name: '大学认证信息' }, component: () => import('@/views/manager/UniversityCertification.vue')},
-        { path: 'userCertification', meta: { name: '学籍认证信息' }, component: () => import('@/views/manager/UserCertification.vue')},
-        // 新路由
-        { path: 'universityPerson', meta: { name: '学校信息' }, component: () => import('@/views/manager/UniversityPerson.vue')},
-        { path: 'universityCertifications', meta: { name: '认证信息' }, component: () => import('@/views/manager/UniversityCertifications.vue')},
         { path: 'dataStatistics', meta: { name: '数据统计' }, component: () => import('@/views/manager/DataStatistics.vue')},
       ]
     },
@@ -39,7 +34,6 @@ const router = createRouter({
         { path: 'person', component: () => import('@/views/front/Person.vue'),  },
         { path: 'password', component: () => import('@/views/front/Password.vue'),  },
         { path: 'noticeList', component: () => import('@/views/front/NoticeList.vue'),  },
-        { path: 'certification', component: () => import('@/views/front/Certification.vue'),  },
         { path: 'universityList', component: () => import('@/views/front/UniversityList.vue'),  },
         { path: 'universityDetail', component: () => import('@/views/front/UniversityDetail.vue'),  },
         { path: 'interpretationsList', component: () => import('@/views/front/InterpretationsList.vue'),  },
@@ -51,7 +45,6 @@ const router = createRouter({
         { path: 'myCollect', component: () => import('@/views/front/MyCollect.vue'),  },
         { path: 'simulateExam', component: () => import('@/views/front/simulateExam.vue'),  },
         { path: 'consultCollege', component: () => import('@/views/front/consultCollege.vue'),  },
-        { path: 'test', component: () => import('@/views/front/test.vue'),  },
         { path: 'studyPlan', component: () => import('@/views/front/StudyPlan.vue'),  },
       ]
     },
