@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.DailyQuestionMapper">
+
+    <select id="selectByDate" resultType="com.example.entity.DailyQuestion">
+        select *
+        from daily_question
+        where question_date = #{questionDate}
+        limit 1
+    </select>
+
+    <insert id="insert" parameterType="com.example.entity.DailyQuestion" useGeneratedKeys="true" keyProperty="id">
+        insert into daily_question(question_date, question_id, create_time)
+        values (#{questionDate}, #{questionId}, #{createTime})
+    </insert>
+
+    <update id="updateByDate" parameterType="com.example.entity.DailyQuestion">
+        update daily_question
+        set question_id = #{questionId}
+        where question_date = #{questionDate}
+    </update>
+
+    <select id="selectRecentAssignments" resultType="map">
+        select dq.question_date as questionDate,
+               dq.question_id as questionId,
+               q.subject as subject,
+               q.type as type,
+               q.difficulty as difficulty,
+               q.title as title,
+               q.status as status
+        from daily_question dq
+                 left join question q on dq.question_id = q.id
+        where dq.question_date between #{startDate} and #{endDate}
+        order by dq.question_date desc
+    </select>
+
+</mapper>

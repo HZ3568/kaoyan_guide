@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.QuestionRecordMapper">
+
+    <select id="selectByUserAndDate" resultType="com.example.entity.QuestionRecord">
+        select *
+        from question_record
+        where user_id = #{userId}
+          and question_date = #{questionDate}
+        limit 1
+    </select>
+
+    <insert id="insert" parameterType="com.example.entity.QuestionRecord" useGeneratedKeys="true" keyProperty="id">
+        insert into question_record(user_id, question_id, user_answer, is_correct, answer_time, question_date)
+        values (#{userId}, #{questionId}, #{userAnswer}, #{isCorrect}, #{answerTime}, #{questionDate})
+    </insert>
+
+</mapper>

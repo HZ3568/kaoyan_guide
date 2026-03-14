@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.QuestionMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Question">
+        select *
+        from question
+        <where>
+            <if test="id != null"> and id = #{id}</if>
+            <if test="subject != null and subject != ''"> and subject = #{subject}</if>
+            <if test="type != null and type != ''"> and type = #{type}</if>
+            <if test="difficulty != null and difficulty != ''"> and difficulty = #{difficulty}</if>
+            <if test="status != null"> and status = #{status}</if>
+            <if test="title != null and title != ''"> and title like concat('%', #{title}, '%')</if>
+        </where>
+        order by id desc
+    </select>
+
+    <select id="selectById" resultType="com.example.entity.Question">
+        select *
+        from question
+        where id = #{id}
+    </select>
+
+    <select id="selectRandomEnabled" resultType="com.example.entity.Question">
+        select *
+        from question
+        where status = 1
+        order by rand()
+        limit 1
+    </select>
+
+    <insert id="insert" parameterType="com.example.entity.Question" useGeneratedKeys="true" keyProperty="id">
+        insert into question(subject, type, title, option_a, option_b, option_c, option_d, correct_answer, analysis, difficulty, status, create_time, update_time)
+        values (#{subject}, #{type}, #{title}, #{optionA}, #{optionB}, #{optionC}, #{optionD}, #{correctAnswer}, #{analysis}, #{difficulty}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Question">
+        update question
+        <set>
+            <if test="subject != null and subject != ''">subject = #{subject},</if>
+            <if test="type != null and type != ''">type = #{type},</if>
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="optionA != null">option_a = #{optionA},</if>
+            <if test="optionB != null">option_b = #{optionB},</if>
+            <if test="optionC != null">option_c = #{optionC},</if>
+            <if test="optionD != null">option_d = #{optionD},</if>
+            <if test="correctAnswer != null and correctAnswer != ''">correct_answer = #{correctAnswer},</if>
+            <if test="analysis != null">analysis = #{analysis},</if>
+            <if test="difficulty != null and difficulty != ''">difficulty = #{difficulty},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = #{updateTime}
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from question
+        where id = #{id}
+    </delete>
+
+</mapper>

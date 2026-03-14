@@ -589,6 +589,64 @@ INSERT INTO `university_specialtys` VALUES (51, 4, 13, 75, '<p><span style=\"col
 INSERT INTO `university_specialtys` VALUES (52, 7, 6, 79, '<p>请前往官网查询1</p>');
 
 -- ----------------------------
+-- Table structure for question
+-- ----------------------------
+DROP TABLE IF EXISTS `question`;
+CREATE TABLE `question`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `subject` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '科目：英语/数学/政治/专业课',
+  `type` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '题型：single_choice/judge/short_answer',
+  `title` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '题目内容',
+  `option_a` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '选项A',
+  `option_b` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '选项B',
+  `option_c` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '选项C',
+  `option_d` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '选项D',
+  `correct_answer` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '正确答案',
+  `analysis` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '题目解析',
+  `difficulty` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'medium' COMMENT '难度：easy/medium/hard',
+  `status` tinyint NULL DEFAULT 1 COMMENT '状态：1启用 0禁用',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '题目表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of question
+-- ----------------------------
+INSERT INTO `question` VALUES (1, '英语', 'single_choice', '下列哪个选项最适合作为英语阅读中“细节题”的解题策略？', '先看题干关键词，再回原文定位', '完全依靠直觉选答案', '只看第一段和最后一段', '先看选项长度选最长', 'A', '细节题建议先圈出题干关键词，再回文定位对应句并进行同义替换判断。', 'easy', 1, '2026-03-14 09:00:00', '2026-03-14 09:00:00');
+INSERT INTO `question` VALUES (2, '政治', 'judge', '“实践是检验真理的唯一标准”这句话是否正确？', '正确', '错误', NULL, NULL, '正确', '该命题属于马克思主义认识论基本观点，强调实践对认识真理性的检验作用。', 'easy', 1, '2026-03-14 09:00:00', '2026-03-14 09:00:00');
+INSERT INTO `question` VALUES (3, '数学', 'short_answer', '请写出二次函数 y=ax²+bx+c（a≠0）的顶点横坐标公式。', NULL, NULL, NULL, NULL, '-b/2a', '二次函数顶点横坐标公式为 x=-b/2a，可由配方法推导得到。', 'medium', 1, '2026-03-14 09:00:00', '2026-03-14 09:00:00');
+
+-- ----------------------------
+-- Table structure for question_record
+-- ----------------------------
+DROP TABLE IF EXISTS `question_record`;
+CREATE TABLE `question_record`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` bigint NOT NULL COMMENT '用户ID',
+  `question_id` bigint NOT NULL COMMENT '题目ID',
+  `user_answer` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '用户答案',
+  `is_correct` tinyint(1) NULL DEFAULT 0 COMMENT '是否正确：0否 1是',
+  `answer_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '作答时间',
+  `question_date` date NOT NULL COMMENT '对应日期',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_user_question_date`(`user_id` ASC, `question_date` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '每日一题作答记录表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for daily_question
+-- ----------------------------
+DROP TABLE IF EXISTS `daily_question`;
+CREATE TABLE `daily_question`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `question_date` date NOT NULL COMMENT '日期',
+  `question_id` bigint NOT NULL COMMENT '题目ID',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_question_date`(`question_date` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '每日题目分发表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
 -- Table structure for user
 -- ----------------------------
 DROP TABLE IF EXISTS `user`;

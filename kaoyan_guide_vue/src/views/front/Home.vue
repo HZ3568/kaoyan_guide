@@ -2,62 +2,8 @@
   <div class="main-content">
     <!-- 顶部 Hero 区域 -->
     <div class="hero-section">
-      <!-- 左侧快速导航 -->
+      <!-- 左侧公告 -->
       <div class="hero-left card">
-        <div class="section-title">
-          <el-icon><Menu /></el-icon> <span>快速导航</span>
-        </div>
-        <div class="nav-list">
-          <div class="nav-item" @click="$router.push('/front/universityList')">
-            <div class="nav-label">
-              <el-icon><School /></el-icon> 查院校
-            </div>
-            <el-icon class="arrow"><ArrowRight /></el-icon>
-          </div>
-          <div
-            class="nav-item"
-            @click="$router.push('/front/interpretationsList')"
-          >
-            <div class="nav-label">
-              <el-icon><Reading /></el-icon> 查专业
-            </div>
-            <el-icon class="arrow"><ArrowRight /></el-icon>
-          </div>
-          <div class="nav-item" @click="$router.push('/front/policysList')">
-            <div class="nav-label">
-              <el-icon><Document /></el-icon> 招生政策
-            </div>
-            <el-icon class="arrow"><ArrowRight /></el-icon>
-          </div>
-          <div class="nav-item" @click="$router.push('/front/simulateExam')">
-            <div class="nav-label">
-              <el-icon><Timer /></el-icon> 模拟考试
-            </div>
-            <el-icon class="arrow"><ArrowRight /></el-icon>
-          </div>
-        </div>
-      </div>
-
-      <!-- 中间轮播图 -->
-      <div class="hero-center">
-        <el-carousel :interval="4000" height="380px" class="main-carousel">
-          <el-carousel-item
-            v-for="item in data.slideshowList"
-            :key="item.id"
-            @click="
-              $router.push('/front/universityDetail?id=' + item.universityId)
-            "
-          >
-            <img :src="item.img" alt="轮播图" class="carousel-img" />
-            <div class="carousel-overlay">
-              <h3>{{ item.title || "开启你的考研成功之路" }}</h3>
-            </div>
-          </el-carousel-item>
-        </el-carousel>
-      </div>
-
-      <!-- 右侧公告 -->
-      <div class="hero-right card">
         <div class="section-title">
           <div>
             <el-icon><Bell /></el-icon> <span>最新公告</span>
@@ -80,15 +26,164 @@
             }}</span>
           </div>
         </div>
-        <!-- 登录/个人中心引导小卡片 (可选) -->
-        <div class="user-action-area" v-if="!data.user.id">
-          <el-button
-            type="primary"
-            round
-            class="w-100"
-            @click="$router.push('/login')"
-            >立即登录</el-button
+      </div>
+
+      <!-- 中间轮播图 -->
+      <div class="hero-center">
+        <el-carousel :interval="4000" height="380px" class="main-carousel">
+          <el-carousel-item
+            v-for="item in data.slideshowList"
+            :key="item.id"
+            @click="
+              $router.push('/front/universityDetail?id=' + item.universityId)
+            "
           >
+            <img :src="item.img" alt="轮播图" class="carousel-img" />
+            <div class="carousel-overlay">
+              <h3>{{ item.title || "开启你的考研成功之路" }}</h3>
+            </div>
+          </el-carousel-item>
+        </el-carousel>
+      </div>
+
+      <!-- 右侧每日一题 -->
+      <div class="hero-right card">
+        <div class="section-title">
+          <div>
+            <el-icon><EditPen /></el-icon> <span>每日一题</span>
+          </div>
+          <el-tag size="small" type="warning" effect="plain">{{
+            data.dailyQuestion?.difficulty || "medium"
+          }}</el-tag>
+        </div>
+        <div class="daily-question-box" v-loading="data.dailyLoading">
+          <div v-if="data.dailyQuestion">
+            <div class="daily-meta">
+              <el-tag size="small" effect="plain">{{
+                data.dailyQuestion.subject
+              }}</el-tag>
+              <el-tag size="small" type="success" effect="plain">{{
+                formatQuestionType(data.dailyQuestion.type)
+              }}</el-tag>
+            </div>
+            <div class="daily-title">
+              <MathContent :content="data.dailyQuestion.title" />
+            </div>
+
+            <div
+              class="daily-options"
+              v-if="
+                data.dailyQuestion.type !== 'short_answer' &&
+                (data.dailyQuestion.optionA || data.dailyQuestion.optionB)
+              "
+            >
+              <el-radio-group
+                v-model="data.answerDraft"
+                :disabled="data.dailyHasAnswered || data.submitting"
+              >
+                <el-radio
+                  v-if="data.dailyQuestion.optionA"
+                  label="A"
+                  border
+                  class="daily-option-item"
+                >
+                  <div class="daily-option-content">
+                    <span class="daily-option-prefix">A.</span>
+                    <MathContent :content="data.dailyQuestion.optionA" />
+                  </div>
+                </el-radio>
+                <el-radio
+                  v-if="data.dailyQuestion.optionB"
+                  label="B"
+                  border
+                  class="daily-option-item"
+                >
+                  <div class="daily-option-content">
+                    <span class="daily-option-prefix">B.</span>
+                    <MathContent :content="data.dailyQuestion.optionB" />
+                  </div>
+                </el-radio>
+                <el-radio
+                  v-if="data.dailyQuestion.optionC"
+                  label="C"
+                  border
+                  class="daily-option-item"
+                >
+                  <div class="daily-option-content">
+                    <span class="daily-option-prefix">C.</span>
+                    <MathContent :content="data.dailyQuestion.optionC" />
+                  </div>
+                </el-radio>
+                <el-radio
+                  v-if="data.dailyQuestion.optionD"
+                  label="D"
+                  border
+                  class="daily-option-item"
+                >
+                  <div class="daily-option-content">
+                    <span class="daily-option-prefix">D.</span>
+                    <MathContent :content="data.dailyQuestion.optionD" />
+                  </div>
+                </el-radio>
+              </el-radio-group>
+            </div>
+
+            <el-input
+              v-if="data.dailyQuestion.type === 'short_answer'"
+              v-model="data.answerDraft"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入你的答案"
+              :disabled="data.dailyHasAnswered || data.submitting"
+            />
+
+            <div class="daily-submit-area" v-if="!data.dailyHasAnswered">
+              <el-button
+                type="primary"
+                class="w-100"
+                :loading="data.submitting"
+                @click="submitTodayAnswer"
+                >提交答案</el-button
+              >
+            </div>
+
+            <div class="daily-result" v-if="data.dailyHasAnswered">
+              <el-alert
+                :title="
+                  data.dailyResult?.isCorrect
+                    ? '回答正确，继续加油！'
+                    : '回答错误，再接再厉！'
+                "
+                :type="data.dailyResult?.isCorrect ? 'success' : 'error'"
+                :closable="false"
+                show-icon
+              />
+              <div class="daily-result-item">
+                <span>你的答案：</span>
+                <MathContent
+                  class="daily-inline-content"
+                  inline
+                  :content="data.dailyResult?.userAnswer || '-'"
+                />
+              </div>
+              <div class="daily-result-item">
+                <span>正确答案：</span>
+                <MathContent
+                  class="daily-inline-content"
+                  inline
+                  :content="data.dailyResult?.correctAnswer || '-'"
+                />
+              </div>
+              <div class="daily-analysis">
+                <span>解析：</span>
+                <MathContent
+                  class="daily-inline-content"
+                  :content="data.dailyResult?.analysis || '暂无解析'"
+                />
+              </div>
+            </div>
+          </div>
+          <el-empty v-else description="暂无题目，稍后再来" :image-size="90" />
         </div>
       </div>
     </div>
@@ -285,6 +380,7 @@
 import { reactive } from "vue";
 import request from "@/utils/request.js";
 import { ElMessage } from "element-plus";
+import MathContent from "@/components/MathContent.vue";
 
 const data = reactive({
   user: JSON.parse(localStorage.getItem("xm-user") || "{}"),
@@ -292,6 +388,12 @@ const data = reactive({
   noticeList: [],
   universityList: [],
   interpretationsList: [],
+  dailyQuestion: null,
+  dailyHasAnswered: false,
+  dailyResult: null,
+  answerDraft: "",
+  dailyLoading: false,
+  submitting: false,
 });
 
 // 获取首页轮播图
@@ -317,6 +419,58 @@ const loadNotice = () => {
   });
 };
 loadNotice();
+
+const formatQuestionType = (type) => {
+  if (type === "single_choice") return "单选题";
+  if (type === "judge") return "判断题";
+  if (type === "short_answer") return "简答题";
+  return "题目";
+};
+
+const loadDailyQuestion = () => {
+  data.dailyLoading = true;
+  request
+    .get("/daily-question/today")
+    .then((res) => {
+      if (res.code === "200") {
+        data.dailyQuestion = res.data?.question || null;
+        data.dailyHasAnswered = !!res.data?.hasAnswered;
+        data.dailyResult = res.data?.answerResult || null;
+      } else {
+        ElMessage.error(res.msg);
+      }
+    })
+    .finally(() => {
+      data.dailyLoading = false;
+    });
+};
+loadDailyQuestion();
+
+const submitTodayAnswer = () => {
+  if (!data.user.id) {
+    ElMessage.warning("请先登录后再作答");
+    return;
+  }
+  if (!data.answerDraft || !data.answerDraft.trim()) {
+    ElMessage.warning("请先作答后再提交");
+    return;
+  }
+  data.submitting = true;
+  request
+    .post("/daily-question/submit", { answer: data.answerDraft.trim() })
+    .then((res) => {
+      if (res.code === "200") {
+        data.dailyHasAnswered = true;
+        data.dailyResult = res.data;
+        ElMessage.success("提交成功");
+      } else {
+        ElMessage.error(res.msg);
+      }
+    })
+    .finally(() => {
+      data.submitting = false;
+    });
+};
 
 // 满意度最高的前6个学校
 const loadHotUniversity = () => {
@@ -391,7 +545,7 @@ loadHotInterpretations();
 }
 
 .hero-left {
-  width: 260px;
+  width: 280px;
   display: flex;
   flex-direction: column;
 }
@@ -433,45 +587,6 @@ loadHotInterpretations();
 
 .more-link:hover {
   color: #409eff;
-}
-
-/* 导航列表 */
-.nav-list {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.nav-item:hover {
-  background: #f5f7fa;
-}
-
-.nav-label {
-  display: flex;
-  align-items: center;
-  font-size: 16px;
-  color: #333;
-}
-
-.nav-label .el-icon {
-  margin-right: 10px;
-  font-size: 18px;
-  color: #666;
-}
-
-.nav-item .arrow {
-  color: #ccc;
 }
 
 /* 轮播图 */
@@ -549,6 +664,96 @@ loadHotInterpretations();
 
 .w-100 {
   width: 100%;
+}
+
+.daily-question-box {
+  flex: 1;
+  overflow: auto;
+}
+
+.daily-meta {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.daily-title {
+  color: #303133;
+  line-height: 1.7;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+.daily-options :deep(.el-radio-group) {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.daily-option-item {
+  margin-right: 0;
+  width: 100%;
+}
+
+.daily-option-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+
+.daily-option-prefix {
+  color: #303133;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.daily-submit-area {
+  margin-top: 14px;
+}
+
+.daily-result {
+  margin-top: 14px;
+}
+
+.daily-result-item,
+.daily-analysis {
+  margin-top: 10px;
+  color: #606266;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.daily-inline-content {
+  display: inline;
+}
+
+.daily-result-item span,
+.daily-analysis span {
+  color: #303133;
+  font-weight: 600;
+}
+
+.daily-options :deep(.el-radio__label) {
+  display: block;
+  width: calc(100% - 24px);
+  white-space: normal;
+}
+
+.daily-question-box :deep(.katex-display) {
+  max-width: 100%;
+}
+
+@media (max-width: 1400px) {
+  .hero-section {
+    gap: 14px;
+  }
+
+  .hero-left,
+  .hero-right {
+    width: 260px;
+  }
 }
 
 /* 核心功能区 */

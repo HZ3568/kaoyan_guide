@@ -101,6 +101,10 @@
               index="/manager/notice"
               v-if="data.user.role === 'ADMIN'"
             >系统公告</el-menu-item>
+            <el-menu-item
+              index="/manager/question"
+              v-if="data.user.role === 'ADMIN'"
+            >题库管理</el-menu-item>
 
             <!-- 新菜单 -->
           </el-sub-menu>
