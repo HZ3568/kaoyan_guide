@@ -18,16 +18,16 @@
       </div>
       <div class="manager-header-right">
         <el-dropdown style="cursor: pointer">
-          <div style="padding-right: 20px; display: flex; align-items: center">
+          <div class="manager-user">
             <img
-              style="width: 40px; height: 40px; border-radius: 50%"
-              :src="data.user.avatar"
-              @error="handleAvatarError"
-              alt=""
+                style="width: 40px; height: 40px; border-radius: 50%"
+                :src="data.user.avatar"
+                @error="handleAvatarError"
+                alt=""
             />
-            <span style="margin-left: 5px; color: white">{{
+            <span class="manager-user__name">{{
               data.user.name
-            }}</span><el-icon color="#fff"><arrow-down /></el-icon>
+            }}</span><el-icon><arrow-down /></el-icon>
           </div>
           <template #dropdown>
             <el-dropdown-menu>
@@ -42,7 +42,7 @@
       </div>
     </div>
     <!-- 下面部分开始 -->
-    <div style="display: flex">
+    <div class="manager-body">
       <div class="manager-main-left">
         <el-menu
           :default-active="router.currentRoute.value.path"

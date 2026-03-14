@@ -1,96 +1,146 @@
 .manager-container {
-    background-color: #f8f8ff;
     min-height: 100vh;
+    background:
+        radial-gradient(circle at top left, rgba(214, 232, 210, 0.45), transparent 24%),
+        linear-gradient(180deg, #f6faf4 0%, #eff6ee 100%);
 }
 
 .manager-header {
-    height: 60px;
-    background-color: #49C48D;
+    height: 72px;
+    margin: 14px 18px 0;
+    padding-right: 10px;
+    border: 1px solid var(--theme-border);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.8);
     display: flex;
     align-items: center;
-    box-shadow: 0 1px 4px rgba(0, 21, 41, .08);
+    box-shadow: var(--theme-shadow);
+    backdrop-filter: blur(18px);
 }
 
 .manager-header-left {
-    background-color: #49C48D;
-    width: 200px;
+    width: 220px;
     height: 100%;
-    padding-left: 10px;
+    padding-left: 18px;
     display: flex;
     align-items: center;
 }
 
 .manager-header-left img {
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
 }
 
 .manager-header-left .title {
-    font-weight: bold;
-    font-size: 20px;
-    margin-left: 10px;
-    color: white;
+    font-weight: 700;
+    font-size: 22px;
+    margin-left: 12px;
+    color: var(--theme-text);
+    letter-spacing: 0.04em;
 }
 
 .manager-header-center {
     flex: 1;
 }
 
+.manager-header-right {
+    display: flex;
+    align-items: center;
+}
+
+.manager-user {
+    padding-right: 14px;
+    display: flex;
+    align-items: center;
+    color: var(--theme-text);
+}
+
+.manager-user__name {
+    margin-left: 8px;
+    color: var(--theme-text);
+}
+
+.manager-body {
+    display: flex;
+    gap: 18px;
+    padding: 18px;
+}
+
 .manager-main-left {
-    width: 200px;
-    box-shadow: 0 0 6px rgba(0, 21, 41, .33);
-    min-height: calc(100vh - 60px);
+    width: 220px;
+    min-height: calc(100vh - 122px);
+    border: 1px solid var(--theme-border);
+    border-radius: 24px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: var(--theme-shadow);
+    backdrop-filter: blur(16px);
 }
 
 .manager-main-right {
     flex: 1;
     width: 0;
-    background-color: #f8f8ff;
-    padding: 10px;
+    min-height: calc(100vh - 122px);
+    border-radius: 24px;
+    padding: 0;
 }
 
-
-/* Element-Plus 样式覆盖 */
 .el-menu {
-    width: 200px;
+    width: 100%;
     height: 100%;
-    border: none;
-    background-color: #00162a;
+    border: none !important;
+    background: transparent !important;
+    padding: 12px;
 }
+
 :deep(.el-sub-menu__title) {
-    color: #ddd !important;
-    height: 50px;
-    line-height: 50px;
-    background-color: #011223 !important;
+    color: var(--theme-text) !important;
+    height: 48px;
+    line-height: 48px;
+    margin-bottom: 6px;
+    border-radius: 14px;
+    background: transparent !important;
+    font-weight: 600;
 }
-.el-sub-menu__title:hover {
-    color: #fff;
+
+:deep(.el-sub-menu__title:hover) {
+    background: rgba(111, 168, 116, 0.08) !important;
 }
+
 .el-menu-item {
-    color: #fff;
-    height: 50px;
-    line-height: 50px;
-    background-color: #000b17 !important;
+    color: var(--theme-text-secondary) !important;
+    height: 46px;
+    line-height: 46px;
+    margin-bottom: 6px;
+    border-radius: 14px;
+    background: transparent !important;
+    font-weight: 500;
 }
+
 .el-menu--inline .el-menu-item {
-    padding-left: 50px !important;
+    padding-left: 46px !important;
 }
+
 .el-menu .is-active {
-    color: #fff !important;
-    background-color: #49C48D !important;
+    color: var(--theme-primary-dark) !important;
+    background: linear-gradient(180deg, #f0f8f0 0%, #e2f0e3 100%) !important;
 }
+
 .el-menu-item:not(.is-active):hover {
-    color: #fff !important;
-    background-color: #49C48D !important;
+    color: var(--theme-text) !important;
+    background: rgba(111, 168, 116, 0.08) !important;
 }
 
 .el-tooltip__trigger {
     outline: none;
 }
+
 :deep(.el-breadcrumb__inner) {
-    color: white !important;
-}
-:deep(.el-breadcrumb__separator) {
-    color: white !important;
+    color: var(--theme-text) !important;
+    font-weight: 500;
 }
 
+:deep(.el-breadcrumb__separator) {
+    color: var(--theme-text-secondary) !important;
+}
