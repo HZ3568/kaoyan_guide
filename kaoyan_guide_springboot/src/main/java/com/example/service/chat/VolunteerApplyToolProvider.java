@@ -20,6 +20,6 @@ public class VolunteerApplyToolProvider implements ModuleToolProvider {
      */
     @Override
     public List<String> toolNames() {
-        return List.of("addReservation", "queryReservationByPhone");
+        return List.of("compareSchools");
     }
 }

@@ -117,13 +117,35 @@ public class ChatGatewayService {
     }
 
     /**
-     * 聚合流式分片并做统一文本清洗。
-     * 这里将 Flux 分片合并为完整文本再清洗，确保清洗规则对整体输出生效。
+     * 对流式分片做轻量清洗并直接透传，避免提前聚合导致前端无法实时渲染。
      */
     private Flux<String> sanitizeResponse(Flux<String> rawResponse) {
-        return rawResponse.collectList()
-                .map(chunks -> String.join("", chunks))
-                .map(chatOutputSanitizer::sanitize)
-                .flatMapMany(Flux::just);
+        return rawResponse
+                .map(this::sanitizeChunk)
+                .doOnNext(chunk -> log.info("chat_gateway_chunk length={} preview={}", chunk.length(), preview(chunk)));
+    }
+
+    private String sanitizeChunk(String chunk) {
+        if (chunk == null) {
+            return "";
+        }
+        String trimmed = chunk.trim();
+        if ((trimmed.startsWith("{") && trimmed.endsWith("}"))
+                || (trimmed.startsWith("```") && trimmed.endsWith("```"))) {
+            return chatOutputSanitizer.sanitize(chunk);
+        }
+        return chunk;
+    }
+
+    private String preview(String text) {
+        if (text == null) {
+            return "";
+        }
+        String compact = text.replace("\n", "\\n");
+        int max = 120;
+        if (compact.length() <= max) {
+            return compact;
+        }
+        return compact.substring(0, max) + "...";
     }
 }

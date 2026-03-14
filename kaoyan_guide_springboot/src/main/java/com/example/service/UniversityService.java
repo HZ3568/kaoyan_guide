@@ -89,4 +89,11 @@ public class UniversityService {
     public List<University> loadHotUniversity() {
         return universityMapper.loadHotUniversity();
     }
+
+    public List<University> selectByNames(List<String> names) {
+        if (names == null || names.isEmpty()) {
+            return List.of();
+        }
+        return universityMapper.selectByNames(names);
+    }
 }

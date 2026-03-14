@@ -14,7 +14,7 @@ import reactor.core.publisher.Flux;
         chatMemory = "chatMemory",
         chatMemoryProvider = "chatMemoryProvider",
         contentRetriever = "contentRetriever",
-        tools = "reservationTool"
+        tools = "schoolCompareTool"
 )
 public interface ChatService {
     /**

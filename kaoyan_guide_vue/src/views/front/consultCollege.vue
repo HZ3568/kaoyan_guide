@@ -1,18 +1,8 @@
 <template>
-  <div
-    class="ai-container"
-    :class="{ 'dark-mode': isDark }"
-  >
-    <!-- 侧边栏 -->
-    <aside
-      class="sidebar"
-      :class="{ collapsed: !isSidebarOpen }"
-    >
+  <div class="ai-container" :class="{ 'dark-mode': isDark }">
+    <aside class="sidebar" :class="{ collapsed: !isSidebarOpen }">
       <div class="sidebar-header">
-        <div
-          class="brand"
-          v-if="isSidebarOpen"
-        >
+        <div class="brand" v-if="isSidebarOpen">
           <img
             src="@/assets/imgs/logo.png"
             alt="Logo"
@@ -33,24 +23,15 @@
         </button>
       </div>
 
-      <div
-        class="sidebar-action"
-        v-if="isSidebarOpen"
-      >
-        <button
-          class="new-chat-btn"
-          @click="createNewChat"
-        >
+      <div class="sidebar-action" v-if="isSidebarOpen">
+        <button class="new-chat-btn" @click="createNewChat">
           <el-icon>
             <Plus />
           </el-icon>
           <span>开启新对话</span>
         </button>
       </div>
-      <div
-        class="sidebar-action-collapsed"
-        v-else
-      >
+      <div class="sidebar-action-collapsed" v-else>
         <button
           class="icon-btn new-chat-icon"
           @click="createNewChat"
@@ -76,10 +57,7 @@
                 <ChatDotRound />
               </el-icon>
 
-              <div
-                class="chat-info"
-                v-if="isSidebarOpen"
-              >
+              <div class="chat-info" v-if="isSidebarOpen">
                 <div class="chat-title-row">
                   <span
                     v-if="editingChatId !== chat.id"
@@ -108,7 +86,7 @@
                 <button
                   class="action-btn"
                   @click.stop="startRename(chat)"
-                  title="重命名"
+                  title="Rename"
                 >
                   <el-icon>
                     <Edit />
@@ -129,12 +107,8 @@
         </transition-group>
       </div>
 
-      <div
-        class="sidebar-footer"
-        v-if="isSidebarOpen"
-      >
+      <div class="sidebar-footer" v-if="isSidebarOpen">
         <div class="user-profile">
-          <!-- 这里的头像可以使用用户的真实头像 -->
           <el-avatar
             :size="32"
             src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png"
@@ -144,21 +118,18 @@
       </div>
     </aside>
 
-    <!-- 主界面 -->
     <main class="main-content">
-      <!-- 顶部导航 -->
       <header class="top-header">
         <div class="header-left">
-          <button
-            class="icon-btn mobile-menu-btn"
-            @click="toggleSidebar"
-          >
+          <button class="icon-btn mobile-menu-btn" @click="toggleSidebar">
             <el-icon>
               <Menu />
             </el-icon>
           </button>
           <span class="current-chat-title">{{ currentChat.title }}</span>
-          <span class="chat-count-badge">{{ currentChat.messages.length }} 条对话</span>
+          <span class="chat-count-badge">
+            {{ currentChat.messages.length }} 条对话</span
+          >
         </div>
         <div class="header-right">
           <button
@@ -176,11 +147,7 @@
         </div>
       </header>
 
-      <!-- 聊天区域 -->
-      <div
-        class="chat-scroll-area"
-        ref="chatArea"
-      >
+      <div class="chat-scroll-area" ref="chatArea">
         <div class="chat-wrapper">
           <div
             v-for="msg in currentChat.messages"
@@ -189,10 +156,7 @@
             :class="msg.role"
           >
             <div class="avatar-col">
-              <div
-                class="avatar"
-                :class="msg.role"
-              >
+              <div class="avatar" :class="msg.role">
                 <img
                   :src="
                     msg.role === 'assistant'
@@ -222,24 +186,21 @@
 
               <div class="message-bubble">
                 <template v-if="msg.role === 'assistant'">
+                  <div v-if="msg.isStreaming" class="streaming-text">
+                    {{ msg.displayedText || msg.text }}
+                  </div>
                   <div
+                    v-else
                     class="markdown-body"
-                    v-html="renderMarkdown(msg.displayedText || msg.text)"
+                    v-html="renderMarkdown(msg.text)"
                   ></div>
-                  <span
-                    v-if="msg.isStreaming"
-                    class="typing-cursor"
-                  ></span>
+                  <span v-if="msg.isStreaming" class="typing-cursor"></span>
                 </template>
-                <div
-                  v-else
-                  class="user-text"
-                >{{ msg.text }}</div>
+                <div v-else class="user-text">{{ msg.text }}</div>
               </div>
             </div>
           </div>
 
-          <!-- 快捷建议区域：仅在对话初期显示 -->
           <div
             class="suggestions-area"
             v-if="currentChat.messages.length <= 1 && !controller"
@@ -262,17 +223,13 @@
         </div>
       </div>
 
-      <!-- 底部输入框 -->
       <div class="input-wrapper">
-        <div
-          class="input-box"
-          :class="{ 'is-focused': isInputFocused }"
-        >
+        <div class="input-box" :class="{ 'is-focused': isInputFocused }">
           <textarea
             ref="inputRef"
             v-model="input"
             class="chat-input"
-            placeholder="输入你想了解的院校信息，例如：'推荐几所计算机专业的211院校'..."
+            placeholder="输入你想了解的院校信息，例如：推荐几所计算机专业强的 211 院校..."
             rows="1"
             @keydown.enter.prevent="handleEnter"
             @focus="isInputFocused = true"
@@ -289,10 +246,7 @@
               <el-icon v-if="!controller">
                 <Promotion />
               </el-icon>
-              <div
-                v-else
-                class="loading-dots"
-              >
+              <div v-else class="loading-dots">
                 <span></span><span></span><span></span>
               </div>
             </button>
@@ -309,12 +263,10 @@
 <script setup>
 import { ref, computed, nextTick, onMounted, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-// request 暂时保留引用，但实际核心逻辑是 fetch
-import request from "@/utils/request";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import hljs from "highlight.js";
-import "highlight.js/styles/atom-one-dark.css"; // 更现代的代码高亮风格
+import "highlight.js/styles/atom-one-dark.css";
 import {
   Fold,
   Expand,
@@ -329,25 +281,21 @@ import {
   Menu,
 } from "@element-plus/icons-vue";
 
-// 状态管理
 const isDark = ref(false);
 const isSidebarOpen = ref(true);
 const input = ref("");
 const chatArea = ref(null);
 const inputRef = ref(null);
 const isInputFocused = ref(false);
-let controller = null;
-let typingIntervals = {};
+const controller = ref(null);
 
-// 预设建议问题
 const suggestedQuestions = [
   "帮我分析一下西安电子科技大学计算机考研难度",
-  "推荐几所位于上海的理工类211院校",
+  "推荐几所位于上海的理工类 211 院校",
   "专硕和学硕在培养模式上有什么区别？",
   "如何制定考研英语复习计划？",
 ];
 
-// UUID生成
 const createSessionId = () => {
   if (window.crypto && typeof window.crypto.randomUUID === "function") {
     return window.crypto.randomUUID();
@@ -363,7 +311,6 @@ const ensureChatSessionId = (chat) => {
   return chat.sessionId;
 };
 
-// 存储管理
 const loadChatsFromLocalStorage = () => {
   const savedChats = localStorage.getItem("volunteer-apply-ai-chats");
   if (savedChats) {
@@ -405,7 +352,6 @@ const chats = ref(
 const currentChatIndex = ref(0);
 const currentChat = computed(() => chats.value[currentChatIndex.value]);
 
-// 操作逻辑
 const saveChatsToLocalStorage = () => {
   localStorage.setItem("volunteer-apply-ai-chats", JSON.stringify(chats.value));
 };
@@ -443,9 +389,9 @@ async function requestDeleteChat(index) {
   try {
     await ElMessageBox.confirm(
       "确定要删除这条对话记录吗？删除后不可恢复。",
-      "删除确认",
+      "删除 confirmation",
       {
-        confirmButtonText: "确认删除",
+        confirmButtonText: "删除",
         cancelButtonText: "取消",
         type: "warning",
         buttonSize: "default",
@@ -454,10 +400,8 @@ async function requestDeleteChat(index) {
     chats.value.splice(index, 1);
     if (chats.value.length === 0) {
       createNewChat();
-    } else {
-      if (currentChatIndex.value >= chats.value.length) {
-        currentChatIndex.value = chats.value.length - 1;
-      }
+    } else if (currentChatIndex.value >= chats.value.length) {
+      currentChatIndex.value = chats.value.length - 1;
     }
     saveChatsToLocalStorage();
     ElMessage.success("已删除");
@@ -483,6 +427,56 @@ function scrollToBottom() {
   });
 }
 
+let scrollTimer = null;
+function scheduleScrollToBottom() {
+  if (scrollTimer) return;
+  scrollTimer = setTimeout(() => {
+    scrollToBottom();
+    scrollTimer = null;
+  }, 80);
+}
+
+let saveTimer = null;
+function scheduleSaveChats() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveChatsToLocalStorage();
+    saveTimer = null;
+  }, 300);
+}
+
+function parseSseBlocks(rawText) {
+  const normalized = rawText.replace(/\r\n/g, "\n");
+  const blocks = normalized.split("\n\n");
+  const remainder = blocks.pop() || "";
+  return { blocks, remainder };
+}
+
+function parseSseEvent(block) {
+  const lines = block.split("\n");
+  let event = "message";
+  const dataLines = lines
+    .map((line) => {
+      if (line.startsWith("event:")) {
+        const content = line.slice(6);
+        event = content.startsWith(" ") ? content.slice(1) : content;
+        return null;
+      }
+      if (line.startsWith("data:")) {
+        const content = line.slice(5);
+        return content.startsWith(" ") ? content.slice(1) : content;
+      }
+      return null;
+    })
+    .filter((line) => line !== null);
+
+  if (dataLines.length > 0) {
+    return { event, data: dataLines.join("\n") };
+  }
+
+  return { event, data: block.trim() };
+}
+
 function useSuggestion(text) {
   input.value = text;
   sendMessage();
@@ -502,48 +496,17 @@ function adjustHeight() {
   }
 }
 
-// 消息处理逻辑保持核心不变，优化UI反馈
-const startTypingEffect = (msg) => {
-  if (!msg.isStreaming) return;
-  const len = msg.text.length;
-  msg.displayedText = msg.displayedText || "";
-  let i = msg.displayedText.length;
-
-  if (i >= len) {
-    msg.isStreaming = false;
-    clearInterval(typingIntervals[msg.id]);
-    return;
-  }
-
-  if (typingIntervals[msg.id]) clearInterval(typingIntervals[msg.id]);
-
-  const typingSpeed = Math.max(5, Math.min(20, 20 - Math.floor(len / 100)));
-
-  typingIntervals[msg.id] = setInterval(() => {
-    if (i < len) {
-      const charsToAdd = Math.min(3, len - i);
-      msg.displayedText += msg.text.substring(i, i + charsToAdd);
-      i += charsToAdd;
-      scrollToBottom();
-    } else {
-      msg.isStreaming = false;
-      clearInterval(typingIntervals[msg.id]);
-    }
-  }, typingSpeed);
-};
-
 async function sendMessage() {
   const inputText = input.value.trim();
   if (!inputText) return;
 
-  if (controller) {
-    controller.abort();
-    controller = null;
+  if (controller.value) {
+    controller.value.abort();
+    controller.value = null;
   }
 
-  controller = new AbortController();
+  controller.value = new AbortController();
 
-  // 添加用户消息
   currentChat.value.messages.push({
     id: Date.now(),
     role: "user",
@@ -555,25 +518,44 @@ async function sendMessage() {
   if (inputRef.value) inputRef.value.style.height = "auto";
   scrollToBottom();
 
-  // 预置AI消息
-  const assistantMsg = {
+  currentChat.value.messages.push({
     id: Date.now() + 1,
     role: "assistant",
     text: "",
     displayedText: "",
     isStreaming: true,
     timestamp: new Date().toISOString(),
-  };
-  currentChat.value.messages.push(assistantMsg);
+  });
+  const assistantMsg =
+    currentChat.value.messages[currentChat.value.messages.length - 1];
   scrollToBottom();
   saveChatsToLocalStorage();
 
   let timeoutId = null;
+  let pendingText = "";
+  let flushTimer = null;
+
+  const flushDisplayedText = () => {
+    if (!pendingText) return;
+    assistantMsg.text += pendingText;
+    assistantMsg.displayedText += pendingText;
+    pendingText = "";
+    scheduleScrollToBottom();
+    scheduleSaveChats();
+  };
+
+  const scheduleFlush = () => {
+    if (flushTimer) return;
+    flushTimer = setTimeout(() => {
+      flushDisplayedText();
+      flushTimer = null;
+    }, 50);
+  };
 
   try {
     timeoutId = setTimeout(() => {
-      if (controller) controller.abort();
-    }, 20000); // 延长超时时间提升体验
+      if (controller.value) controller.value.abort();
+    }, 60000);
 
     const user = JSON.parse(localStorage.getItem("xm-user") || "{}");
     const activeSessionId = ensureChatSessionId(currentChat.value);
@@ -590,51 +572,64 @@ async function sendMessage() {
           Accept: "text/event-stream",
           token: user.token || "",
         },
-        signal: controller.signal,
+        signal: controller.value.signal,
       }
     );
 
-    // 更新会话ID
     const responseSessionId = response.headers.get("X-Session-Id");
-    if (responseSessionId) currentChat.value.sessionId = responseSessionId;
+    if (responseSessionId) {
+      currentChat.value.sessionId = responseSessionId;
+    }
 
-    if (!response.ok) throw new Error(`Status: ${response.status}`);
-    if (!response.body) throw new Error("Empty body");
+    if (!response.ok) {
+      throw new Error(`Status: ${response.status}`);
+    }
+
+    if (!response.body) {
+      throw new Error("Empty body");
+    }
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
-    let rawBuffer = "";
-    let finalText = "";
+    let sseBuffer = "";
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      rawBuffer += decoder.decode(value, { stream: true });
-      const eventBlocks = rawBuffer.split("\n\n");
-      rawBuffer = eventBlocks.pop() || "";
+      const chunkText = decoder.decode(value, { stream: true });
+      sseBuffer += chunkText;
+      const { blocks, remainder } = parseSseBlocks(sseBuffer);
+      sseBuffer = remainder;
 
-      for (const block of eventBlocks) {
-        const lines = block.split("\n");
-        const dataLines = lines
-          .filter((l) => l.startsWith("data:"))
-          .map((l) => {
-            let d = l.slice(5);
-            return d.startsWith(" ") ? d.slice(1) : d;
-          })
-          .filter((d) => d !== "[DONE]");
+      for (const block of blocks) {
+        const { event, data } = parseSseEvent(block);
+        if (!data) continue;
+        if (event === "done" || data === "[DONE]") continue;
 
-        if (dataLines.length > 0) {
-          finalText += dataLines.join("\n");
-          assistantMsg.text = finalText;
-          // 实时显示，减少打字机延迟感
-          assistantMsg.displayedText = finalText;
-        }
+        pendingText += data;
+        scheduleFlush();
       }
-      scrollToBottom();
-      saveChatsToLocalStorage();
     }
+
+    if (sseBuffer.trim()) {
+      const { event, data } = parseSseEvent(sseBuffer);
+      if (event !== "done" && data && data !== "[DONE]") {
+        pendingText += data;
+      }
+    }
+
+    if (flushTimer) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+    flushDisplayedText();
   } catch (err) {
+    if (flushTimer) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+
     if (err.name !== "AbortError") {
       assistantMsg.text = `### 请求出错\n${
         err.message || "网络连接异常，请稍后重试"
@@ -644,8 +639,8 @@ async function sendMessage() {
   } finally {
     clearTimeout(timeoutId);
     assistantMsg.isStreaming = false;
-    controller = null;
-    scrollToBottom();
+    controller.value = null;
+    scheduleScrollToBottom();
     saveChatsToLocalStorage();
   }
 }
@@ -655,14 +650,13 @@ function createNewChat() {
   chats.value.push({
     id: newId,
     sessionId: createSessionId(),
-    title: `新对话 ${chats.value.length + 1}`,
+    title: `开启新对话 ${chats.value.length + 1}`,
     messages: [
       {
         id: newId + 1,
         role: "assistant",
-        text: "你好！我是你的考研院校咨询助手。新的会话已创建，随时准备为你解答问题。",
-        displayedText:
-          "你好！我是你的考研院校咨询助手。新的会话已创建，随时准备为你解答问题。",
+        text: "你好！新的会话已创建，随时可以开始咨询考研院校问题。",
+        displayedText: "你好！新的会话已创建，随时可以开始咨询考研院校问题。",
         timestamp: new Date().toISOString(),
       },
     ],
@@ -673,15 +667,14 @@ function createNewChat() {
 }
 
 function switchChat(index) {
-  if (controller) {
-    controller.abort();
-    controller = null;
+  if (controller.value) {
+    controller.value.abort();
+    controller.value = null;
   }
   currentChatIndex.value = index;
   scrollToBottom();
 }
 
-// Markdown 配置
 marked.setOptions({
   breaks: true,
   gfm: true,
@@ -692,7 +685,6 @@ marked.setOptions({
 });
 
 const renderer = new marked.Renderer();
-// 优化链接渲染，增加样式类
 renderer.link = (href, title, text) => {
   return `<a href="${href}" title="${
     title || ""
@@ -731,7 +723,6 @@ watch(
 </script>
 
 <style scoped>
-/* CSS 变量系统：定义两套主题色 */
 .ai-container {
   --bg-primary: #ffffff;
   --bg-secondary: #f9f9fb;
@@ -744,7 +735,7 @@ watch(
   --text-secondary: #6b7280;
   --text-tertiary: #9ca3af;
 
-  --accent-color: #10b981; /* 品牌绿 */
+  --accent-color: #10b981;
   --accent-hover: #059669;
 
   --border-light: #e5e7eb;
@@ -779,7 +770,6 @@ watch(
   --accent-color: #10b981;
 }
 
-/* 侧边栏 */
 .sidebar {
   width: 280px;
   background-color: var(--bg-sidebar);
@@ -888,7 +878,6 @@ watch(
   padding: 0 12px;
 }
 
-/* 滚动条美化 */
 .chat-list-container::-webkit-scrollbar {
   width: 4px;
 }
@@ -912,7 +901,7 @@ watch(
 }
 
 .chat-item.active {
-  background-color: rgba(16, 185, 129, 0.1); /* 品牌色淡背景 */
+  background-color: rgba(16, 185, 129, 0.1);
   color: var(--accent-color);
 }
 
@@ -992,7 +981,6 @@ watch(
   color: var(--text-primary);
 }
 
-/* 主内容区 */
 .main-content {
   flex: 1;
   display: flex;
@@ -1056,7 +1044,6 @@ watch(
   color: var(--text-primary);
 }
 
-/* 聊天滚动区 */
 .chat-scroll-area {
   flex: 1;
   overflow-y: auto;
@@ -1130,7 +1117,6 @@ watch(
   background-color: var(--bg-bubble-user);
   color: var(--text-primary);
   border-top-right-radius: 2px;
-  /* 深色模式下用户气泡文字适配 */
 }
 .ai-container.dark-mode .message-row.user .message-bubble {
   color: #fff;
@@ -1142,7 +1128,6 @@ watch(
   border-top-left-radius: 2px;
 }
 
-/* 快捷建议 */
 .suggestions-area {
   margin-top: 20px;
   animation: fadeIn 0.5s ease;
@@ -1183,7 +1168,6 @@ watch(
   box-shadow: var(--shadow-sm);
 }
 
-/* 输入区域 */
 .input-wrapper {
   background: linear-gradient(to top, var(--bg-secondary) 80%, transparent);
   position: relative;
@@ -1261,7 +1245,13 @@ watch(
   margin-top: 12px;
 }
 
-/* Markdown 样式 */
+.streaming-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.7;
+  font-size: 15px;
+  color: var(--text-primary);
+}
 .markdown-body {
   font-size: 15px;
   color: var(--text-primary);
@@ -1296,7 +1286,6 @@ watch(
   text-decoration: underline;
 }
 
-/* 动画 */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -1356,7 +1345,6 @@ watch(
   }
 }
 
-/* 响应式 */
 @media (max-width: 768px) {
   .mobile-menu-btn {
     display: block;
@@ -1369,9 +1357,8 @@ watch(
   }
   .sidebar.collapsed {
     width: 280px;
-    transform: translateX(0); /* 移动端 collapsed 实际用来表示显示 */
+    transform: translateX(0);
   }
-  /* 逻辑反转：移动端默认隐藏，点击展开 */
 
   .chat-wrapper {
     padding: 0 16px;
@@ -1391,4 +1378,3 @@ watch(
   }
 }
 </style>
-

@@ -170,7 +170,6 @@ const isSidebarOpen = ref(true); // 控制侧边栏展开/收起
 const input = ref("");
 const chatArea = ref(null);
 let controller = null; // 用于取消请求的控制器
-let typingIntervals = {}; // 每条消息独立的打字 interval
 
 const createSessionId = () => {
   if (window.crypto && typeof window.crypto.randomUUID === "function") {
@@ -349,40 +348,24 @@ const validateUserInput = (inputText) => {
   return { valid: true };
 };
 
-// 模拟逐字打印效果
-const startTypingEffect = (msg) => {
-  if (!msg.isStreaming) return;
-  const len = msg.text.length;
-  msg.displayedText = msg.displayedText || "";
-  let i = msg.displayedText.length;
+function parseSseBlocks(rawText) {
+  const normalized = rawText.replace(/\r\n/g, "\n");
+  const blocks = normalized.split("\n\n");
+  const remainder = blocks.pop() || "";
+  return { blocks, remainder };
+}
 
-  if (i >= len) {
-    msg.isStreaming = false;
-    clearInterval(typingIntervals[msg.id]);
-    return;
-  }
-
-  // 清除之前的interval以避免多个计时器同时运行
-  if (typingIntervals[msg.id]) {
-    clearInterval(typingIntervals[msg.id]);
-  }
-
-  // 根据文本长度动态调整打字速度，文本越长速度越快
-  const typingSpeed = Math.max(5, Math.min(20, 20 - Math.floor(len / 100)));
-
-  typingIntervals[msg.id] = setInterval(() => {
-    if (i < len) {
-      // 每次添加1-3个字符，加快显示速度
-      const charsToAdd = Math.min(3, len - i);
-      msg.displayedText += msg.text.substring(i, i + charsToAdd);
-      i += charsToAdd;
-      scrollToBottom();
-    } else {
-      msg.isStreaming = false;
-      clearInterval(typingIntervals[msg.id]);
-    }
-  }, typingSpeed);
-};
+function extractSseData(block) {
+  const lines = block.split("\n");
+  const dataLines = lines
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => {
+      const content = line.slice(5);
+      return content.startsWith(" ") ? content.slice(1) : content;
+    });
+  if (dataLines.length === 0) return "";
+  return dataLines.join("\n");
+}
 
 // 发送消息
 async function sendMessage() {
@@ -429,12 +412,11 @@ async function sendMessage() {
 
   try {
     // 添加调试输出，帮助定位问题
-    console.log("开始发送消息:", inputText);
-    console.log("聊天ID:", currentChat.value.id);
+    console.log("[test-debug] 开始发送消息:", inputText);
+    console.log("[test-debug] 聊天ID:", currentChat.value.id);
 
     // 设置超时
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
+    const timeoutId = setTimeout(() => controller?.abort(), 60000);
 
     // 使用正确的API路径，添加/api前缀以便正确代理到后端
     // 读取本地登录信息，注入后端拦截器需要的 token
@@ -449,7 +431,7 @@ async function sendMessage() {
       {
         method: "GET",
         headers: {
-          Accept: "text/html;charset=UTF-8",
+          Accept: "text/event-stream",
           token: token,
         },
         signal: controller.signal,
@@ -470,44 +452,58 @@ async function sendMessage() {
       );
     }
 
-    console.log("收到响应:", response.status);
+    console.log("[test-debug] 收到响应:", response.status);
 
+    if (!response.body) {
+      throw new Error("Empty body");
+    }
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
-    let buffer = "";
-
-    // 先清除之前的打字效果
-    if (typingIntervals[assistantMsg.id]) {
-      clearInterval(typingIntervals[assistantMsg.id]);
-      typingIntervals[assistantMsg.id] = null;
-    }
+    let sseBuffer = "";
 
     // 开始流式处理
-    console.log("开始流式处理响应");
+    console.log("[test-debug] 开始流式处理响应");
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
-        console.log("流式响应完成");
+        console.log("[test-debug] 流式响应完成");
         break;
       }
 
       const chunk = decoder.decode(value, { stream: true });
-      console.log("收到数据块:", chunk.length, "字节");
-      buffer += chunk;
+      // if (chunk) {
+      //   console.log("收到数据块:", chunk);
+      // }
+      sseBuffer += chunk;
+      const { blocks, remainder } = parseSseBlocks(sseBuffer);
+      sseBuffer = remainder;
 
-      // 直接更新内容
-      assistantMsg.text = buffer;
-
-      // 启动打字效果
-      if (!typingIntervals[assistantMsg.id]) {
-        typingIntervals[assistantMsg.id] = setInterval(() => {
-          startTypingEffect(assistantMsg);
-        }, 20); // 调整这个值可以改变打字速度
+      for (const block of blocks) {
+        const data = extractSseData(block);
+        if (data === "[DONE]") {
+            console.log("[test-debug] 收到结束标记 [DONE]");
+            continue;
+        }
+        if (data) {
+           assistantMsg.text += data;
+           assistantMsg.displayedText += data;
+           // console.log("追加数据块:", data);
+           scrollToBottom();
+        }
       }
-
-      scrollToBottom();
       saveChatsToLocalStorage();
     }
+    
+    // 处理剩余 buffer
+    if (sseBuffer.trim()) {
+      const data = extractSseData(sseBuffer);
+      if (data && data !== "[DONE]") {
+        assistantMsg.text += data;
+        assistantMsg.displayedText += data;
+        console.log("[test-debug] 追加尾块:", data);
+      }
+    }
+
   } catch (err) {
     if (err.name === "AbortError") {
       console.log("请求被用户中止或超时");
@@ -559,11 +555,6 @@ async function sendMessage() {
     }
 
     controller = null;
-
-    if (typingIntervals[assistantMsg.id]) {
-      clearInterval(typingIntervals[assistantMsg.id]);
-      typingIntervals[assistantMsg.id] = null;
-    }
 
     scrollToBottom();
   }

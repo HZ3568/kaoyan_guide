@@ -19,6 +19,8 @@ public interface UniversityMapper {
 
     List<University> selectAll(University university);
 
+    List<University> selectByNames(List<String> names);
+
     @Select("select u.*, p.name as provinceName from university u " +
             "left join areas p on p.id = u.province_id " +
             "order by u.id desc limit 0, 6")
