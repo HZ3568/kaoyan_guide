@@ -39,8 +39,8 @@ public class JWTInterceptor implements HandlerInterceptor {
             token = request.getParameter(Constants.TOKEN);
         }
         // 2. 开始执行认证
-        if (ObjectUtil.isNull(token)) {
-            throw new CustomException(ResultCodeEnum.TOKEN_INVALID_ERROR);
+        if (token == null || token.trim().isEmpty()) {
+            throw new CustomException(ResultCodeEnum.TOKEN_INVALID_ERROR.code, "未登录或登录已失效");
         }
         Account account = null;
         try {
@@ -54,12 +54,12 @@ public class JWTInterceptor implements HandlerInterceptor {
                 account = userService.selectById(Integer.valueOf(userId));
             }
         } catch (Exception e) {
-            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR);
+            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "token 校验失败");
         }
         // 根据token里面携带的用户ID去对应的角色表查询  没查到 所有报了这个“用户不存在”错误
         if (ObjectUtil.isNull(account)) {
             // 用户不存在
-            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR);
+            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "token 校验失败");
         }
         try {
             // 通过用户的密码作为密钥再次验证token的合法性
@@ -67,7 +67,7 @@ public class JWTInterceptor implements HandlerInterceptor {
             jwtVerifier.verify(token);  // 验证token
         } catch (JWTVerificationException e) {
             // 用户不存在
-            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR);
+            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "token 校验失败");
         }
         return true;
     }

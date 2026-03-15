@@ -25,3 +25,10 @@ export const knowledgeBaseReindexAll = (params) => {
 export const knowledgeBaseDelete = (id) => {
   return request.delete(`/knowledge-base/${id}`);
 };
+
+export const knowledgeBaseDownload = (id) => {
+  return request.get(`/knowledge-base/download/${id}`, {
+    responseType: "blob",
+    returnRawResponse: true,
+  });
+};

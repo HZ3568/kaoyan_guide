@@ -29,6 +29,9 @@ request.interceptors.response.use(
         let res = response.data;
         // 如果是返回的文件
         if (response.config.responseType === 'blob') {
+            if (response.config.returnRawResponse) {
+                return response
+            }
             return res
         }
         // 当权限验证不通过的时候给出提示

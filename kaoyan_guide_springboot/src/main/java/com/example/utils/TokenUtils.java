@@ -46,7 +46,7 @@ public class TokenUtils {
      * 生成JWT token
      */
     public static String createToken(String data, String sign) {
-        // audience是存储数据的一个媒介  存储用户ID和用户的角色  1-ADMIN
+        // audience是存储数据的一个媒介 存储用户ID和用户的角色 1-ADMIN
         return JWT.create().withAudience(data)
                 .withExpiresAt(DateUtil.offsetDay(new Date(), 1)) // 设置过期时间1天后
                 .sign(Algorithm.HMAC256(sign));
@@ -57,12 +57,19 @@ public class TokenUtils {
      */
     public static Account getCurrentUser() {
         try {
-            HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder
+                    .getRequestAttributes();
+            if (attributes == null) {
+                return null;
+            }
+            HttpServletRequest request = attributes.getRequest();
             String token = request.getHeader(Constants.TOKEN);
+            if (token == null || token.trim().isEmpty()) {
+                return null;
+            }
             String audience = JWT.decode(token).getAudience().get(0);
             String[] userRole = audience.split("-");
             Integer userId = Integer.valueOf(userRole[0]);
-            System.out.println("当前登录用户ID：" + userId);
             String role = userRole[1];
             if (RoleEnum.ADMIN.name().equals(role)) {
                 return staticAdminService.selectById(userId);

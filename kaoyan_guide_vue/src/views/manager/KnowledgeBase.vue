@@ -141,6 +141,7 @@
 import { reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
+  knowledgeBaseDownload,
   knowledgeBaseDelete,
   knowledgeBaseDetail,
   knowledgeBasePage,
@@ -148,8 +149,6 @@ import {
   knowledgeBaseReindexAll,
   knowledgeBaseUpload,
 } from "@/api/knowledgeBase.js";
-
-const baseUrl = import.meta.env.VITE_BASE_URL;
 const uploadFormRef = ref();
 
 const data = reactive({
@@ -316,7 +315,29 @@ const remove = (row) => {
 };
 
 const download = (row) => {
-  window.open(`${baseUrl}/knowledge-base/download/${row.id}?token=${JSON.parse(localStorage.getItem("xm-user") || "{}").token || ""}`);
+  knowledgeBaseDownload(row.id)
+    .then((res) => {
+      const blob = new Blob([res.data]);
+      const contentDisposition = res.headers?.["content-disposition"] || "";
+      let downloadName = row.fileName || "文件";
+      const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+      const normalMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+      if (utf8Match?.[1]) {
+        downloadName = decodeURIComponent(utf8Match[1]);
+      } else if (normalMatch?.[1]) {
+        downloadName = normalMatch[1];
+      }
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+      link.download = downloadName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(link.href);
+    })
+    .catch(() => {
+      ElMessage.error("下载失败，请稍后重试");
+    });
 };
 
 const statusLabel = (status) => {
