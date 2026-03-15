@@ -2,7 +2,7 @@ package com.example.controller;
 
 import com.example.common.enums.ModuleType;
 import com.example.entity.Account;
-import com.example.service.ChatGatewayService;
+import com.example.service.chat.ChatGatewayService;
 import com.example.utils.TokenUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;

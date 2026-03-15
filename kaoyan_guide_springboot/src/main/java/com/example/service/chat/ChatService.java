@@ -1,4 +1,4 @@
-package com.example.service;
+package com.example.service.chat;
 
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
@@ -22,6 +22,6 @@ public interface ChatService {
      * memoryId 用于隔离用户在该模块下的会话记忆；
      * message 为本轮用户输入，返回流式模型输出。
      */
-    @SystemMessage(fromResource = "prompts/consult-college-system-prompt.txt")
+    @SystemMessage(fromResource = "prompts/consult_college_system_prompt.txt")
     Flux<String> chat(@MemoryId String memoryId, @UserMessage String message);
 }

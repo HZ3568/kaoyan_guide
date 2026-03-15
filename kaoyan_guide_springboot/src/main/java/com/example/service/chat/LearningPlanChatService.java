@@ -1,4 +1,4 @@
-package com.example.service;
+package com.example.service.chat;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;

@@ -18,6 +18,6 @@ public class ConsultCollegePromptProvider implements ModulePromptProvider {
      */
     @Override
     public String promptResource() {
-        return "prompts/consult-college-system-prompt.txt";
+        return "prompts/consult_college_system_prompt.txt";
     }
 }

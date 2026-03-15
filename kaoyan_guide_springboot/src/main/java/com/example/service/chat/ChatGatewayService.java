@@ -1,11 +1,7 @@
-package com.example.service;
+package com.example.service.chat;
 
 import com.example.common.enums.ModuleType;
 import com.example.entity.SessionContext;
-import com.example.service.chat.ChatOutputSanitizer;
-import com.example.service.chat.ConversationContextService;
-import com.example.service.chat.PromptAssembly;
-import com.example.service.chat.PromptBuilder;
 import com.example.utils.MemoryKeyBuilder;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;

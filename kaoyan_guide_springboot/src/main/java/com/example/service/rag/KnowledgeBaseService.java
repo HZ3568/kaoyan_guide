@@ -1,4 +1,4 @@
-package com.example.service;
+package com.example.service.rag;
 
 import com.example.entity.KnowledgeDocument;
 import com.github.pagehelper.PageInfo;

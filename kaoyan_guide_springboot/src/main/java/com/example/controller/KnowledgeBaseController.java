@@ -5,7 +5,7 @@ import com.example.common.Result;
 import com.example.common.enums.RoleEnum;
 import com.example.entity.Account;
 import com.example.entity.KnowledgeDocument;
-import com.example.service.KnowledgeBaseService;
+import com.example.service.rag.KnowledgeBaseService;
 import com.example.utils.TokenUtils;
 import com.github.pagehelper.PageInfo;
 import jakarta.annotation.Resource;

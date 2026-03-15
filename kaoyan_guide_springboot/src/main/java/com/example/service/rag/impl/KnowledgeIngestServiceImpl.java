@@ -8,6 +8,8 @@ import com.example.service.rag.KnowledgeIngestService;
 import com.example.service.rag.KnowledgeVectorStoreService;
 import dev.langchain4j.data.segment.TextSegment;
 import jakarta.annotation.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.List;
 @Service
 public class KnowledgeIngestServiceImpl implements KnowledgeIngestService {
 
+    private static final Logger log = LoggerFactory.getLogger(KnowledgeIngestServiceImpl.class);
     private static final String STATUS_PROCESSING = "PROCESSING";
     private static final String STATUS_SUCCESS = "SUCCESS";
     private static final String STATUS_FAILED = "FAILED";
@@ -38,12 +41,12 @@ public class KnowledgeIngestServiceImpl implements KnowledgeIngestService {
         }
         updateStatus(document.getId(), STATUS_PROCESSING, 0, "");
         try {
-            deleteDocumentVectors(document.getId());
             String text = knowledgeDocumentLoader.loadAsText(document.getFilePath(), document.getFileType());
             List<TextSegment> segments = knowledgeDocumentSplitter.split(document, text);
             int chunkCount = knowledgeVectorStoreService.ingest(document.getId(), segments);
             updateStatus(document.getId(), STATUS_SUCCESS, chunkCount, "");
         } catch (Exception e) {
+            log.error("知识库文档入库失败，documentId={}", document.getId(), e);
             updateStatus(document.getId(), STATUS_FAILED, 0, simplifyError(e));
         }
     }
@@ -70,6 +73,10 @@ public class KnowledgeIngestServiceImpl implements KnowledgeIngestService {
         if (message == null || message.isBlank()) {
             return e.getClass().getSimpleName();
         }
-        return message.length() > 500 ? message.substring(0, 500) : message;
+        String normalized = message.replace("\r", " ").replace("\n", " ").trim();
+        if (normalized.length() > 200) {
+            normalized = normalized.substring(0, 200);
+        }
+        return normalized;
     }
 }

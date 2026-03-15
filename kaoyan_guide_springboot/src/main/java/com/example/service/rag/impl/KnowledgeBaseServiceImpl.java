@@ -1,9 +1,9 @@
-package com.example.service.impl;
+package com.example.service.rag.impl;
 
 import cn.hutool.core.io.FileUtil;
 import com.example.entity.KnowledgeDocument;
 import com.example.mapper.KnowledgeDocumentMapper;
-import com.example.service.KnowledgeBaseService;
+import com.example.service.rag.KnowledgeBaseService;
 import com.example.service.rag.KnowledgeIngestService;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
