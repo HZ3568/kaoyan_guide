@@ -21,7 +21,7 @@ import java.util.List;
 public class ChatGatewayService {
     private static final Logger log = LoggerFactory.getLogger(ChatGatewayService.class);
 
-    private final ChatService volunteerApplyChatService;
+    private final ChatService consultCollegeChatService;
     private final LearningPlanChatService learningPlanChatService;
     private final ConversationContextService conversationContextService;
     private final PromptBuilder promptBuilder;
@@ -32,14 +32,14 @@ public class ChatGatewayService {
     /**
      * 构造聊天网关，注入模块路由与上下文组装所需依赖。
      */
-    public ChatGatewayService(ChatService volunteerApplyChatService,
+    public ChatGatewayService(ChatService consultCollegeChatService,
             LearningPlanChatService learningPlanChatService,
             ConversationContextService conversationContextService,
             PromptBuilder promptBuilder,
             ChatOutputSanitizer chatOutputSanitizer,
             MemoryKeyBuilder memoryKeyBuilder,
             ChatMemoryStore chatMemoryStore) {
-        this.volunteerApplyChatService = volunteerApplyChatService;
+        this.consultCollegeChatService = consultCollegeChatService;
         this.learningPlanChatService = learningPlanChatService;
         this.conversationContextService = conversationContextService;
         this.promptBuilder = promptBuilder;
@@ -52,7 +52,7 @@ public class ChatGatewayService {
      * 聊天网关主入口。
      * 核心流程：
      * 1) 组装 memoryId 与会话上下文；
-     * 2) 按模块决定是否读取历史消息（仅志愿填报启用记忆）；
+     * 2) 按模块决定是否读取历史消息（仅考研院校咨询启用记忆）；
      * 3) 解析提示词、工具与是否启用 RAG；
      * 4) 分发到对应模块服务；
      * 5) 对模型输出进行统一清洗后返回。
@@ -60,7 +60,7 @@ public class ChatGatewayService {
     public Flux<String> chat(Integer userId, ModuleType moduleType, String sessionId, String message) {
         String memoryId = memoryKeyBuilder.build(userId, moduleType, sessionId);
         SessionContext sessionContext = new SessionContext(userId, moduleType, sessionId, memoryId);
-        boolean useMemory = moduleType == ModuleType.VOLUNTEER_APPLY;
+        boolean useMemory = moduleType == ModuleType.CONSULT_COLLEGE;
         List<ChatMessage> historyMessages = useMemory ? readHistory(memoryId) : Collections.emptyList();
         String promptResource = conversationContextService.getPromptResource(moduleType);
         List<String> toolNames = resolveSelectedTools(moduleType);
@@ -83,7 +83,7 @@ public class ChatGatewayService {
 
         Flux<String> rawResponse = switch (moduleType) {
             case LEARNING_PLAN -> learningPlanChatService.chat(sessionContext.getSessionId(), message);
-            case VOLUNTEER_APPLY -> volunteerApplyChatService.chat(memoryId, message);
+            case CONSULT_COLLEGE -> consultCollegeChatService.chat(memoryId, message);
         };
         return sanitizeResponse(rawResponse);
     }
@@ -107,7 +107,7 @@ public class ChatGatewayService {
 
     /**
      * 按模块解析可用工具列表。
-     * 学习规划模块显式禁用工具，避免误触发志愿填报工具调用。
+     * 学习规划模块显式禁用工具，避免误触发院校咨询工具调用。
      */
     private List<String> resolveSelectedTools(ModuleType moduleType) {
         if (moduleType == ModuleType.LEARNING_PLAN) {

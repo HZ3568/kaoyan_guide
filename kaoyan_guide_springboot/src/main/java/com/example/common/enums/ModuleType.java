@@ -2,7 +2,7 @@ package com.example.common.enums;
 
 public enum ModuleType {
     LEARNING_PLAN("learning_plan"),
-    VOLUNTEER_APPLY("volunteer_apply");
+    CONSULT_COLLEGE("consult_college");
 
     private final String code;
 

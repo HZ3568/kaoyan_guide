@@ -98,7 +98,7 @@ public class StudyPlanController {
                     currentUser.getId(),
                     localDate,
                     body.get("subject"),
-                    body.get("content")));
+                    body.get("src/main/uploads/content")));
         } catch (DateTimeParseException e) {
             return Result.error("日期格式错误，应为 yyyy-MM-dd");
         } catch (RuntimeException e) {
@@ -123,7 +123,7 @@ public class StudyPlanController {
                     localDate,
                     taskId,
                     body.get("subject"),
-                    body.get("content")));
+                    body.get("src/main/uploads/content")));
         } catch (DateTimeParseException e) {
             return Result.error("日期格式错误，应为 yyyy-MM-dd");
         } catch (RuntimeException e) {

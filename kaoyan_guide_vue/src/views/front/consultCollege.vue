@@ -9,7 +9,7 @@
             class="brand-logo"
             onerror="this.style.display='none'"
           />
-          <span class="brand-text">考研咨询助手</span>
+          <span class="brand-text">考研院校咨询助手</span>
         </div>
         <button
           class="icon-btn toggle-btn"
@@ -312,7 +312,7 @@ const ensureChatSessionId = (chat) => {
 };
 
 const loadChatsFromLocalStorage = () => {
-  const savedChats = localStorage.getItem("volunteer-apply-ai-chats");
+  const savedChats = localStorage.getItem("consult-college-ai-chats");
   if (savedChats) {
     try {
       const parsedChats = JSON.parse(savedChats);
@@ -353,7 +353,7 @@ const currentChatIndex = ref(0);
 const currentChat = computed(() => chats.value[currentChatIndex.value]);
 
 const saveChatsToLocalStorage = () => {
-  localStorage.setItem("volunteer-apply-ai-chats", JSON.stringify(chats.value));
+  localStorage.setItem("consult-college-ai-chats", JSON.stringify(chats.value));
 };
 
 const editingChatId = ref(null);
@@ -563,7 +563,7 @@ async function sendMessage() {
     const response = await fetch(
       `/api/chat?message=${encodeURIComponent(
         inputText
-      )}&moduleType=volunteer_apply&sessionId=${encodeURIComponent(
+      )}&moduleType=CONSULT_COLLEGE&sessionId=${encodeURIComponent(
         activeSessionId
       )}`,
       {

@@ -69,7 +69,7 @@ public interface StudyPlanMapper {
         @Update("UPDATE study_plan_task SET subject = #{subject}, content = #{content} " +
                         "WHERE plan_id = #{planId} AND task_id = #{taskId}")
         int updateTaskByPlanIdAndTaskId(@Param("planId") Long planId, @Param("taskId") String taskId,
-                        @Param("subject") String subject, @Param("content") String content);
+                        @Param("subject") String subject, @Param("src/main/uploads/content") String content);
 
         @Update("UPDATE study_plan SET user_feedback = #{userFeedback}, ai_advice = #{aiAdvice}, plan_status = #{planStatus}, update_time = #{updateTime} WHERE id = #{id}")
         int updatePlanCoreById(DailyStudyPlan plan);

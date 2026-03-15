@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.KnowledgeDocumentMapper">
+
+    <insert id="insert" parameterType="com.example.entity.KnowledgeDocument" useGeneratedKeys="true" keyProperty="id">
+        insert into knowledge_document
+        (title, file_name, file_url, file_path, file_type, business_type, status, chunk_count, error_message, remark, create_by)
+        values
+            (#{title}, #{fileName}, #{fileUrl}, #{filePath}, #{fileType}, #{businessType}, #{status}, #{chunkCount}, #{errorMessage}, #{remark}, #{createBy})
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.KnowledgeDocument">
+        update knowledge_document
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="fileName != null">file_name = #{fileName},</if>
+            <if test="fileUrl != null">file_url = #{fileUrl},</if>
+            <if test="filePath != null">file_path = #{filePath},</if>
+            <if test="fileType != null">file_type = #{fileType},</if>
+            <if test="businessType != null">business_type = #{businessType},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="chunkCount != null">chunk_count = #{chunkCount},</if>
+            <if test="errorMessage != null">error_message = #{errorMessage},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from knowledge_document
+        where id = #{id}
+    </delete>
+
+    <select id="selectById" resultType="com.example.entity.KnowledgeDocument">
+        select *
+        from knowledge_document
+        where id = #{id}
+        limit 1
+    </select>
+
+    <select id="selectPage" resultType="com.example.entity.KnowledgeDocument">
+        select *
+        from knowledge_document
+        <where>
+            <if test="title != null and title != ''">
+                and title like concat('%', #{title}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="businessType != null and businessType != ''">
+                and business_type = #{businessType}
+            </if>
+        </where>
+        order by id desc
+    </select>
+
+    <select id="selectByCondition" resultType="com.example.entity.KnowledgeDocument">
+        select *
+        from knowledge_document
+        <where>
+            <if test="businessType != null and businessType != ''">
+                and business_type = #{businessType}
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+        </where>
+        order by id desc
+    </select>
+
+</mapper>

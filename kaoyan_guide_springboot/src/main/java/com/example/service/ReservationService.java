@@ -12,7 +12,7 @@ public class ReservationService {
     private ReservationMapper reservationMapper;
 
     /**
-     * 新增志愿填报预约记录。
+     * 新增院校咨询预约记录。
      */
     public void insert(Reservation reservation){
         reservationMapper.insert(reservation);

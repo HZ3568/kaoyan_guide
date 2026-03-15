@@ -188,7 +188,7 @@ const ensureChatSessionId = (chat) => {
 
 // 从本地存储加载聊天记录
 const loadChatsFromLocalStorage = () => {
-  const savedChats = localStorage.getItem("volunteer-apply-ai-chats");
+  const savedChats = localStorage.getItem("consult-college-ai-chats");
   if (savedChats) {
     try {
       const parsedChats = JSON.parse(savedChats);
@@ -239,7 +239,7 @@ const floatingInputStyle = computed(() => ({
 
 // 保存聊天记录到本地存储
 const saveChatsToLocalStorage = () => {
-  localStorage.setItem("volunteer-apply-ai-chats", JSON.stringify(chats.value));
+  localStorage.setItem("consult-college-ai-chats", JSON.stringify(chats.value));
 };
 
 // 重命名与删除：编辑状态
@@ -425,7 +425,7 @@ async function sendMessage() {
     const activeSessionId = ensureChatSessionId(currentChat.value);
 
     const response = await fetch(
-      `/api/chat?message=${encodeURIComponent(inputText)}&moduleType=volunteer_apply&sessionId=${encodeURIComponent(
+      `/api/chat?message=${encodeURIComponent(inputText)}&moduleType=CONSULT_COLLEGE&sessionId=${encodeURIComponent(
         activeSessionId
       )}`,
       {

@@ -27,7 +27,7 @@ public class ChatOutputSanitizer {
                 if (fromChoices != null) {
                     return fromChoices;
                 }
-                String fromContent = root.getStr("content");
+                String fromContent = root.getStr("src/main/uploads/content");
                 if (fromContent != null) {
                     return fromContent;
                 }
@@ -45,11 +45,11 @@ public class ChatOutputSanitizer {
             return null;
         }
         if (message instanceof JSONObject jsonMessage) {
-            return jsonMessage.getStr("content");
+            return jsonMessage.getStr("src/main/uploads/content");
         }
         if (message instanceof String textMessage && JSONUtil.isTypeJSONObject(textMessage)) {
             JSONObject nested = JSONUtil.parseObj(textMessage);
-            return nested.getStr("content");
+            return nested.getStr("src/main/uploads/content");
         }
         return null;
     }
@@ -67,7 +67,7 @@ public class ChatOutputSanitizer {
         if (!(message instanceof JSONObject messageObj)) {
             return null;
         }
-        return messageObj.getStr("content");
+        return messageObj.getStr("src/main/uploads/content");
     }
 
     private String stripCodeFence(String content) {

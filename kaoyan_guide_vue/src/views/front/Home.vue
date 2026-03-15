@@ -204,8 +204,8 @@
               <el-icon><ChatDotRound /></el-icon>
             </div>
             <div class="feature-info">
-              <h3>AI 智能咨询</h3>
-              <p>24小时在线，解答报考疑惑</p>
+              <h3>考研院校咨询</h3>
+              <p>24小时在线，解答院校与择校疑惑</p>
             </div>
           </div>
         </el-col>

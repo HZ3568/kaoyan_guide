@@ -54,9 +54,9 @@ public class ConversationContextService {
 
     /**
      * 判断是否启用 RAG 检索增强。
-     * 当前仅志愿填报模块启用检索。
+     * 当前仅考研院校咨询模块启用检索。
      */
     public boolean isRagEnabled(ModuleType moduleType) {
-        return moduleType == ModuleType.VOLUNTEER_APPLY;
+        return moduleType == ModuleType.CONSULT_COLLEGE;
     }
 }

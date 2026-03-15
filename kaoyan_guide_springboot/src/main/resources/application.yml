@@ -1,22 +1,24 @@
 server:
-  port: ${SERVER_PORT:9090}
+  port: 9090
 
 spring:
+  profiles:
+    active: local
   servlet:
     multipart:
-      max-file-size: ${MAX_FILE_SIZE:1000MB}
-      max-request-size: ${MAX_REQUEST_SIZE:1000MB}
+      max-file-size: 1000MB
+      max-request-size: 1000MB
 
   datasource:
-    driver-class-name: ${DB_DRIVER:com.mysql.cj.jdbc.Driver}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    url: ${DB_URL}
+    driver-class-name: ${lhz.spring.datasource.driver-class-name}
+    username: ${lhz.spring.datasource.username}
+    password: ${lhz.spring.datasource.password}
+    url: ${lhz.spring.datasource.url}
 
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: ${lhz.spring.data.redis.host}
+      port: ${lhz.spring.data.redis.port}
 
 mybatis:
   configuration:
@@ -24,38 +26,40 @@ mybatis:
     map-underscore-to-camel-case: true
   mapper-locations: classpath:mapper/*.xml
 
-fileBaseUrl: ${FILE_BASE_URL:http://localhost:${server.port}}
+fileBaseUrl: ${lhz.fileBaseUrl}
 
 langchain4j:
   open-ai:
     chat-model:
-      base-url: ${LLM_BASE_URL}
-      api-key: ${LLM_API_KEY}
-      model-name: ${LLM_CHAT_MODEL:qwen3.5-plus}
-      log-requests: ${LLM_LOG_REQUESTS:true}
-      log-responses: ${LLM_LOG_RESPONSES:true}
+      base-url: ${lhz.langchain4j.open-ai.chat-model.base-url}
+      api-key: ${lhz.langchain4j.open-ai.chat-model.api-key}
+      model-name: ${lhz.langchain4j.open-ai.chat-model.model-name}
+      log-requests: true
+      log-responses: true
 
     streaming-chat-model:
-      base-url: ${LLM_BASE_URL}
-      api-key: ${LLM_API_KEY}
-      model-name: ${LLM_STREAM_MODEL:qwen3.5-plus}
-      log-requests: ${LLM_LOG_REQUESTS:true}
-      log-responses: ${LLM_LOG_RESPONSES:true}
+      base-url: ${lhz.langchain4j.open-ai.streaming-chat-model.base-url}
+      api-key: ${lhz.langchain4j.open-ai.streaming-chat-model.api-key}
+      model-name: ${lhz.langchain4j.open-ai.streaming-chat-model.model-name}
+      log-requests: true
+      log-responses: true
 
     embedding-model:
-      base-url: ${LLM_BASE_URL}
-      api-key: ${LLM_API_KEY}
-      model-name: ${LLM_EMBEDDING_MODEL:text-embedding-v3}
-      log-requests: ${LLM_LOG_REQUESTS:true}
-      log-responses: ${LLM_LOG_RESPONSES:true}
-      max-segments-per-batch: ${LLM_MAX_SEGMENTS_PER_BATCH:10}
+      base-url: ${lhz.langchain4j.open-ai.embedding-model.base-url}
+      api-key: ${lhz.langchain4j.open-ai.embedding-model.api-key}
+      model-name: ${lhz.langchain4j.open-ai.embedding-model.model-name}
+      log-requests: true
+      log-responses: true
+      max-segments-per-batch: 10
 
   community:
     redis:
-      host: ${COMMUNITY_REDIS_HOST:localhost}
-      port: ${COMMUNITY_REDIS_PORT:6379}
+      host: ${lhz.langchain4j.community.redis.host}
+      port: ${lhz.langchain4j.community.redis.port}
 
 app:
   chat:
     memory:
-      ttl-days: ${CHAT_MEMORY_TTL_DAYS:7}
+      ttl-days: 7
+  knowledge-base:
+    upload-dir: ${lhz.app.knowledge-base.upload-dir}

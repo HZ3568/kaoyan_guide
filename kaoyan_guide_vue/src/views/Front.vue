@@ -24,7 +24,7 @@
           <el-menu-item index="/front/interpretationsList">专业解读</el-menu-item>
           <el-menu-item index="/front/policysList">招生政策</el-menu-item>
           <el-menu-item index="/front/simulateExam">考场模拟</el-menu-item>
-          <el-menu-item index="/front/consultCollege">AI院校信息咨询</el-menu-item>
+          <el-menu-item index="/front/consultCollege">考研院校咨询</el-menu-item>
           <el-menu-item index="/front/studyPlan">AI学习规划</el-menu-item>
         </el-menu>
       </div>

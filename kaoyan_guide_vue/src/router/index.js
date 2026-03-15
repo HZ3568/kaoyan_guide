@@ -25,6 +25,7 @@ const router = createRouter({
         { path: 'universitySpecialtys', meta: { name: '学校专业' }, component: () => import('@/views/manager/UniversitySpecialtys.vue')},
         { path: 'dataStatistics', meta: { name: '数据统计' }, component: () => import('@/views/manager/DataStatistics.vue')},
         { path: 'question', meta: { name: '题库管理' }, component: () => import('@/views/manager/Question.vue')},
+        { path: 'knowledgeBase', meta: { name: '知识库管理' }, component: () => import('@/views/manager/KnowledgeBase.vue')},
       ]
     },
     {

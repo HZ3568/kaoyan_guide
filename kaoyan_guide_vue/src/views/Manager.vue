@@ -105,6 +105,10 @@
               index="/manager/question"
               v-if="data.user.role === 'ADMIN'"
             >题库管理</el-menu-item>
+            <el-menu-item
+              index="/manager/knowledgeBase"
+              v-if="data.user.role === 'ADMIN'"
+            >知识库管理</el-menu-item>
 
             <!-- 新菜单 -->
           </el-sub-menu>
