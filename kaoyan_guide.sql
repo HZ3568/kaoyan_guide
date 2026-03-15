@@ -647,10 +647,10 @@ CREATE TABLE `daily_question`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '每日题目分发表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Table structure for knowledge_document
+-- Table structure for kb_file
 -- ----------------------------
-DROP TABLE IF EXISTS `knowledge_document`;
-CREATE TABLE `knowledge_document`  (
+DROP TABLE IF EXISTS `kb_file`;
+CREATE TABLE `kb_file`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '文档标题',
   `file_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '原始文件名',
@@ -658,15 +658,35 @@ CREATE TABLE `knowledge_document`  (
   `file_path` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '服务器存储路径',
   `file_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '文件类型，如pdf/txt/md',
   `business_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '业务类型，如school/policy/major',
-  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PENDING' COMMENT '处理状态：PENDING/PROCESSING/SUCCESS/FAILED',
-  `chunk_count` int NULL DEFAULT 0 COMMENT '切分后的片段数',
+  `file_hash` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '文件SHA-256',
+  `file_size` bigint NULL DEFAULT 0 COMMENT '文件大小，字节',
+  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'UPLOADING' COMMENT '状态：UPLOADING/PARSED/INDEXED/FAILED/DELETED',
+  `segment_count` int NULL DEFAULT 0 COMMENT '切分后的片段数',
+  `redis_prefix` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'Redis追踪前缀',
   `error_message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '失败原因',
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
   `create_by` bigint NULL DEFAULT NULL COMMENT '创建人',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '知识库文档表' ROW_FORMAT = Dynamic;
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_kb_file_hash`(`file_hash` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '知识库文件主表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for kb_content
+-- ----------------------------
+DROP TABLE IF EXISTS `kb_content`;
+CREATE TABLE `kb_content`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `file_id` bigint NOT NULL COMMENT '文件ID',
+  `segment_no` int NOT NULL COMMENT '分片序号',
+  `content_text` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '分片文本',
+  `redis_key` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'Redis追踪key',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_file_segment`(`file_id` ASC, `segment_no` ASC) USING BTREE,
+  INDEX `idx_file_id`(`file_id` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '知识库分片表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for user

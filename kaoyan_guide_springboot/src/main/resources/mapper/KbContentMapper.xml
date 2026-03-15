@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.KbContentMapper">
+
+    <insert id="insertBatch">
+        insert into kb_content
+        (file_id, segment_no, content_text, redis_key)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.fileId}, #{item.segmentNo}, #{item.contentText}, #{item.redisKey})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByFileId">
+        delete from kb_content
+        where file_id = #{fileId}
+    </delete>
+
+    <select id="selectByFileId" resultType="com.example.entity.KbContent">
+        select *
+        from kb_content
+        where file_id = #{fileId}
+        order by segment_no asc
+    </select>
+
+</mapper>

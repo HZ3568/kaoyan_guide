@@ -1,12 +1,14 @@
 package com.example.service.rag.impl;
 
-import com.example.entity.KnowledgeDocument;
-import com.example.mapper.KnowledgeDocumentMapper;
+import com.example.entity.KbContent;
+import com.example.entity.KbFile;
+import com.example.mapper.KbContentMapper;
+import com.example.mapper.KbFileMapper;
+import com.example.repository.KnowledgeRedisRepository;
 import com.example.service.rag.KnowledgeDocumentLoader;
 import com.example.service.rag.KnowledgeDocumentSplitter;
 import com.example.service.rag.KnowledgeIngestService;
 import com.example.service.rag.KnowledgeVectorStoreService;
-import dev.langchain4j.data.segment.TextSegment;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,11 +21,15 @@ public class KnowledgeIngestServiceImpl implements KnowledgeIngestService {
 
     private static final Logger log = LoggerFactory.getLogger(KnowledgeIngestServiceImpl.class);
     private static final String STATUS_PROCESSING = "PROCESSING";
-    private static final String STATUS_SUCCESS = "SUCCESS";
+    private static final String STATUS_PARSED = "PARSED";
+    private static final String STATUS_INDEXED = "INDEXED";
     private static final String STATUS_FAILED = "FAILED";
 
     @Resource
-    private KnowledgeDocumentMapper knowledgeDocumentMapper;
+    private KbFileMapper kbFileMapper;
+
+    @Resource
+    private KbContentMapper kbContentMapper;
 
     @Resource
     private KnowledgeDocumentLoader knowledgeDocumentLoader;
@@ -34,35 +40,52 @@ public class KnowledgeIngestServiceImpl implements KnowledgeIngestService {
     @Resource
     private KnowledgeVectorStoreService knowledgeVectorStoreService;
 
+    @Resource
+    private KnowledgeRedisRepository knowledgeRedisRepository;
+
     @Override
-    public void ingest(KnowledgeDocument document) {
-        if (document == null || document.getId() == null) {
+    public void ingest(KbFile file) {
+        if (file == null || file.getId() == null) {
             throw new IllegalArgumentException("知识库文档不存在");
         }
-        updateStatus(document.getId(), STATUS_PROCESSING, 0, "");
+        updateStatus(file.getId(), STATUS_PROCESSING, 0, "");
         try {
-            String text = knowledgeDocumentLoader.loadAsText(document.getFilePath(), document.getFileType());
-            List<TextSegment> segments = knowledgeDocumentSplitter.split(document, text);
-            int chunkCount = knowledgeVectorStoreService.ingest(document.getId(), segments);
-            updateStatus(document.getId(), STATUS_SUCCESS, chunkCount, "");
+            String text = knowledgeDocumentLoader.loadAsText(file.getFilePath(), file.getFileType());
+            List<KbContent> contents = knowledgeDocumentSplitter.split(file, text);
+            kbContentMapper.deleteByFileId(file.getId());
+            if (!contents.isEmpty()) {
+                kbContentMapper.insertBatch(contents);
+            }
+            updateStatus(file.getId(), STATUS_PARSED, contents.size(), "");
+            int segmentCount = knowledgeVectorStoreService.ingest(file, contents);
+            updateStatus(file.getId(), STATUS_INDEXED, segmentCount, "");
         } catch (Exception e) {
-            log.error("知识库文档入库失败，documentId={}", document.getId(), e);
-            updateStatus(document.getId(), STATUS_FAILED, 0, simplifyError(e));
+            log.error("知识库文档入库失败，fileId={}", file.getId(), e);
+            try {
+                knowledgeVectorStoreService.removeByFileId(file.getId());
+            } catch (Exception cleanupError) {
+                log.error("清理失败文件Redis向量失败，fileId={}", file.getId(), cleanupError);
+            }
+            updateStatus(file.getId(), STATUS_FAILED, 0, simplifyError(e));
         }
     }
 
     @Override
-    public void deleteDocumentVectors(Long documentId) {
-        knowledgeVectorStoreService.removeByDocumentId(documentId);
+    public boolean deleteFileVectors(Long fileId) {
+        return knowledgeVectorStoreService.removeByFileId(fileId);
     }
 
-    private void updateStatus(Long documentId, String status, Integer chunkCount, String errorMessage) {
-        KnowledgeDocument updating = new KnowledgeDocument();
-        updating.setId(documentId);
+    private void updateStatus(Long fileId, String status, Integer segmentCount, String errorMessage) {
+        KbFile updating = new KbFile();
+        updating.setId(fileId);
         updating.setStatus(status);
-        updating.setChunkCount(chunkCount);
+        updating.setSegmentCount(segmentCount);
         updating.setErrorMessage(errorMessage);
-        knowledgeDocumentMapper.updateById(updating);
+        kbFileMapper.updateById(updating);
+        KbFile latest = kbFileMapper.selectById(fileId);
+        if (latest != null) {
+            knowledgeRedisRepository.saveFileMeta(latest);
+        }
     }
 
     private String simplifyError(Exception e) {

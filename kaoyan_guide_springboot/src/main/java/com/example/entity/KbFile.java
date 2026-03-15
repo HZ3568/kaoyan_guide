@@ -2,7 +2,7 @@ package com.example.entity;
 
 import java.time.LocalDateTime;
 
-public class KnowledgeDocument {
+public class KbFile {
 
     private Long id;
     private String title;
@@ -11,8 +11,11 @@ public class KnowledgeDocument {
     private String filePath;
     private String fileType;
     private String businessType;
+    private String fileHash;
+    private Long fileSize;
     private String status;
-    private Integer chunkCount;
+    private Integer segmentCount;
+    private String redisPrefix;
     private String errorMessage;
     private String remark;
     private Long createBy;
@@ -75,6 +78,22 @@ public class KnowledgeDocument {
         this.businessType = businessType;
     }
 
+    public String getFileHash() {
+        return fileHash;
+    }
+
+    public void setFileHash(String fileHash) {
+        this.fileHash = fileHash;
+    }
+
+    public Long getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(Long fileSize) {
+        this.fileSize = fileSize;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -83,12 +102,20 @@ public class KnowledgeDocument {
         this.status = status;
     }
 
-    public Integer getChunkCount() {
-        return chunkCount;
+    public Integer getSegmentCount() {
+        return segmentCount;
     }
 
-    public void setChunkCount(Integer chunkCount) {
-        this.chunkCount = chunkCount;
+    public void setSegmentCount(Integer segmentCount) {
+        this.segmentCount = segmentCount;
+    }
+
+    public String getRedisPrefix() {
+        return redisPrefix;
+    }
+
+    public void setRedisPrefix(String redisPrefix) {
+        this.redisPrefix = redisPrefix;
     }
 
     public String getErrorMessage() {

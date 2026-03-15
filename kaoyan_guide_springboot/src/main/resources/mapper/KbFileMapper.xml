@@ -3,17 +3,17 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.example.mapper.KnowledgeDocumentMapper">
+<mapper namespace="com.example.mapper.KbFileMapper">
 
-    <insert id="insert" parameterType="com.example.entity.KnowledgeDocument" useGeneratedKeys="true" keyProperty="id">
-        insert into knowledge_document
-        (title, file_name, file_url, file_path, file_type, business_type, status, chunk_count, error_message, remark, create_by)
+    <insert id="insert" parameterType="com.example.entity.KbFile" useGeneratedKeys="true" keyProperty="id">
+        insert into kb_file
+        (title, file_name, file_url, file_path, file_type, business_type, file_hash, file_size, status, segment_count, redis_prefix, error_message, remark, create_by)
         values
-            (#{title}, #{fileName}, #{fileUrl}, #{filePath}, #{fileType}, #{businessType}, #{status}, #{chunkCount}, #{errorMessage}, #{remark}, #{createBy})
+            (#{title}, #{fileName}, #{fileUrl}, #{filePath}, #{fileType}, #{businessType}, #{fileHash}, #{fileSize}, #{status}, #{segmentCount}, #{redisPrefix}, #{errorMessage}, #{remark}, #{createBy})
     </insert>
 
-    <update id="updateById" parameterType="com.example.entity.KnowledgeDocument">
-        update knowledge_document
+    <update id="updateById" parameterType="com.example.entity.KbFile">
+        update kb_file
         <set>
             <if test="title != null">title = #{title},</if>
             <if test="fileName != null">file_name = #{fileName},</if>
@@ -21,8 +21,11 @@
             <if test="filePath != null">file_path = #{filePath},</if>
             <if test="fileType != null">file_type = #{fileType},</if>
             <if test="businessType != null">business_type = #{businessType},</if>
+            <if test="fileHash != null">file_hash = #{fileHash},</if>
+            <if test="fileSize != null">file_size = #{fileSize},</if>
             <if test="status != null">status = #{status},</if>
-            <if test="chunkCount != null">chunk_count = #{chunkCount},</if>
+            <if test="segmentCount != null">segment_count = #{segmentCount},</if>
+            <if test="redisPrefix != null">redis_prefix = #{redisPrefix},</if>
             <if test="errorMessage != null">error_message = #{errorMessage},</if>
             <if test="remark != null">remark = #{remark},</if>
             <if test="createBy != null">create_by = #{createBy},</if>
@@ -31,20 +34,27 @@
     </update>
 
     <delete id="deleteById">
-        delete from knowledge_document
+        delete from kb_file
         where id = #{id}
     </delete>
 
-    <select id="selectById" resultType="com.example.entity.KnowledgeDocument">
+    <select id="selectById" resultType="com.example.entity.KbFile">
         select *
-        from knowledge_document
+        from kb_file
         where id = #{id}
         limit 1
     </select>
 
-    <select id="selectPage" resultType="com.example.entity.KnowledgeDocument">
+    <select id="selectByHash" resultType="com.example.entity.KbFile">
         select *
-        from knowledge_document
+        from kb_file
+        where file_hash = #{fileHash}
+        limit 1
+    </select>
+
+    <select id="selectPage" resultType="com.example.entity.KbFile">
+        select *
+        from kb_file
         <where>
             <if test="title != null and title != ''">
                 and title like concat('%', #{title}, '%')
@@ -59,9 +69,9 @@
         order by id desc
     </select>
 
-    <select id="selectByCondition" resultType="com.example.entity.KnowledgeDocument">
+    <select id="selectByCondition" resultType="com.example.entity.KbFile">
         select *
-        from knowledge_document
+        from kb_file
         <where>
             <if test="businessType != null and businessType != ''">
                 and business_type = #{businessType}

@@ -1,8 +1,9 @@
 package com.example.service.rag;
 
+import com.example.entity.KbContent;
+import com.example.entity.KbFile;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.segment.TextSegment;
-import com.example.entity.KnowledgeDocument;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -17,21 +18,29 @@ public class KnowledgeDocumentSplitter {
     private static final int CHUNK_OVERLAP = 100;
     private static final Pattern SCHOOL_NAME_PATTERN = Pattern.compile("([\\u4e00-\\u9fa5]{2,}(大学|学院))");
 
-    public List<TextSegment> split(KnowledgeDocument document, String text) {
+    public List<KbContent> split(KbFile file, String text) {
         String normalized = normalize(text);
         if (normalized.isBlank()) {
             return List.of();
         }
         List<String> naturalBlocks = splitByNaturalStructure(normalized);
-        List<TextSegment> segments = new ArrayList<>();
-        String schoolName = detectSchoolName(document, normalized);
+        List<KbContent> contents = new ArrayList<>();
+        int segmentNo = 1;
         for (String block : naturalBlocks) {
             if (block == null || block.isBlank()) {
                 continue;
             }
-            segments.addAll(splitLongBlock(document, schoolName, block));
+            List<String> chunks = splitLongBlock(block);
+            for (String chunk : chunks) {
+                KbContent content = new KbContent();
+                content.setFileId(file.getId());
+                content.setSegmentNo(segmentNo++);
+                content.setContentText(chunk);
+                content.setRedisKey("kb:file:" + file.getId() + ":embedding:" + content.getSegmentNo());
+                contents.add(content);
+            }
         }
-        return segments;
+        return contents;
     }
 
     private List<String> splitByNaturalStructure(String text) {
@@ -72,42 +81,48 @@ public class KnowledgeDocumentSplitter {
                 || line.matches("^[0-9一二三四五六七八九十]+[.、）)].*");
     }
 
-    private List<TextSegment> splitLongBlock(KnowledgeDocument document, String schoolName, String block) {
-        List<TextSegment> segments = new ArrayList<>();
+    private List<String> splitLongBlock(String block) {
+        List<String> chunks = new ArrayList<>();
         int start = 0;
         int length = block.length();
         while (start < length) {
             int end = Math.min(start + CHUNK_SIZE, length);
             String chunk = block.substring(start, end).trim();
             if (!chunk.isBlank()) {
-                segments.add(TextSegment.from(chunk, buildMetadata(document, schoolName)));
+                chunks.add(chunk);
             }
             if (end >= length) {
                 break;
             }
             start = Math.max(0, end - CHUNK_OVERLAP);
         }
-        return segments;
+        return chunks;
     }
 
-    private Metadata buildMetadata(KnowledgeDocument document, String schoolName) {
-        Metadata metadata = new Metadata();
-        metadata.put("documentId", String.valueOf(document.getId()));
-        metadata.put("title", safe(document.getTitle()));
-        metadata.put("businessType", safe(document.getBusinessType()));
-        metadata.put("fileName", safe(document.getFileName()));
-        if (!schoolName.isBlank()) {
-            metadata.put("schoolName", schoolName);
-        }
-        return metadata;
+    public TextSegment buildSegment(KbFile file, KbContent content, String schoolName) {
+        return TextSegment.from(content.getContentText(), buildMetadata(file, content, schoolName));
     }
 
-    private String detectSchoolName(KnowledgeDocument document, String text) {
-        String fromTitle = extractSchoolName(document.getTitle());
+    public String detectSchoolName(KbFile file, String text) {
+        String fromTitle = extractSchoolName(file.getTitle());
         if (!fromTitle.isBlank()) {
             return fromTitle;
         }
         return extractSchoolName(text);
+    }
+
+    private Metadata buildMetadata(KbFile file, KbContent content, String schoolName) {
+        Metadata metadata = new Metadata();
+        metadata.put("documentId", String.valueOf(file.getId()));
+        metadata.put("fileId", String.valueOf(file.getId()));
+        metadata.put("segmentNo", String.valueOf(content.getSegmentNo()));
+        metadata.put("title", safe(file.getTitle()));
+        metadata.put("businessType", safe(file.getBusinessType()));
+        metadata.put("fileName", safe(file.getFileName()));
+        if (!schoolName.isBlank()) {
+            metadata.put("schoolName", schoolName);
+        }
+        return metadata;
     }
 
     private String extractSchoolName(String text) {

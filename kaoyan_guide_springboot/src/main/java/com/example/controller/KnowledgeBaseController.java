@@ -4,7 +4,7 @@ import cn.hutool.core.io.FileUtil;
 import com.example.common.Result;
 import com.example.common.enums.RoleEnum;
 import com.example.entity.Account;
-import com.example.entity.KnowledgeDocument;
+import com.example.entity.KbFile;
 import com.example.service.rag.KnowledgeBaseService;
 import com.example.utils.TokenUtils;
 import com.github.pagehelper.PageInfo;
@@ -32,7 +32,7 @@ public class KnowledgeBaseController {
                          @RequestParam(value = "remark", required = false) String remark) {
         try {
             Account account = requireAdmin();
-            KnowledgeDocument result = knowledgeBaseService.uploadAndIngest(file, title, businessType, remark, account.getId().longValue());
+            KbFile result = knowledgeBaseService.uploadAndIngest(file, title, businessType, remark, account.getId().longValue());
             return Result.success(result);
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
@@ -40,22 +40,22 @@ public class KnowledgeBaseController {
     }
 
     @GetMapping("/page")
-    public Result page(KnowledgeDocument query,
+    public Result page(KbFile query,
                        @RequestParam(defaultValue = "1") Integer pageNum,
                        @RequestParam(defaultValue = "10") Integer pageSize) {
         requireAdmin();
-        PageInfo<KnowledgeDocument> page = knowledgeBaseService.selectPage(query, pageNum, pageSize);
+        PageInfo<KbFile> page = knowledgeBaseService.selectPage(query, pageNum, pageSize);
         return Result.success(page);
     }
 
     @GetMapping("/{id}")
     public Result detail(@PathVariable Long id) {
         requireAdmin();
-        KnowledgeDocument document = knowledgeBaseService.selectById(id);
-        if (document == null) {
+        KbFile file = knowledgeBaseService.selectById(id);
+        if (file == null) {
             return Result.error("文档不存在");
         }
-        return Result.success(document);
+        return Result.success(file);
     }
 
     @PostMapping("/reindex/{id}")
@@ -87,8 +87,7 @@ public class KnowledgeBaseController {
     public Result delete(@PathVariable Long id) {
         try {
             requireAdmin();
-            knowledgeBaseService.deleteById(id);
-            return Result.success();
+            return Result.success(knowledgeBaseService.deleteById(id));
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
         }
@@ -97,17 +96,17 @@ public class KnowledgeBaseController {
     @GetMapping("/download/{id}")
     public void download(@PathVariable Long id, HttpServletResponse response) {
         requireAdmin();
-        KnowledgeDocument document = knowledgeBaseService.selectById(id);
-        if (document == null || document.getFilePath() == null || !FileUtil.exist(document.getFilePath())) {
+        KbFile file = knowledgeBaseService.selectById(id);
+        if (file == null || file.getFilePath() == null || !FileUtil.exist(file.getFilePath())) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
         try {
-            String fileName = document.getFileName() == null ? "knowledge-file" : document.getFileName();
+            String fileName = file.getFileName() == null ? "knowledge-file" : file.getFileName();
             String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
             response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encodedFileName);
             response.setContentType("application/octet-stream");
-            byte[] bytes = FileUtil.readBytes(document.getFilePath());
+            byte[] bytes = FileUtil.readBytes(file.getFilePath());
             OutputStream os = response.getOutputStream();
             os.write(bytes);
             os.flush();

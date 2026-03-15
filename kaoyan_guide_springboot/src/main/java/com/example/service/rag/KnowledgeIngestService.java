@@ -1,10 +1,10 @@
 package com.example.service.rag;
 
-import com.example.entity.KnowledgeDocument;
+import com.example.entity.KbFile;
 
 public interface KnowledgeIngestService {
 
-    void ingest(KnowledgeDocument document);
+    void ingest(KbFile file);
 
-    void deleteDocumentVectors(Long documentId);
+    boolean deleteFileVectors(Long fileId);
 }

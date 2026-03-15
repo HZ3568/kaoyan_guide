@@ -16,9 +16,10 @@
         clearable
         style="width: 140px; margin-left: 10px"
       >
-        <el-option label="待处理" value="PENDING" />
+        <el-option label="上传中" value="UPLOADING" />
         <el-option label="处理中" value="PROCESSING" />
-        <el-option label="成功" value="SUCCESS" />
+        <el-option label="已解析" value="PARSED" />
+        <el-option label="已入库" value="INDEXED" />
         <el-option label="失败" value="FAILED" />
       </el-select>
       <el-select
@@ -48,7 +49,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="chunkCount" label="chunk数" width="100" />
+        <el-table-column prop="segmentCount" label="分片数" width="100" />
         <el-table-column prop="createTime" label="创建时间" width="180" />
         <el-table-column label="操作" width="290" fixed="right">
           <template #default="scope">
@@ -122,7 +123,7 @@
             {{ statusLabel(data.detail.status) }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="chunk数量">{{ data.detail.chunkCount ?? 0 }}</el-descriptions-item>
+        <el-descriptions-item label="分片数量">{{ data.detail.segmentCount ?? 0 }}</el-descriptions-item>
         <el-descriptions-item label="错误原因">{{ data.detail.errorMessage || "-" }}</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ data.detail.createTime || "-" }}</el-descriptions-item>
         <el-descriptions-item label="更新时间">{{ data.detail.updateTime || "-" }}</el-descriptions-item>
@@ -300,7 +301,11 @@ const remove = (row) => {
     .then(() => {
       knowledgeBaseDelete(row.id).then((res) => {
         if (res.code === "200") {
-          ElMessage.success("删除成功");
+          const result = res.data || {};
+          const redisStatus = result.redisDeleted ? "Redis已清理" : "Redis清理失败";
+          const dbStatus = result.dbDeleted ? "数据库已删除" : "数据库删除失败";
+          const fileStatus = result.localFileDeleted ? "本地文件已删除" : "本地文件删除失败";
+          ElMessage.success(`删除成功：${redisStatus}，${dbStatus}，${fileStatus}`);
           load();
         } else {
           ElMessage.error(res.msg);
@@ -315,17 +320,19 @@ const download = (row) => {
 };
 
 const statusLabel = (status) => {
-  if (status === "PENDING") return "待处理";
+  if (status === "UPLOADING") return "上传中";
   if (status === "PROCESSING") return "处理中";
-  if (status === "SUCCESS") return "成功";
+  if (status === "PARSED") return "已解析";
+  if (status === "INDEXED") return "已入库";
   if (status === "FAILED") return "失败";
   return status || "-";
 };
 
 const statusType = (status) => {
-  if (status === "PENDING") return "info";
+  if (status === "UPLOADING") return "info";
   if (status === "PROCESSING") return "primary";
-  if (status === "SUCCESS") return "success";
+  if (status === "PARSED") return "warning";
+  if (status === "INDEXED") return "success";
   if (status === "FAILED") return "danger";
   return "info";
 };

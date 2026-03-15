@@ -1,20 +1,22 @@
 package com.example.service.rag;
 
-import com.example.entity.KnowledgeDocument;
+import com.example.entity.KbFile;
 import com.github.pagehelper.PageInfo;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 public interface KnowledgeBaseService {
 
-    KnowledgeDocument uploadAndIngest(MultipartFile file, String title, String businessType, String remark, Long createBy);
+    KbFile uploadAndIngest(MultipartFile file, String title, String businessType, String remark, Long createBy);
 
-    PageInfo<KnowledgeDocument> selectPage(KnowledgeDocument query, Integer pageNum, Integer pageSize);
+    PageInfo<KbFile> selectPage(KbFile query, Integer pageNum, Integer pageSize);
 
-    KnowledgeDocument selectById(Long id);
+    KbFile selectById(Long id);
 
     void reindexById(Long id);
 
     int reindexAll(String businessType, Boolean onlySuccess);
 
-    void deleteById(Long id);
+    Map<String, Object> deleteById(Long id);
 }

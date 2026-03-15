@@ -7,7 +7,6 @@ import dev.langchain4j.data.message.ChatMessageDeserializer;
 import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import com.example.utils.MemoryKeyBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
@@ -21,14 +20,16 @@ import java.util.List;
 @Repository
 public class RedisChatMemoryStore implements ChatMemoryStore {
 
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
-    @Autowired
-    private MemoryKeyBuilder memoryKeyBuilder;
+    private final StringRedisTemplate redisTemplate;
+    private final MemoryKeyBuilder memoryKeyBuilder;
 
     @Value("${app.chat.memory.ttl-days:7}")
     private long memoryTtlDays;
+
+    public RedisChatMemoryStore(StringRedisTemplate redisTemplate, MemoryKeyBuilder memoryKeyBuilder) {
+        this.redisTemplate = redisTemplate;
+        this.memoryKeyBuilder = memoryKeyBuilder;
+    }
 
     @Override
     public List<ChatMessage> getMessages(Object memoryId) {
