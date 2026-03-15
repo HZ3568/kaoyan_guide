@@ -56,6 +56,7 @@ langchain4j:
     redis:
       host: ${lhz.langchain4j.community.redis.host}
       port: ${lhz.langchain4j.community.redis.port}
+      dimension: 1024
 
 app:
   chat:
