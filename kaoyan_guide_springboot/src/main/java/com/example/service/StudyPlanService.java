@@ -111,12 +111,22 @@ public class StudyPlanService {
         TaskNormalizeResult normalizeResult = normalizeTaskList(jsonObject.get("tasks"));
         List<JSONObject> generatedTasks = new ArrayList<>();
         for (JSONObject task : normalizeResult.tasks) {
+            String subject = task.getStr("subject");
+            String content = task.getStr("content");
+            log.info("AI任务解析后 subject={} content={}", subject, content);
+            if (isBlank(content)) {
+                log.warn("AI返回的任务content为空，跳过该任务 subject={}", subject);
+                continue;
+            }
             generatedTasks.add(buildTask(
                     UUID.randomUUID().toString(),
-                    task.getStr("subject"),
-                    task.getStr("content"),
+                    subject,
+                    content,
                     false,
                     TASK_SOURCE_GENERATED));
+        }
+        if (generatedTasks.isEmpty()) {
+            throw new RuntimeException("AI未返回有效任务，请重试");
         }
 
         // 5. 落库（保留后延任务，补充生成任务，最终状态改为 GENERATED）
@@ -340,7 +350,7 @@ public class StudyPlanService {
             JSONObject deferredTask = buildTask(
                     UUID.randomUUID().toString(),
                     sourceTask.getStr("subject"),
-                    sourceTask.getStr("src/main/uploads/content"),
+                    sourceTask.getStr("content"),
                     false,
                     TASK_SOURCE_DEFERRED);
             String signature = taskSignature(deferredTask);
@@ -419,12 +429,13 @@ public class StudyPlanService {
             entity.setTaskId(task.getStr("taskId"));
             entity.setPlanId(planId);
             entity.setSubject(task.getStr("subject"));
-            entity.setContent(task.getStr("src/main/uploads/content"));
+            entity.setContent(task.getStr("content"));
             entity.setCompleted(Boolean.TRUE.equals(task.getBool("completed")));
             entity.setTaskSource(resolveTaskSource(task.getStr("taskSource")));
             entity.setSortNo(i);
             entity.setCreateTime(now);
             entity.setUpdateTime(now);
+            log.info("入库前实体 taskId={} subject={} content={}", entity.getTaskId(), entity.getSubject(), entity.getContent());
             studyPlanMapper.insertTask(entity);
         }
     }
@@ -470,7 +481,7 @@ public class StudyPlanService {
                 JSONObject source = new JSONObject();
                 source.set("taskId", taskEntity.getTaskId());
                 source.set("subject", taskEntity.getSubject());
-                source.set("src/main/uploads/content", taskEntity.getContent());
+                source.set("content", taskEntity.getContent());
                 source.set("completed", Boolean.TRUE.equals(taskEntity.getCompleted()));
                 source.set("taskSource", resolveTaskSource(taskEntity.getTaskSource()));
                 sourceArray.add(source);
@@ -515,7 +526,7 @@ public class StudyPlanService {
                 subject = subject.substring(0, 20);
                 changed = true;
             }
-            String content = normalizeText(sourceTask.getStr("src/main/uploads/content"));
+            String content = normalizeText(sourceTask.getStr("content"));
             if (content.length() > 200) {
                 content = content.substring(0, 200);
                 changed = true;
@@ -532,7 +543,7 @@ public class StudyPlanService {
             if (!subject.equals(normalizeText(sourceTask.getStr("subject")))) {
                 changed = true;
             }
-            if (!content.equals(normalizeText(sourceTask.getStr("src/main/uploads/content")))) {
+            if (!content.equals(normalizeText(sourceTask.getStr("content")))) {
                 changed = true;
             }
             if (!taskSource.equals(resolveTaskSource(sourceTask.getStr("taskSource")))) {
@@ -548,7 +559,7 @@ public class StudyPlanService {
         JSONObject task = new JSONObject();
         task.set("taskId", taskId);
         task.set("subject", normalizeText(subject));
-        task.set("src/main/uploads/content", normalizeText(content));
+        task.set("content", normalizeText(content));
         task.set("completed", completed);
         task.set("taskSource", resolveTaskSource(taskSource));
         return task;
@@ -563,7 +574,7 @@ public class StudyPlanService {
     }
 
     private String taskSignature(JSONObject task) {
-        return normalizeText(task.getStr("subject")) + "||" + normalizeText(task.getStr("src/main/uploads/content"));
+        return normalizeText(task.getStr("subject")) + "||" + normalizeText(task.getStr("content"));
     }
 
     private String normalizeText(String text) {

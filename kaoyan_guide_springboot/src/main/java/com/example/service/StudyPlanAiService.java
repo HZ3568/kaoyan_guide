@@ -46,7 +46,9 @@ public class StudyPlanAiService {
                 log.warn("AI 返回空响应");
                 throw new CustomException("500", "AI 未返回有效学习计划，请重试");
             }
-            return response.aiMessage().text();
+            String aiResponse = response.aiMessage().text();
+            log.info("AI原始响应内容: {}", aiResponse.length() > 500 ? aiResponse.substring(0, 500) + "..." : aiResponse);
+            return aiResponse;
 
         } catch (CustomException e) {
             // 直接抛出已经包装好的 CustomException
