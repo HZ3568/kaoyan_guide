@@ -34,6 +34,9 @@ langchain4j:
       base-url: ${lhz.langchain4j.open-ai.chat-model.base-url}
       api-key: ${lhz.langchain4j.open-ai.chat-model.api-key}
       model-name: ${lhz.langchain4j.open-ai.chat-model.model-name}
+      timeout: 120s
+      max-retries: 1
+      max-tokens: 2000
       log-requests: true
       log-responses: true
 

@@ -4,8 +4,11 @@ import com.example.common.Result;
 import com.example.entity.Account;
 import com.example.entity.DailyStudyPlan;
 import com.example.entity.User;
+import com.example.exception.CustomException;
 import com.example.service.StudyPlanService;
 import com.example.utils.TokenUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +20,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/study-plan")
 public class StudyPlanController {
+
+    private static final Logger log = LoggerFactory.getLogger(StudyPlanController.class);
 
     @Autowired
     private StudyPlanService studyPlanService;
@@ -42,25 +47,29 @@ public class StudyPlanController {
     }
 
     /**
-     * 生成“今日计划”。
+     * 生成”今日计划”。
      * 读取用户反馈并触发学习规划生成逻辑，最终返回最新计划。
      */
-    @PostMapping("/generate")
+    @PostMapping(“/generate”)
     public Result generatePlan(@RequestBody Map<String, String> body) {
         Account currentUser = TokenUtils.getCurrentUser();
         if (currentUser == null || !(currentUser instanceof User)) {
-            return Result.error("401", "请先登录学生账号");
+            return Result.error(“401”, “请先登录学生账号”);
         }
 
-        String feedback = body.get("feedback");
+        String feedback = body.get(“feedback”);
         try {
             DailyStudyPlan plan = studyPlanService.generatePlan(currentUser.getId(), feedback);
             return Result.success(studyPlanService.buildPlanResponse(plan));
+        } catch (CustomException e) {
+            // CustomException 已经包含友好的错误信息，直接返回
+            return Result.error(e.getCode(), e.getMsg());
         } catch (RuntimeException e) {
+            // 业务异常（如”今日计划已生成”）
             return Result.error(e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error("生成计划失败，请稍后重试");
+            log.error(“生成计划失败，userId={}”, currentUser.getId(), e);
+            return Result.error(“生成计划失败，请稍后重试”);
         }
     }
 

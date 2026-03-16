@@ -57,7 +57,6 @@ public class StudyPlanService {
     /**
      * 生成今日计划
      */
-    @Transactional
     public DailyStudyPlan generatePlan(Integer userId, String feedback) {
         LocalDate today = LocalDate.now();
         DailyStudyPlan plan = studyPlanMapper.selectByDate(userId, today);
@@ -76,7 +75,7 @@ public class StudyPlanService {
             historyBuilder.append("无历史记录，这是第一天学习。");
         } else {
             for (DailyStudyPlan historyPlan : historyPlans) {
-                DailyStudyPlan fullPlan = fillPlanTasks(historyPlan, true);
+                DailyStudyPlan fullPlan = fillPlanTasks(historyPlan, false);
                 historyBuilder.append("日期: ").append(historyPlan.getPlanDate()).append("\n");
                 historyBuilder.append("任务: ").append(fullPlan.getDailyTasks()).append("\n");
                 historyBuilder.append("反馈: ").append(historyPlan.getUserFeedback()).append("\n\n");
@@ -87,11 +86,10 @@ public class StudyPlanService {
         String cleanFeedback = feedback == null ? "无" : feedback.trim();
         String finalPrompt = studyPlanAiService.buildPrompt(historyBuilder.toString(), cleanFeedback);
         log.info(
-                "study_plan_ai_request userId={} date={} finalPromptPreview={} finalMessagesCount={} whetherUseMemory=false selectedTools=[] retrievalEnabled=false",
+                "study_plan_ai_request userId={} date={} promptLength={} finalMessagesCount=1",
                 userId,
                 today,
-                previewText(finalPrompt),
-                1);
+                finalPrompt.length());
         String jsonResult = studyPlanAiService.generatePlan(finalPrompt);
 
         // 4. 清洗和解析JSON
@@ -116,13 +114,24 @@ public class StudyPlanService {
             generatedTasks.add(buildTask(
                     UUID.randomUUID().toString(),
                     task.getStr("subject"),
-                    task.getStr("src/main/uploads/content"),
+                    task.getStr("content"),
                     false,
                     TASK_SOURCE_GENERATED));
         }
 
         // 5. 落库（保留后延任务，补充生成任务，最终状态改为 GENERATED）
+        return savePlanWithTasks(userId, today, cleanFeedback, advice, generatedTasks, plan);
+    }
+
+    /**
+     * 事务方法：仅包裹数据库写入操作
+     */
+    @Transactional
+    private DailyStudyPlan savePlanWithTasks(Integer userId, LocalDate today, String cleanFeedback,
+                                              String advice, List<JSONObject> generatedTasks,
+                                              DailyStudyPlan existingPlan) {
         LocalDateTime now = LocalDateTime.now();
+        DailyStudyPlan plan = existingPlan;
         if (plan == null) {
             plan = new DailyStudyPlan();
             plan.setUserId(userId);

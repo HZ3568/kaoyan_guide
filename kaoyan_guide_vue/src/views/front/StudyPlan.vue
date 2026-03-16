@@ -513,12 +513,32 @@ const generatePlan = () => {
       if (res.code === "200") {
         ElMessage.success("生成成功！加油！");
         currentPlan.value = res.data;
+        feedback.value = "";
       } else {
-        ElMessage.error(res.msg || "生成失败");
+        // 根据错误码显示不同提示
+        if (res.code === "504") {
+          ElMessage.error({
+            message: res.msg || "AI 生成学习计划超时，请稍后重试",
+            duration: 5000
+          });
+        } else if (res.code === "503") {
+          ElMessage.error({
+            message: res.msg || "网络连接失败，请检查网络后重试",
+            duration: 5000
+          });
+        } else if (res.code === "400") {
+          ElMessage.warning(res.msg || "输入内容过长，请精简后重试");
+        } else {
+          ElMessage.error(res.msg || "生成失败，请稍后重试");
+        }
       }
     })
     .catch((err) => {
-      ElMessage.error("生成失败，请稍后重试");
+      console.error("生成计划请求失败:", err);
+      ElMessage.error({
+        message: "网络请求失败，请检查网络连接",
+        duration: 5000
+      });
     })
     .finally(() => {
       generating.value = false;
