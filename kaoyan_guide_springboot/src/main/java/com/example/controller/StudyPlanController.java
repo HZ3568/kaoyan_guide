@@ -42,34 +42,34 @@ public class StudyPlanController {
             DailyStudyPlan plan = studyPlanService.getPlanByDate(currentUser.getId(), localDate);
             return Result.success(studyPlanService.buildPlanResponse(plan));
         } catch (DateTimeParseException e) {
-            return Result.error("日期格式错误，应为 yyyy-MM-dd");
+            return Result.error("日期格式错误,应为 yyyy-MM-dd");
         }
     }
 
     /**
-     * 生成”今日计划”。
-     * 读取用户反馈并触发学习规划生成逻辑，最终返回最新计划。
+     * 生成"今日计划"。
+     * 读取用户反馈并触发学习规划生成逻辑,最终返回最新计划。
      */
-    @PostMapping(“/generate”)
+    @PostMapping("/generate")
     public Result generatePlan(@RequestBody Map<String, String> body) {
         Account currentUser = TokenUtils.getCurrentUser();
         if (currentUser == null || !(currentUser instanceof User)) {
-            return Result.error(“401”, “请先登录学生账号”);
+            return Result.error("401", "请先登录学生账号");
         }
 
-        String feedback = body.get(“feedback”);
+        String feedback = body.get("feedback");
         try {
             DailyStudyPlan plan = studyPlanService.generatePlan(currentUser.getId(), feedback);
             return Result.success(studyPlanService.buildPlanResponse(plan));
         } catch (CustomException e) {
-            // CustomException 已经包含友好的错误信息，直接返回
+            // CustomException 已经包含友好的错误信息,直接返回
             return Result.error(e.getCode(), e.getMsg());
         } catch (RuntimeException e) {
-            // 业务异常（如”今日计划已生成”）
+            // 业务异常（如"今日计划已生成"）
             return Result.error(e.getMessage());
         } catch (Exception e) {
-            log.error(“生成计划失败，userId={}”, currentUser.getId(), e);
-            return Result.error(“生成计划失败，请稍后重试”);
+            log.error("生成计划失败,userId={}", currentUser.getId(), e);
+            return Result.error("生成计划失败,请稍后重试");
         }
     }
 
@@ -88,7 +88,7 @@ public class StudyPlanController {
             studyPlanService.deletePlan(currentUser.getId(), localDate);
             return Result.success();
         } catch (DateTimeParseException e) {
-            return Result.error("日期格式错误，应为 yyyy-MM-dd");
+            return Result.error("日期格式错误,应为 yyyy-MM-dd");
         }
     }
 
@@ -109,7 +109,7 @@ public class StudyPlanController {
                     body.get("subject"),
                     body.get("src/main/uploads/content")));
         } catch (DateTimeParseException e) {
-            return Result.error("日期格式错误，应为 yyyy-MM-dd");
+            return Result.error("日期格式错误,应为 yyyy-MM-dd");
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
         }
@@ -134,7 +134,7 @@ public class StudyPlanController {
                     body.get("subject"),
                     body.get("src/main/uploads/content")));
         } catch (DateTimeParseException e) {
-            return Result.error("日期格式错误，应为 yyyy-MM-dd");
+            return Result.error("日期格式错误,应为 yyyy-MM-dd");
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
         }
@@ -154,7 +154,7 @@ public class StudyPlanController {
             studyPlanService.deleteTask(currentUser.getId(), localDate, taskId);
             return Result.success();
         } catch (DateTimeParseException e) {
-            return Result.error("日期格式错误，应为 yyyy-MM-dd");
+            return Result.error("日期格式错误,应为 yyyy-MM-dd");
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
         }
@@ -173,7 +173,7 @@ public class StudyPlanController {
             LocalDate localDate = LocalDate.parse(date);
             return Result.success(studyPlanService.updateTaskCompleted(currentUser.getId(), localDate, taskId, true));
         } catch (DateTimeParseException e) {
-            return Result.error("日期格式错误，应为 yyyy-MM-dd");
+            return Result.error("日期格式错误,应为 yyyy-MM-dd");
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
         }
@@ -192,7 +192,7 @@ public class StudyPlanController {
             LocalDate localDate = LocalDate.parse(date);
             return Result.success(studyPlanService.updateTaskCompleted(currentUser.getId(), localDate, taskId, false));
         } catch (DateTimeParseException e) {
-            return Result.error("日期格式错误，应为 yyyy-MM-dd");
+            return Result.error("日期格式错误,应为 yyyy-MM-dd");
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
         }
@@ -214,7 +214,7 @@ public class StudyPlanController {
             List<String> onlyTaskIds = body == null ? null : body.get("onlyTaskIds");
             return Result.success(studyPlanService.rolloverTasks(currentUser.getId(), localDate, onlyTaskIds));
         } catch (DateTimeParseException e) {
-            return Result.error("日期格式错误，应为 yyyy-MM-dd");
+            return Result.error("日期格式错误,应为 yyyy-MM-dd");
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
         }
