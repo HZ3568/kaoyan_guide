@@ -52,6 +52,18 @@ public interface StudyPlanMapper {
         @Select("SELECT * FROM study_plan_task WHERE plan_id = #{planId} ORDER BY sort_no ASC, id ASC")
         List<StudyPlanTask> selectTasksByPlanId(@Param("planId") Long planId);
 
+        /**
+         * 批量查询多个计划的任务（避免 N+1）
+         */
+        @Select("<script>" +
+                "SELECT * FROM study_plan_task WHERE plan_id IN " +
+                "<foreach collection='planIds' item='planId' open='(' separator=',' close=')'>" +
+                "#{planId}" +
+                "</foreach>" +
+                " ORDER BY plan_id ASC, sort_no ASC, id ASC" +
+                "</script>")
+        List<StudyPlanTask> selectTasksByPlanIds(@Param("planIds") List<Long> planIds);
+
         @Update("<script>" +
                         "UPDATE study_plan_task " +
                         "SET sort_no = CASE task_id " +

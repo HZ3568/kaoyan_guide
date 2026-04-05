@@ -4,11 +4,10 @@ import router from "@/router/index.js";
 
 const request = axios.create({
     baseURL: import.meta.env.VITE_BASE_URL,
-    timeout: 30000  // 后台接口超时时间
+    timeout: 30000  // 普通接口超时时间（生成接口走异步，不受此限制）
 })
 
 // request 拦截器
-// 可以自请求发送前对请求做一些处理
 request.interceptors.request.use(config => {
     if (config.data instanceof FormData) {
         delete config.headers['Content-Type'];
@@ -23,7 +22,6 @@ request.interceptors.request.use(config => {
 });
 
 // response 拦截器
-// 可以在接口响应后统一处理结果
 request.interceptors.response.use(
     response => {
         let res = response.data;
@@ -46,12 +44,24 @@ request.interceptors.response.use(
         return res;
     },
     error => {
-        if (error.response.status === 404) {
-            ElMessage.error('未找到请求接口')
-        } else if (error.response.status === 500) {
-            ElMessage.error('系统异常，请查看后端控制台报错')
+        // 区分三类错误：超时 / 服务端异常 / 网络异常
+        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+            ElMessage.error({ message: '请求超时，请检查网络或稍后重试', duration: 5000 })
+        } else if (error.response) {
+            const status = error.response.status
+            if (status === 404) {
+                ElMessage.error('未找到请求接口')
+            } else if (status === 500) {
+                ElMessage.error('服务端异常，请稍后重试')
+            } else if (status === 401) {
+                ElMessage.error('登录已过期，请重新登录')
+                router.push('/login')
+            } else {
+                ElMessage.error(`请求失败（${status}），请稍后重试`)
+            }
         } else {
-            console.error(error.message)
+            // 无 response：网络中断、CORS、DNS 失败等
+            ElMessage.error('网络连接异常，请检查网络后重试')
         }
         return Promise.reject(error)
     }

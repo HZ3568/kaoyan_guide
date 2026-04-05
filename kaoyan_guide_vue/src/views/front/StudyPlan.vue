@@ -114,11 +114,16 @@
                 class="generate-btn"
                 @click="generatePlan"
                 :loading="generating"
+                :disabled="generating"
                 round
               >
-                生成今日专属规划
-                <el-icon class="el-icon--right"><MagicStick /></el-icon>
+                {{ generating ? '生成中...' : '生成今日专属规划' }}
+                <el-icon v-if="!generating" class="el-icon--right"><MagicStick /></el-icon>
               </el-button>
+              <div v-if="generating && generateStatusText" class="generate-status-text">
+                <el-icon class="is-loading" style="margin-right:6px"><Loading /></el-icon>
+                {{ generateStatusText }}
+              </div>
             </div>
           </div>
 
@@ -187,11 +192,16 @@
                   class="generate-btn"
                   @click="generatePlan"
                   :loading="generating"
+                  :disabled="generating"
                   round
                 >
-                  生成今日专属规划
-                  <el-icon class="el-icon--right"><MagicStick /></el-icon>
+                  {{ generating ? '生成中...' : '生成今日专属规划' }}
+                  <el-icon v-if="!generating" class="el-icon--right"><MagicStick /></el-icon>
                 </el-button>
+                <div v-if="generating && generateStatusText" class="generate-status-text">
+                  <el-icon class="is-loading" style="margin-right:6px"><Loading /></el-icon>
+                  {{ generateStatusText }}
+                </div>
               </div>
             </div>
 
@@ -378,6 +388,7 @@ import {
   CircleCheck,
   Check,
   RefreshLeft,
+  Loading,
 } from "@element-plus/icons-vue";
 import request from "@/utils/request";
 
@@ -388,6 +399,8 @@ const currentPlan = ref(null);
 const feedback = ref("");
 const loading = ref(false);
 const generating = ref(false);
+const generateStatusText = ref(""); // 生成阶段文案
+let pollTimer = null; // 轮询定时器句柄
 const taskActionLoading = ref(false);
 const daysLeft = ref(0);
 const addTaskDialogVisible = ref(false);
@@ -501,47 +514,99 @@ const refreshCurrentDatePlan = () => {
   return fetchPlan(formatDate(selectedDate.value));
 };
 
+// 停止轮询
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+};
+
+// 轮询任务状态
+const pollGenerateStatus = (taskId) => {
+  const phases = [
+    "正在分析最近学习记录...",
+    "正在生成今日学习计划...",
+    "正在保存任务清单...",
+  ];
+  let phaseIndex = 0;
+  generateStatusText.value = phases[0];
+
+  pollTimer = setInterval(() => {
+    // 每隔几次切换阶段文案，让用户感知进度
+    phaseIndex = Math.min(phaseIndex + 1, phases.length - 1);
+    generateStatusText.value = phases[phaseIndex];
+
+    request
+      .get("/study-plan/generate-status/" + taskId)
+      .then((res) => {
+        if (res.code !== "200") {
+          stopPolling();
+          generating.value = false;
+          generateStatusText.value = "";
+          ElMessage.error({ message: res.msg || "查询任务状态失败", duration: 5000 });
+          return;
+        }
+        const data = res.data;
+        if (data.status === "SUCCESS") {
+          stopPolling();
+          generating.value = false;
+          generateStatusText.value = "";
+          ElMessage.success("生成成功！加油！");
+          feedback.value = "";
+          // 后端 SUCCESS 响应中直接附带了计划数据
+          if (data.plan) {
+            currentPlan.value = data.plan;
+          } else {
+            refreshCurrentDatePlan();
+          }
+        } else if (data.status === "FAILED") {
+          stopPolling();
+          generating.value = false;
+          generateStatusText.value = "";
+          const errMsg = data.message || "生成失败，请稍后重试";
+          ElMessage.error({ message: errMsg, duration: 6000 });
+        }
+        // PENDING / RUNNING 继续等待下一次轮询
+      })
+      .catch((err) => {
+        // 轮询本身的网络错误不立即停止，最多容忍几次
+        console.warn("轮询状态请求异常:", err);
+      });
+  }, 2000);
+};
+
 const generatePlan = () => {
   if (!feedback.value.trim()) {
     ElMessage.warning("请填写昨天的反馈或今日心情哦~");
     return;
   }
   generating.value = true;
+  generateStatusText.value = "正在提交生成任务...";
+
   request
-    .post("/study-plan/generate", { feedback: feedback.value })
+    .post("/study-plan/generate-async", { feedback: feedback.value })
     .then((res) => {
-      if (res.code === "200") {
-        ElMessage.success("生成成功！加油！");
-        currentPlan.value = res.data;
-        feedback.value = "";
+      if (res.code === "200" && res.data && res.data.taskId) {
+        // 拿到 taskId，开始轮询
+        pollGenerateStatus(res.data.taskId);
       } else {
-        // 根据错误码显示不同提示
-        if (res.code === "504") {
-          ElMessage.error({
-            message: res.msg || "AI 生成学习计划超时，请稍后重试",
-            duration: 5000
-          });
-        } else if (res.code === "503") {
-          ElMessage.error({
-            message: res.msg || "网络连接失败，请检查网络后重试",
-            duration: 5000
-          });
-        } else if (res.code === "400") {
-          ElMessage.warning(res.msg || "输入内容过长，请精简后重试");
-        } else {
-          ElMessage.error(res.msg || "生成失败，请稍后重试");
-        }
+        generating.value = false;
+        generateStatusText.value = "";
+        ElMessage.error({ message: res.msg || "提交生成任务失败，请稍后重试", duration: 5000 });
       }
     })
     .catch((err) => {
-      console.error("生成计划请求失败:", err);
-      ElMessage.error({
-        message: "网络请求失败，请检查网络连接",
-        duration: 5000
-      });
-    })
-    .finally(() => {
       generating.value = false;
+      generateStatusText.value = "";
+      console.error("提交生成任务失败:", err);
+      if (err.code === "ECONNABORTED" || (err.message && err.message.includes("timeout"))) {
+        ElMessage.error({ message: "请求超时，请检查网络后重试", duration: 5000 });
+      } else if (err.response) {
+        ElMessage.error({ message: "服务端异常（" + err.response.status + "），请稍后重试", duration: 5000 });
+      } else {
+        ElMessage.error({ message: "网络异常，请检查网络连接", duration: 5000 });
+      }
     });
 };
 
@@ -843,6 +908,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (timer) clearInterval(timer);
+  stopPolling();
 });
 </script>
 
@@ -1255,5 +1321,18 @@ onUnmounted(() => {
 }
 .no-plan-empty {
   padding-top: 60px;
+}
+.generate-status-text {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #5b50e7;
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 </style>

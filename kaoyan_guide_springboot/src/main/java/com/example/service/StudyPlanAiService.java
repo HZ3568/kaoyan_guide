@@ -18,20 +18,17 @@ public class StudyPlanAiService {
     private static final Logger log = LoggerFactory.getLogger(StudyPlanAiService.class);
     private final ChatModel openAiChatModel;
 
-    /**
-     * 注入学习规划使用的对话模型。
-     */
     public StudyPlanAiService(@Qualifier("openAiChatModel") ChatModel openAiChatModel) {
         this.openAiChatModel = openAiChatModel;
     }
 
     /**
      * 调用大模型生成学习计划原始文本（期望为 JSON）。
-     * 当模型返回为空时，兜底为 "{}" 避免上游空指针。
+     * 只打印关键耗时和长度，不打印完整 prompt / 响应正文，避免日志 I/O 拖慢请求。
      */
     public String generatePlan(String finalPrompt) {
         long startTime = System.currentTimeMillis();
-        log.info("开始调用 AI 生成学习计划，prompt 长度: {}", finalPrompt.length());
+        log.info("[AI] 开始调用，promptLen={}", finalPrompt.length());
 
         try {
             ChatRequest request = ChatRequest.builder()
@@ -40,28 +37,25 @@ public class StudyPlanAiService {
             ChatResponse response = openAiChatModel.chat(request);
 
             long duration = System.currentTimeMillis() - startTime;
-            log.info("AI 调用成功，耗时: {} ms", duration);
 
             if (response == null || response.aiMessage() == null || response.aiMessage().text() == null) {
-                log.warn("AI 返回空响应");
+                log.warn("[AI] 返回空响应，耗时={}ms", duration);
                 throw new CustomException("500", "AI 未返回有效学习计划，请重试");
             }
+
             String aiResponse = response.aiMessage().text();
-            log.info("AI原始响应内容: {}", aiResponse.length() > 500 ? aiResponse.substring(0, 500) + "..." : aiResponse);
+            log.info("[AI] 调用成功，耗时={}ms responseLen={}", duration, aiResponse.length());
             return aiResponse;
 
         } catch (CustomException e) {
-            // 直接抛出已经包装好的 CustomException
             throw e;
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
-            log.error("AI 调用失败，耗时: {} ms，异常类型: {}", duration, e.getClass().getName(), e);
+            log.error("[AI] 调用失败，耗时={}ms exceptionType={}", duration, e.getClass().getName(), e);
 
-            // 递归提取根因
             Throwable rootCause = getRootCause(e);
             String rootCauseType = rootCause.getClass().getSimpleName();
 
-            // 根据异常类型返回友好提示
             if (rootCauseType.contains("Timeout") || rootCauseType.contains("SocketTimeout")) {
                 throw new CustomException("504", "AI 生成学习计划超时，请稍后重试");
             } else if (rootCauseType.contains("Connect") || rootCauseType.contains("Network")) {
@@ -74,9 +68,6 @@ public class StudyPlanAiService {
         }
     }
 
-    /**
-     * 递归提取异常根因
-     */
     private Throwable getRootCause(Throwable throwable) {
         Throwable cause = throwable;
         while (cause.getCause() != null && cause.getCause() != cause) {
@@ -87,46 +78,25 @@ public class StudyPlanAiService {
 
     /**
      * 组装学习规划提示词。
-     * 核心约束：仅输出 JSON，且内容聚焦学习任务，不引入院校咨询信息。
+     * history 参数已是精简摘要（非完整 JSON），prompt 比原来更短。
      */
     public String buildPrompt(String history, String feedback) {
-        return "你是一位专业的考研学习规划师。请根据考生前3天的学习记录和昨天的真实学习反馈，为他制定今天的学习规划。\n"
+        return "你是一位专业的考研学习规划师。请根据考生近期学习摘要和昨日反馈，为他制定今天的学习规划。\n"
                 + "\n"
-                + "【前3天历史记录】：\n"
+                + "【近期学习摘要】：\n"
                 + safeText(history)
                 + "\n"
-                + "\n"
-                + "【考生昨日反馈及当前状态】：\n"
+                + "【考生昨日反馈】：\n"
                 + "\"" + safeText(feedback) + "\"\n"
                 + "\n"
-                + "请仅根据上述学习记录和反馈生成计划，不要引入任何院校咨询、院校分数、咨询服务等无关信息。\n"
-                + "请严格按照以下 JSON 格式输出你的规划结果，不要包含任何多余的解释性文字或 Markdown 标记：\n"
-                + "{\n"
-                + "  \"advice\": \"针对该考生当前状态的一段简短建议（50-80字）。如果昨天没完成，给出调整建议；如果完成得好，鼓励并推进进度。\",\n"
-                + "  \"tasks\": [\n"
-                + "    {\n"
-                + "      \"taskId\": \"\",\n"
-                + "      \"subject\": \"科目名称（如：数学、英语、政治、408专业课）\",\n"
-                + "      \"content\": \"具体学习任务（简洁明确，20字以内）\",\n"
-                + "      \"completed\": false\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}\n"
+                + "请严格按以下 JSON 格式输出，不要包含任何多余文字或 Markdown：\n"
+                + "{\"advice\":\"针对当前状态的简短建议（50-80字）\","
+                + "\"tasks\":[{\"taskId\":\"\",\"subject\":\"科目\",\"content\":\"具体任务(20字内)\",\"completed\":false}]}\n"
                 + "\n"
-                + "要求：\n"
-                + "1. advice 字段控制在 50-80 字，简洁实用\n"
-                + "2. tasks 数组包含 3-5 个任务即可，不要过多\n"
-                + "3. 每个任务的 content 字段控制在 20 字以内，清晰明确\n"
-                + "4. 任务要具体可执行，避免空泛描述";
+                + "要求：advice 50-80字；tasks 3-5项；每项 content 20字以内；任务具体可执行。";
     }
 
-    /**
-     * 文本安全处理：null 转空串并去除首尾空白。
-     */
     private String safeText(String text) {
-        if (text == null) {
-            return "";
-        }
-        return text.trim();
+        return text == null ? "" : text.trim();
     }
 }

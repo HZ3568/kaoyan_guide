@@ -14,13 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class StudyPlanService {
@@ -55,7 +50,8 @@ public class StudyPlanService {
     }
 
     /**
-     * 生成今日计划
+     * 生成今日计划（同步，已不推荐直接调用，建议通过异步接口）。
+     * 保留供兼容和测试使用。
      */
     public DailyStudyPlan generatePlan(Integer userId, String feedback) {
         LocalDate today = LocalDate.now();
@@ -64,46 +60,137 @@ public class StudyPlanService {
             throw new RuntimeException("今日计划已生成，请直接查看");
         }
 
-        // 1. 获取前3天历史记录
+        // 构造 prompt 并调用 AI（包含耗时日志）
+        String prompt = buildGeneratePrompt(userId, today, feedback);
+        log.info("[StudyPlan] AI 调用开始 userId={} date={} promptLen={}", userId, today, prompt.length());
+        long aiStart = System.currentTimeMillis();
+        String jsonResult = studyPlanAiService.generatePlan(prompt);
+        log.info("[StudyPlan] AI 调用完成 userId={} cost={}ms", userId, System.currentTimeMillis() - aiStart);
+
+        // 解析并落库
+        return parseAndSavePlan(userId, today, feedback, jsonResult, plan);
+    }
+
+    /**
+     * 核心生成逻辑（供异步消费者调用）：构造 prompt → 调 AI → 解析 → 落库。
+     * 所有关键步骤都打印耗时日志。
+     */
+    public DailyStudyPlan generatePlanInternal(Integer userId, String feedback) {
+        LocalDate today = LocalDate.now();
+        long t0 = System.currentTimeMillis();
+
+        DailyStudyPlan existingPlan = studyPlanMapper.selectByDate(userId, today);
+        if (existingPlan != null && PLAN_STATUS_GENERATED.equalsIgnoreCase(existingPlan.getPlanStatus())) {
+            throw new RuntimeException("今日计划已生成，请直接查看");
+        }
+
+        // 1. 构造 prompt（含历史摘要查询）
+        long promptStart = System.currentTimeMillis();
+        String prompt = buildGeneratePrompt(userId, today, feedback);
+        log.info("[StudyPlan] prompt 构造完成 userId={} promptLen={} cost={}ms",
+                userId, prompt.length(), System.currentTimeMillis() - promptStart);
+
+        // 2. 调用大模型
+        long aiStart = System.currentTimeMillis();
+        log.info("[StudyPlan] AI 调用开始 userId={} date={}", userId, today);
+        String jsonResult = studyPlanAiService.generatePlan(prompt);
+        log.info("[StudyPlan] AI 调用完成 userId={} aiCost={}ms responseLen={}",
+                userId, System.currentTimeMillis() - aiStart,
+                jsonResult == null ? 0 : jsonResult.length());
+
+        // 3. 解析 & 落库
+        long saveStart = System.currentTimeMillis();
+        DailyStudyPlan saved = parseAndSavePlan(userId, today, feedback, jsonResult, existingPlan);
+        log.info("[StudyPlan] 解析落库完成 userId={} saveCost={}ms totalCost={}ms",
+                userId, System.currentTimeMillis() - saveStart, System.currentTimeMillis() - t0);
+
+        return saved;
+    }
+
+    /**
+     * 构造生成 prompt：批量查询历史计划和任务，组装为精简摘要。
+     * 避免 N+1：一次查出所有历史计划，再一次性批量查出对应任务，在内存分组。
+     */
+    private String buildGeneratePrompt(Integer userId, LocalDate today, String feedback) {
+        long queryStart = System.currentTimeMillis();
+
         LocalDate startDate = today.minusDays(3);
         LocalDate endDate = today.minusDays(1);
         List<DailyStudyPlan> historyPlans = studyPlanMapper.selectHistory(userId, startDate, endDate);
 
-        // 2. 组装历史上下文
-        StringBuilder historyBuilder = new StringBuilder();
+        String historySummary;
         if (historyPlans.isEmpty()) {
-            historyBuilder.append("无历史记录，这是第一天学习。");
+            historySummary = "无历史记录，这是第一天学习。";
         } else {
-            for (DailyStudyPlan historyPlan : historyPlans) {
-                DailyStudyPlan fullPlan = fillPlanTasks(historyPlan, false);
-                historyBuilder.append("日期: ").append(historyPlan.getPlanDate()).append("\n");
-                historyBuilder.append("任务: ").append(fullPlan.getDailyTasks()).append("\n");
-                historyBuilder.append("反馈: ").append(historyPlan.getUserFeedback()).append("\n\n");
-            }
+            // 批量查出这些计划对应的所有任务，在内存中按 planId 分组
+            List<Long> planIds = historyPlans.stream()
+                    .map(DailyStudyPlan::getId)
+                    .collect(Collectors.toList());
+            List<StudyPlanTask> allTasks = studyPlanMapper.selectTasksByPlanIds(planIds);
+            Map<Long, List<StudyPlanTask>> tasksByPlanId = allTasks.stream()
+                    .collect(Collectors.groupingBy(StudyPlanTask::getPlanId));
+
+            log.info("[StudyPlan] 历史查询完成 userId={} planCount={} taskCount={} cost={}ms",
+                    userId, historyPlans.size(), allTasks.size(), System.currentTimeMillis() - queryStart);
+
+            historySummary = buildHistorySummary(historyPlans, tasksByPlanId);
         }
 
-        // 3. 调用AI生成规划
         String cleanFeedback = feedback == null ? "无" : feedback.trim();
-        String finalPrompt = studyPlanAiService.buildPrompt(historyBuilder.toString(), cleanFeedback);
-        log.info(
-                "study_plan_ai_request userId={} date={} promptLength={} finalMessagesCount=1",
-                userId,
-                today,
-                finalPrompt.length());
-        String jsonResult = studyPlanAiService.generatePlan(finalPrompt);
+        return studyPlanAiService.buildPrompt(historySummary, cleanFeedback);
+    }
 
-        // 4. 清洗和解析JSON
+    /**
+     * 将历史计划列表组装为精简摘要文本，避免将完整 JSON 拼入 prompt。
+     * 只提炼：日期、各科完成/未完成情况、是否有连续未完成、用户反馈摘要。
+     */
+    private String buildHistorySummary(List<DailyStudyPlan> plans,
+                                        Map<Long, List<StudyPlanTask>> tasksByPlanId) {
+        StringBuilder sb = new StringBuilder();
+        for (DailyStudyPlan plan : plans) {
+            List<StudyPlanTask> tasks = tasksByPlanId.getOrDefault(plan.getId(), Collections.emptyList());
+            long total = tasks.size();
+            long done = tasks.stream().filter(t -> Boolean.TRUE.equals(t.getCompleted())).count();
+            long undone = total - done;
+
+            // 统计各科未完成情况
+            Map<String, Long> undoneBySubject = tasks.stream()
+                    .filter(t -> !Boolean.TRUE.equals(t.getCompleted()))
+                    .collect(Collectors.groupingBy(
+                            t -> t.getSubject() == null ? "未知" : t.getSubject(),
+                            Collectors.counting()));
+
+            sb.append("日期: ").append(plan.getPlanDate()).append("\n");
+            sb.append("完成情况: 共").append(total).append("项，完成").append(done).append("项，未完成").append(undone).append("项\n");
+            if (!undoneBySubject.isEmpty()) {
+                sb.append("未完成科目: ");
+                undoneBySubject.forEach((subject, count) ->
+                        sb.append(subject).append("(").append(count).append("项) "));
+                sb.append("\n");
+            }
+            String feedbackText = plan.getUserFeedback();
+            if (feedbackText != null && !feedbackText.trim().isEmpty()) {
+                String trimmed = feedbackText.trim();
+                // 截断过长反馈，避免撑大 prompt
+                sb.append("学生反馈: ").append(trimmed.length() > 80 ? trimmed.substring(0, 80) + "…" : trimmed).append("\n");
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 解析 AI 响应 JSON 并落库
+     */
+    private DailyStudyPlan parseAndSavePlan(Integer userId, LocalDate today, String feedback,
+                                             String jsonResult, DailyStudyPlan existingPlan) {
         String cleanJson = cleanJson(jsonResult);
         JSONObject jsonObject;
         try {
             jsonObject = JSONUtil.parseObj(cleanJson);
         } catch (Exception e) {
-            log.warn("study_plan_ai_parse_failed userId={} date={} rawPreview={} cleanPreview={}",
-                    userId,
-                    today,
-                    previewText(jsonResult),
-                    previewText(cleanJson),
-                    e);
+            log.warn("[StudyPlan] AI 响应解析失败 userId={} rawLen={} cleanLen={}",
+                    userId, jsonResult == null ? 0 : jsonResult.length(), cleanJson.length(), e);
             throw new RuntimeException("AI响应格式异常，请稍后重试");
         }
 
@@ -113,9 +200,8 @@ public class StudyPlanService {
         for (JSONObject task : normalizeResult.tasks) {
             String subject = task.getStr("subject");
             String content = task.getStr("content");
-            log.info("AI任务解析后 subject={} content={}", subject, content);
             if (isBlank(content)) {
-                log.warn("AI返回的任务content为空，跳过该任务 subject={}", subject);
+                log.warn("[StudyPlan] AI 任务 content 为空，跳过 subject={}", subject);
                 continue;
             }
             generatedTasks.add(buildTask(
@@ -129,15 +215,15 @@ public class StudyPlanService {
             throw new RuntimeException("AI未返回有效任务，请重试");
         }
 
-        // 5. 落库（保留后延任务，补充生成任务，最终状态改为 GENERATED）
-        return savePlanWithTasks(userId, today, cleanFeedback, advice, generatedTasks, plan);
+        String cleanFeedback = feedback == null ? "无" : feedback.trim();
+        return savePlanWithTasks(userId, today, cleanFeedback, advice, generatedTasks, existingPlan);
     }
 
     /**
      * 事务方法：仅包裹数据库写入操作
      */
     @Transactional
-    private DailyStudyPlan savePlanWithTasks(Integer userId, LocalDate today, String cleanFeedback,
+    public DailyStudyPlan savePlanWithTasks(Integer userId, LocalDate today, String cleanFeedback,
                                               String advice, List<JSONObject> generatedTasks,
                                               DailyStudyPlan existingPlan) {
         LocalDateTime now = LocalDateTime.now();
@@ -435,14 +521,10 @@ public class StudyPlanService {
             entity.setSortNo(i);
             entity.setCreateTime(now);
             entity.setUpdateTime(now);
-            log.info("入库前实体 taskId={} subject={} content={}", entity.getTaskId(), entity.getSubject(), entity.getContent());
             studyPlanMapper.insertTask(entity);
         }
     }
 
-    /**
-     * 清洗AI返回的Markdown代码块标记
-     */
     private String cleanJson(String result) {
         if (result == null) {
             return "{}";
@@ -586,17 +668,6 @@ public class StudyPlanService {
 
     private boolean isBlank(String text) {
         return text == null || text.trim().isEmpty();
-    }
-
-    private String previewText(String text) {
-        if (text == null) {
-            return "";
-        }
-        String normalized = text.replace("\r", " ").replace("\n", " ").trim();
-        if (normalized.length() <= 300) {
-            return normalized;
-        }
-        return normalized.substring(0, 300) + "...";
     }
 
     private static class TaskNormalizeResult {

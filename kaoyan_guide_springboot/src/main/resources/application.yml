@@ -20,6 +20,17 @@ spring:
       host: ${lhz.spring.data.redis.host}
       port: ${lhz.spring.data.redis.port}
 
+  rabbitmq:
+    host: ${lhz.spring.rabbitmq.host:localhost}
+    port: ${lhz.spring.rabbitmq.port:5672}
+    username: ${lhz.spring.rabbitmq.username:guest}
+    password: ${lhz.spring.rabbitmq.password:guest}
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: 1
+
 mybatis:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
@@ -37,8 +48,8 @@ langchain4j:
       timeout: 120s
       max-retries: 1
       max-tokens: 2000
-      log-requests: true
-      log-responses: true
+      log-requests: false
+      log-responses: false
 
     streaming-chat-model:
       base-url: ${lhz.langchain4j.open-ai.streaming-chat-model.base-url}
