@@ -522,17 +522,30 @@ const stopPolling = () => {
   }
 };
 
-// 轮询任务状态
+// 轮询任务状态（最多轮询 90s，避免无限等待）
 const pollGenerateStatus = (taskId) => {
   const phases = [
+    "已提交，等待处理...",
     "正在分析最近学习记录...",
     "正在生成今日学习计划...",
     "正在保存任务清单...",
   ];
   let phaseIndex = 0;
+  let pollCount = 0;
+  const MAX_POLL = 45; // 2s * 45 = 90s 超时保护
   generateStatusText.value = phases[0];
 
   pollTimer = setInterval(() => {
+    // 超时保护：轮询次数超限则中止
+    pollCount++;
+    if (pollCount > MAX_POLL) {
+      stopPolling();
+      generating.value = false;
+      generateStatusText.value = "";
+      ElMessage.error({ message: "生成超时，请稍后重试或刷新页面查看结果", duration: 6000 });
+      return;
+    }
+
     // 每隔几次切换阶段文案，让用户感知进度
     phaseIndex = Math.min(phaseIndex + 1, phases.length - 1);
     generateStatusText.value = phases[phaseIndex];

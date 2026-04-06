@@ -33,7 +33,9 @@ spring:
 
 mybatis:
   configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 生产/测试环境关闭 SQL 日志，避免大量 I/O 拖慢请求
+    # 排查时可改为 org.apache.ibatis.logging.stdout.StdOutImpl（仅本地开发）
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
     map-underscore-to-camel-case: true
   mapper-locations: classpath:mapper/*.xml
 
@@ -51,19 +53,33 @@ langchain4j:
       log-requests: false
       log-responses: false
 
+    # 学习规划专用模型配置（优化超时和重试策略）
+    study-plan-chat-model:
+      # 默认继承通用配置，可在 application-local.yml 中覆盖
+      base-url: ${lhz.langchain4j.open-ai.chat-model.base-url}
+      api-key: ${lhz.langchain4j.open-ai.chat-model.api-key}
+      model-name: ${lhz.langchain4j.open-ai.chat-model.model-name}
+      # 学习规划是用户交互型请求，60s 超时快速失败
+      timeout: 60s
+      # 不自动重试，避免一次慢请求拖得更久
+      max-retries: 0
+      max-tokens: 2000
+
     streaming-chat-model:
       base-url: ${lhz.langchain4j.open-ai.streaming-chat-model.base-url}
       api-key: ${lhz.langchain4j.open-ai.streaming-chat-model.api-key}
       model-name: ${lhz.langchain4j.open-ai.streaming-chat-model.model-name}
-      log-requests: true
-      log-responses: true
+      # 关闭 streaming 请求/响应日志，减少 I/O 开销
+      log-requests: false
+      log-responses: false
 
     embedding-model:
       base-url: ${lhz.langchain4j.open-ai.embedding-model.base-url}
       api-key: ${lhz.langchain4j.open-ai.embedding-model.api-key}
       model-name: ${lhz.langchain4j.open-ai.embedding-model.model-name}
-      log-requests: true
-      log-responses: true
+      # 关闭 embedding 请求/响应日志，减少 I/O 开销（向量维度大、内容冗余）
+      log-requests: false
+      log-responses: false
       max-segments-per-batch: 10
 
   community:

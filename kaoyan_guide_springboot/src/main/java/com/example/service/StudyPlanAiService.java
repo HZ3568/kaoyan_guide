@@ -12,14 +12,22 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * 学习规划 AI 服务。
+ *
+ * 优化要点：
+ * 1. 使用专用 studyPlanChatModel（已配置 response_format=json_object）
+ * 2. 不打印完整 prompt/response，只记录长度和耗时
+ * 3. 保留 JSON 清洗兜底逻辑，应对模型偶发脏格式
+ */
 @Service
 public class StudyPlanAiService {
 
     private static final Logger log = LoggerFactory.getLogger(StudyPlanAiService.class);
-    private final ChatModel openAiChatModel;
+    private final ChatModel studyPlanChatModel;
 
-    public StudyPlanAiService(@Qualifier("openAiChatModel") ChatModel openAiChatModel) {
-        this.openAiChatModel = openAiChatModel;
+    public StudyPlanAiService(@Qualifier("studyPlanChatModel") ChatModel studyPlanChatModel) {
+        this.studyPlanChatModel = studyPlanChatModel;
     }
 
     /**
@@ -34,7 +42,7 @@ public class StudyPlanAiService {
             ChatRequest request = ChatRequest.builder()
                     .messages(List.of(UserMessage.from(finalPrompt)))
                     .build();
-            ChatResponse response = openAiChatModel.chat(request);
+            ChatResponse response = studyPlanChatModel.chat(request);
 
             long duration = System.currentTimeMillis() - startTime;
 
@@ -78,22 +86,58 @@ public class StudyPlanAiService {
 
     /**
      * 组装学习规划提示词。
-     * history 参数已是精简摘要（非完整 JSON），prompt 比原来更短。
+     *
+     * 优化要点：
+     * 1. 固定前缀部分（系统角色、输出格式要求）可为后续接入 Context Cache 预留扩展点
+     * 2. 动态内容部分（历史摘要、用户反馈）保持精简，减少 token 消耗
+     *
+     * Context Cache 扩展建议（阿里云百炼支持）：
+     * - 固定前缀（SYSTEM_PROMPT_PREFIX）可标记为 cache，5分钟内复用
+     * - 动态内容每次请求不同，不适合缓存
+     * - 接入方式：在 ChatRequest 中添加 cache 相关参数（需 LangChain4j 支持）
      */
     public String buildPrompt(String history, String feedback) {
+        // 固定前缀：系统角色 + 输出格式要求（后续可标记为 cache）
+        String systemPromptPrefix = buildSystemPromptPrefix();
+
+        // 动态内容：用户历史和反馈
+        String dynamicContent = buildDynamicContent(history, feedback);
+
+        return systemPromptPrefix + "\n" + dynamicContent;
+    }
+
+    /**
+     * 固定前缀部分：系统角色定义 + JSON 格式要求。
+     *
+     * 【Context Cache 扩展点】
+     * 这部分内容在所有学习规划请求中都相同，适合标记为可缓存内容。
+     * 阿里云百炼 Context Cache 可将此部分缓存 5 分钟，减少重复计算。
+     *
+     * 接入方式（待 LangChain4j 支持）：
+     * - 将此部分作为 SystemMessage 或标记为 cached content
+     * - 在 ChatRequest 中设置 cache 参数
+     */
+    private String buildSystemPromptPrefix() {
         return "你是一位专业的考研学习规划师。请根据考生近期学习摘要和昨日反馈，为他制定今天的学习规划。\n"
                 + "\n"
-                + "【近期学习摘要】：\n"
+                + "请严格按以下 JSON 格式输出，不要包含任何多余文字或 Markdown：\n"
+                + "{\"advice\":\"针对当前状态的具体建议（100-150字）\","
+                + "\"tasks\":[{\"taskId\":\"\",\"subject\":\"科目\",\"content\":\"具体任务(25-40字之间)\",\"completed\":false}]}\n"
+                + "\n"
+                + "要求：advice 100-150字；tasks 3-5项；每项 content 25-40字之间；任务具体可执行。";
+    }
+
+    /**
+     * 动态内容部分：用户历史摘要 + 昨日反馈。
+     *
+     * 这部分每次请求都不同，不适合缓存。
+     */
+    private String buildDynamicContent(String history, String feedback) {
+        return "\n【近期学习摘要】：\n"
                 + safeText(history)
                 + "\n"
                 + "【考生昨日反馈】：\n"
-                + "\"" + safeText(feedback) + "\"\n"
-                + "\n"
-                + "请严格按以下 JSON 格式输出，不要包含任何多余文字或 Markdown：\n"
-                + "{\"advice\":\"针对当前状态的简短建议（50-80字）\","
-                + "\"tasks\":[{\"taskId\":\"\",\"subject\":\"科目\",\"content\":\"具体任务(20字内)\",\"completed\":false}]}\n"
-                + "\n"
-                + "要求：advice 50-80字；tasks 3-5项；每项 content 20字以内；任务具体可执行。";
+                + "\"" + safeText(feedback) + "\"";
     }
 
     private String safeText(String text) {
