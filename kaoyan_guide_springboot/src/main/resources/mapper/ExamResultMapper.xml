@@ -7,16 +7,44 @@
 
     <!-- 保存成绩 -->
     <insert id="insertExamResult" parameterType="com.example.entity.ExamResult">
-        INSERT INTO exam_result(user_id, subject, score, duration_seconds, create_time)
-        VALUES (#{userId}, #{subject}, #{score}, #{durationSeconds}, #{createTime})
+        INSERT INTO exam_result(user_id, subject, question_source, score, duration_seconds, simulation_mode, create_time)
+        VALUES (#{userId}, #{subject}, #{questionSource}, #{score}, #{durationSeconds}, #{simulationMode}, #{createTime})
     </insert>
 
-    <!-- 查询用户成绩列表 -->
+    <!-- 查询用户成绩列表（全部，按时间倒序） -->
     <select id="findByUserId" resultType="com.example.entity.ExamResult">
-        SELECT id, user_id AS userId, subject, score, duration_seconds AS durationSeconds, create_time AS createTime
+        SELECT id, user_id AS userId, subject,
+               IFNULL(question_source, '') AS questionSource,
+               score, duration_seconds AS durationSeconds,
+               IFNULL(simulation_mode, '演示模式') AS simulationMode,
+               create_time AS createTime
         FROM exam_result
         WHERE user_id = #{userId}
         ORDER BY create_time DESC
     </select>
+
+    <!-- 分页查询（PageHelper 拦截） -->
+    <select id="findByUserIdPaged" resultType="com.example.entity.ExamResult">
+        SELECT id, user_id AS userId, subject,
+               IFNULL(question_source, '') AS questionSource,
+               score, duration_seconds AS durationSeconds,
+               IFNULL(simulation_mode, '演示模式') AS simulationMode,
+               create_time AS createTime
+        FROM exam_result
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 更新单条记录（校验 userId 防止越权） -->
+    <update id="updateById" parameterType="com.example.entity.ExamResult">
+        UPDATE exam_result
+        SET subject         = #{subject},
+            question_source = #{questionSource},
+            score           = #{score},
+            duration_seconds = #{durationSeconds},
+            simulation_mode = #{simulationMode},
+            create_time     = #{createTime}
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
 
 </mapper>

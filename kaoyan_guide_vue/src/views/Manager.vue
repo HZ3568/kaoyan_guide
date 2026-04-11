@@ -20,10 +20,10 @@
         <el-dropdown style="cursor: pointer">
           <div class="manager-user">
             <img
-                style="width: 40px; height: 40px; border-radius: 50%"
-                :src="data.user.avatar"
-                @error="handleAvatarError"
-                alt=""
+              style="width: 40px; height: 40px; border-radius: 50%"
+              :src="data.user.avatar"
+              @error="handleAvatarError"
+              alt=""
             />
             <span class="manager-user__name">{{
               data.user.name
@@ -31,9 +31,7 @@
           </div>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item
-                @click="router.push('/manager/person')"
-              >个人资料</el-dropdown-item>
+              <el-dropdown-item @click="router.push('/manager/person')">个人资料</el-dropdown-item>
               <el-dropdown-item @click="router.push('/manager/password')">修改密码</el-dropdown-item>
               <el-dropdown-item @click="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
@@ -74,43 +72,18 @@
               </el-icon>
               <span>信息管理</span>
             </template>
-            <el-menu-item
-              index="/manager/areas"
-              v-if="data.user.role === 'ADMIN'"
-            >地区信息</el-menu-item>
-            <el-menu-item
-              index="/manager/categorys"
-              v-if="data.user.role === 'ADMIN'"
-            >门类信息</el-menu-item>
-            <el-menu-item
-              index="/manager/specialtys"
-              v-if="data.user.role === 'ADMIN'"
-            >专业信息</el-menu-item>
-            <el-menu-item
-              index="/manager/interpretations"
-              v-if="data.user.role === 'ADMIN'"
-            >专业解读</el-menu-item>
+            <el-menu-item index="/manager/university">学校信息</el-menu-item>
+            <el-menu-item index="/manager/areas">地区信息</el-menu-item>
+            <el-menu-item index="/manager/categorys">门类信息</el-menu-item>
+            <el-menu-item index="/manager/specialtys">专业信息</el-menu-item>
+            <el-menu-item index="/manager/interpretations">专业解读</el-menu-item>
             <el-menu-item index="/manager/universitySpecialtys">学校专业</el-menu-item>
             <el-menu-item index="/manager/policys">招生政策</el-menu-item>
             <el-menu-item index="/manager/comment">学校评价</el-menu-item>
-            <el-menu-item
-              index="/manager/slideshow"
-              v-if="data.user.role === 'ADMIN'"
-            >轮播图信息</el-menu-item>
-            <el-menu-item
-              index="/manager/notice"
-              v-if="data.user.role === 'ADMIN'"
-            >系统公告</el-menu-item>
-            <el-menu-item
-              index="/manager/question"
-              v-if="data.user.role === 'ADMIN'"
-            >题库管理</el-menu-item>
-            <el-menu-item
-              index="/manager/knowledgeBase"
-              v-if="data.user.role === 'ADMIN'"
-            >知识库管理</el-menu-item>
-
-            <!-- 新菜单 -->
+            <el-menu-item index="/manager/slideshow">轮播图信息</el-menu-item>
+            <el-menu-item index="/manager/notice">系统公告</el-menu-item>
+            <el-menu-item index="/manager/question">题库管理</el-menu-item>
+            <el-menu-item index="/manager/knowledgeBase">知识库管理</el-menu-item>
           </el-sub-menu>
           <el-sub-menu
             index="2"
@@ -123,7 +96,6 @@
               <span>用户管理</span>
             </template>
             <el-menu-item index="/manager/admin">管理员信息</el-menu-item>
-            <el-menu-item index="/manager/university">大学信息</el-menu-item>
             <el-menu-item index="/manager/user">学生信息</el-menu-item>
           </el-sub-menu>
         </el-menu>

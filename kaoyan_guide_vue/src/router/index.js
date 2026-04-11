@@ -46,6 +46,7 @@ const router = createRouter({
         { path: 'myComment', component: () => import('@/views/front/MyComment.vue'),  },
         { path: 'myCollect', component: () => import('@/views/front/MyCollect.vue'),  },
         { path: 'simulateExam', component: () => import('@/views/front/simulateExam.vue'),  },
+        { path: 'simulateExamHistory', component: () => import('@/views/front/simulateExamHistory.vue'),  },
         { path: 'consultCollege', component: () => import('@/views/front/consultCollege.vue'),  },
         { path: 'studyPlan', component: () => import('@/views/front/StudyPlan.vue'),  },
       ]

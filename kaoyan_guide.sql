@@ -99,11 +99,17 @@ CREATE TABLE `exam_result`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `user_id` bigint UNSIGNED NOT NULL,
   `subject` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `question_source` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '' COMMENT '试题出处',
   `score` int NOT NULL,
   `duration_seconds` int NOT NULL,
+  `simulation_mode` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT '演示模式' COMMENT '模拟模式',
   `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 15 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+-- ⚠️ 旧库升级：如果 exam_result 表已存在，执行以下两条 ALTER TABLE 即可
+-- ALTER TABLE exam_result ADD COLUMN question_source VARCHAR(255) DEFAULT '' COMMENT '试题出处';
+-- ALTER TABLE exam_result ADD COLUMN simulation_mode VARCHAR(50) DEFAULT '演示模式' COMMENT '模拟模式';
 
 -- ----------------------------
 -- Table structure for interpretations

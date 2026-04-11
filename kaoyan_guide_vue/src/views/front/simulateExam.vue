@@ -1,13 +1,17 @@
 <template>
   <div class="main-content exam-page" ref="examPageRef">
     <div class="content-wrapper">
-      <!-- ✅ 左侧：模拟数据分析看板 -->
+      <!-- 左侧：模拟数据分析看板 -->
       <div class="dashboard-panel">
         <div class="panel-header">
           <h3>
             <el-icon><DataLine /></el-icon> 模拟数据分析
           </h3>
-          <el-tag type="info" size="small">By Subject</el-tag>
+          <!-- 近五次 / 全部 切换 -->
+          <div class="view-tabs">
+            <span class="view-tab active">近五次</span>
+            <span class="view-tab" @click="$router.push('/front/simulateExamHistory')">全部</span>
+          </div>
         </div>
 
         <!-- 科目切换 -->
@@ -35,10 +39,9 @@
         </div>
       </div>
 
-      <!-- ✅ 右侧：考试模拟器 -->
+      <!-- 右侧：考试模拟器 -->
       <div class="exam-panel">
         <div class="exam-container">
-          <!-- 顶部状态栏 -->
           <div class="exam-header">
             <el-select
               v-model="examMode"
@@ -58,17 +61,13 @@
             {{ formattedTime }}
           </div>
 
-          <div
-            class="exam-status-text"
-            v-if="data.isStarted && !data.isFinished"
-          >
+          <div class="exam-status-text" v-if="data.isStarted && !data.isFinished">
             正在进行考试...
           </div>
           <div class="exam-status-text finished" v-if="data.isFinished">
             考试已结束
           </div>
 
-          <!-- 进度条 -->
           <div class="progress-bar">
             <div
               class="progress-fill"
@@ -112,34 +111,31 @@
           <p class="footer-tip">准备就绪，请保持专注</p>
 
           <div v-if="data.isFinished" class="result-summary">
-            <p>
-              本次用时：<span>{{ data.durationText }}</span>
-            </p>
+            <p>本次用时：<span>{{ data.durationText }}</span></p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ✅ 弹出输入框 -->
+    <!-- 交卷弹窗 -->
     <el-dialog
       title="考试结果提交"
       v-model="dialogVisible"
       width="400px"
       :close-on-click-modal="false"
-      custom-class="result-dialog"
     >
       <el-form :model="formData" label-width="80px">
         <el-form-item label="考试科目">
-          <el-select
-            v-model="formData.subject"
-            placeholder="请选择考试科目"
-            style="width: 100%"
-          >
+          <el-select v-model="formData.subject" placeholder="请选择考试科目" style="width: 100%">
             <el-option label="政治" value="政治" />
             <el-option label="英语" value="英语" />
             <el-option label="数学" value="数学" />
             <el-option label="专业课" value="专业课" />
           </el-select>
+        </el-form-item>
+
+        <el-form-item label="试题出处">
+          <el-input v-model="formData.questionSource" placeholder="请输入试题出处（必填）" />
         </el-form-item>
 
         <el-form-item label="考试成绩">
@@ -162,31 +158,20 @@
 </template>
 
 <script setup>
-import {
-  reactive,
-  computed,
-  ref,
-  onMounted,
-  onUnmounted,
-  nextTick,
-  watch,
-} from "vue";
+import { reactive, computed, ref, onMounted, onUnmounted, nextTick } from "vue";
+import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import {
-  DataLine,
-  VideoPlay,
-  VideoPause,
-  FullScreen,
-  Plus,
-} from "@element-plus/icons-vue";
+import { DataLine, VideoPlay, VideoPause, FullScreen } from "@element-plus/icons-vue";
 import request from "@/utils/request";
 import * as echarts from "echarts";
+
+const router = useRouter();
 
 // ================== 用户信息 ==================
 const user = JSON.parse(localStorage.getItem("xm-user") || "{}");
 
 // ================== 响应式状态 ==================
-const examMode = ref(60); // 默认演示模式1分钟，可选3小时(10800秒)
+const examMode = ref(60);
 const data = reactive({
   isStarted: false,
   isFinished: false,
@@ -195,12 +180,14 @@ const data = reactive({
   remainingSeconds: 60,
   timer: null,
   durationText: "",
-  totalDuration: 60, // 用于计算进度条
+  durationSeconds: 0,
+  totalDuration: 60,
 });
 
 const dialogVisible = ref(false);
 const formData = reactive({
   subject: "",
+  questionSource: "",
   score: null,
 });
 
@@ -217,9 +204,7 @@ const formattedTime = computed(() => {
   const h = Math.floor(data.remainingSeconds / 3600);
   const m = Math.floor((data.remainingSeconds % 3600) / 60);
   const s = data.remainingSeconds % 60;
-  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s
-    .toString()
-    .padStart(2, "0")}`;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 });
 
 const progressPercentage = computed(() => {
@@ -247,69 +232,76 @@ const changeSubject = (sub) => {
 const updateCharts = () => {
   if (!scoreChart || !timeChart) return;
 
-  // 1. 数据过滤
-  let filteredData = examHistory.value.filter(
+  const filteredData = examHistory.value.filter(
     (item) => item.subject === chartSubject.value
   );
-
-  // 取最近5次，反转顺序使最新的在右边
+  // 取最近5次，反转后最新在右边
   const recentData = filteredData.slice(0, 5).reverse();
 
-  const xData = recentData.map((_, index) => `模${index + 1}`);
-  const scoreData = recentData.map((item) => item.score);
-  const durationData = recentData.map((item) =>
-    (item.durationSeconds / 60).toFixed(1)
-  ); // 转为分钟
-
-  // 动态计算 Y 轴最大值
-  const maxScore = ["政治", "英语"].includes(chartSubject.value) ? 100 : 150;
-
-  // 2. 更新得分趋势图
-  scoreChart.setOption({
-    tooltip: { trigger: "axis" },
-    grid: { top: 30, bottom: 20, left: 30, right: 20, containLabel: true },
-    xAxis: { type: "category", data: xData },
-    yAxis: { type: "value", min: 0, max: maxScore },
-    series: [
-      {
-        data: scoreData,
-        type: "line",
-        smooth: true,
-        areaStyle: {
-          opacity: 0.3,
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: "#67c23a" },
-            { offset: 1, color: "#f0f9eb" },
-          ]),
-        },
-        itemStyle: { color: "#67c23a" },
-        lineStyle: { width: 3 },
-      },
-    ],
+  // 横轴用试题出处，兼容老数据（空则显示"未填写出处"），超过8字截断
+  const xData = recentData.map((item) => {
+    const src = item.questionSource;
+    if (!src || !src.trim()) return "未填写出处";
+    return src.length > 8 ? src.slice(0, 8) + "…" : src;
+  });
+  // tooltip 用完整出处
+  const xDataFull = recentData.map((item) => {
+    const src = item.questionSource;
+    return !src || !src.trim() ? "未填写出处" : src;
   });
 
-  // 3. 更新用时分析图
-  timeChart.setOption({
-    tooltip: { trigger: "axis" },
-    grid: { top: 30, bottom: 20, left: 30, right: 20, containLabel: true },
-    xAxis: { type: "category", data: xData },
-    yAxis: { type: "value", name: "分钟" },
-    series: [
-      {
-        data: durationData,
-        type: "line",
-        smooth: true,
-        areaStyle: {
-          opacity: 0.3,
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: "#409eff" },
-            { offset: 1, color: "#ecf5ff" },
-          ]),
-        },
-        itemStyle: { color: "#409eff" },
-        lineStyle: { width: 3 },
+  const scoreData = recentData.map((item) => item.score);
+  const durationData = recentData.map((item) => (item.durationSeconds / 60).toFixed(1));
+  const maxScore = ["政治", "英语"].includes(chartSubject.value) ? 100 : 150;
+
+  const tooltipFormatter = (params) => {
+    const idx = params[0].dataIndex;
+    const fullSrc = xDataFull[idx];
+    return params.map((p) => `${fullSrc}<br/>${p.seriesName}: ${p.value}`).join("<br/>");
+  };
+
+  scoreChart.setOption({
+    tooltip: { trigger: "axis", formatter: tooltipFormatter },
+    grid: { top: 30, bottom: 40, left: 30, right: 20, containLabel: true },
+    xAxis: { type: "category", data: xData, axisLabel: { interval: 0, rotate: 20, fontSize: 11 } },
+    yAxis: { type: "value", min: 0, max: maxScore },
+    series: [{
+      name: "得分",
+      data: scoreData,
+      type: "line",
+      smooth: true,
+      areaStyle: {
+        opacity: 0.3,
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: "#67c23a" },
+          { offset: 1, color: "#f0f9eb" },
+        ]),
       },
-    ],
+      itemStyle: { color: "#67c23a" },
+      lineStyle: { width: 3 },
+    }],
+  });
+
+  timeChart.setOption({
+    tooltip: { trigger: "axis", formatter: tooltipFormatter },
+    grid: { top: 30, bottom: 40, left: 30, right: 20, containLabel: true },
+    xAxis: { type: "category", data: xData, axisLabel: { interval: 0, rotate: 20, fontSize: 11 } },
+    yAxis: { type: "value", name: "分钟" },
+    series: [{
+      name: "用时",
+      data: durationData,
+      type: "line",
+      smooth: true,
+      areaStyle: {
+        opacity: 0.3,
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: "#409eff" },
+          { offset: 1, color: "#ecf5ff" },
+        ]),
+      },
+      itemStyle: { color: "#409eff" },
+      lineStyle: { width: 3 },
+    }],
   });
 };
 
@@ -317,18 +309,13 @@ const initCharts = () => {
   if (scoreChartRef.value && timeChartRef.value) {
     scoreChart = echarts.init(scoreChartRef.value);
     timeChart = echarts.init(timeChartRef.value);
-
-    // 初始空配置
     const commonOption = {
-      title: { show: false },
       xAxis: { type: "category", data: [] },
       yAxis: { type: "value" },
       series: [],
     };
     scoreChart.setOption(commonOption);
     timeChart.setOption(commonOption);
-
-    // 监听窗口大小变化
     window.addEventListener("resize", () => {
       scoreChart.resize();
       timeChart.resize();
@@ -367,7 +354,7 @@ const startExam = async () => {
   data.isStarted = true;
   data.isFinished = false;
   data.startTime = new Date();
-  data.totalDuration = examMode.value; // 设置总时长
+  data.totalDuration = examMode.value;
   data.remainingSeconds = examMode.value;
 
   speak("考试开始，请同学们开始答题！");
@@ -375,8 +362,7 @@ const startExam = async () => {
   data.timer = setInterval(() => {
     if (data.remainingSeconds > 0) {
       data.remainingSeconds--;
-      if (data.remainingSeconds === 1800)
-        speak("距离考试结束还有半小时，请抓紧时间！");
+      if (data.remainingSeconds === 1800) speak("距离考试结束还有半小时，请抓紧时间！");
       if (data.remainingSeconds === 0) finishExam(true);
     }
   }, 1000);
@@ -410,24 +396,36 @@ const finishExam = (auto = false) => {
 };
 
 const submitResult = () => {
-  if (!formData.subject || formData.score === null) {
-    ElMessage.warning("请填写完整的考试科目和成绩！");
+  if (!formData.subject) {
+    ElMessage.warning("请选择考试科目！");
     return;
   }
+  if (!formData.questionSource || !formData.questionSource.trim()) {
+    ElMessage.warning("请填写试题出处！");
+    return;
+  }
+  if (formData.score === null || formData.score === "") {
+    ElMessage.warning("请填写考试成绩！");
+    return;
+  }
+
+  // 根据 examMode 自动生成模拟模式，不让用户手填
+  const simulationMode = examMode.value === 10800 ? "标准模式" : "演示模式";
 
   request
     .post("/exam/saveResult", {
       subject: formData.subject,
+      questionSource: formData.questionSource,
       score: formData.score,
       duration: data.durationSeconds,
+      simulationMode,
     })
     .then((res) => {
       if (res.code === "200") {
         ElMessage.success("考试结果提交成功！");
         dialogVisible.value = false;
-        loadExamHistory(); // ✅ 刷新图表数据
+        loadExamHistory();
 
-        // 重置状态
         data.isStarted = false;
         data.isFinished = false;
         data.startTime = null;
@@ -435,6 +433,7 @@ const submitResult = () => {
         data.remainingSeconds = examMode.value;
         data.durationText = "";
         formData.subject = "";
+        formData.questionSource = "";
         formData.score = null;
       } else {
         ElMessage.error(res.msg || "提交失败");
@@ -462,7 +461,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 强制全屏覆盖，不留任何空白 */
 .exam-page {
   position: fixed;
   top: 60px;
@@ -487,14 +485,13 @@ onUnmounted(() => {
 .content-wrapper {
   display: flex;
   width: 90%;
-  max-width: 1500px; /* 略微放宽整体容器 */
+  max-width: 1500px;
   height: 85vh;
-  gap: 30px; /* 增加间距 */
+  gap: 30px;
 }
 
-/* 左侧数据面板 */
 .dashboard-panel {
-  width: 420px; /* ✅ 加宽面板 */
+  width: 420px;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
   border-radius: 16px;
@@ -517,6 +514,33 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   color: #333;
+}
+
+/* 近五次 / 全部 切换 */
+.view-tabs {
+  display: flex;
+  gap: 4px;
+  background: #f0f2f5;
+  border-radius: 20px;
+  padding: 3px;
+}
+.view-tab {
+  padding: 4px 12px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #666;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.view-tab.active {
+  background: #67c23a;
+  color: white;
+  box-shadow: 0 2px 6px rgba(103, 194, 58, 0.3);
+}
+.view-tab:not(.active):hover {
+  background: rgba(103, 194, 58, 0.15);
+  color: #67c23a;
 }
 
 .subject-tabs {
@@ -546,7 +570,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  overflow-y: hidden; /* 防止出现双重滚动条 */
+  overflow-y: hidden;
 }
 
 .chart-box {
@@ -556,7 +580,7 @@ onUnmounted(() => {
   border: 1px solid rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  flex: 1; /* ✅ 让两个图表均分剩余空间 */
+  flex: 1;
 }
 .chart-box h4 {
   margin: 0 0 5px 0;
@@ -565,12 +589,11 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .chart {
-  flex: 1; /* ✅ 图表自适应填充高度 */
+  flex: 1;
   width: 100%;
-  min-height: 200px; /* 保证最小高度 */
+  min-height: 200px;
 }
 
-/* 右侧考试面板 */
 .exam-panel {
   flex: 1;
   display: flex;
