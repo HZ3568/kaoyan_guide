@@ -269,6 +269,24 @@
           ></el-input>
         </el-form-item>
         <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item prop="longitude" label="百度经度">
+              <el-input
+                v-model="data.form.longitude"
+                placeholder="如：116.404269（可选）"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item prop="latitude" label="百度纬度">
+              <el-input
+                v-model="data.form.latitude"
+                placeholder="如：39.914980（可选）"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
           <el-col :span="8">
             <el-form-item prop="schoolType" label="院校类型">
               <el-select

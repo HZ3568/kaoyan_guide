@@ -14,7 +14,7 @@ import java.util.List;
 
 /**
  * 学习规划 AI 服务。
- *
+ * <p>
  * 优化要点：
  * 1. 使用专用 studyPlanChatModel（已配置 response_format=json_object）
  * 2. 不打印完整 prompt/response，只记录长度和耗时
@@ -86,11 +86,11 @@ public class StudyPlanAiService {
 
     /**
      * 组装学习规划提示词。
-     *
+     * <p>
      * 优化要点：
      * 1. 固定前缀部分（系统角色、输出格式要求）可为后续接入 Context Cache 预留扩展点
      * 2. 动态内容部分（历史摘要、用户反馈）保持精简，减少 token 消耗
-     *
+     * <p>
      * Context Cache 扩展建议（阿里云百炼支持）：
      * - 固定前缀（SYSTEM_PROMPT_PREFIX）可标记为 cache，5分钟内复用
      * - 动态内容每次请求不同，不适合缓存
@@ -108,11 +108,11 @@ public class StudyPlanAiService {
 
     /**
      * 固定前缀部分：系统角色定义 + JSON 格式要求。
-     *
+     * <p>
      * 【Context Cache 扩展点】
      * 这部分内容在所有学习规划请求中都相同，适合标记为可缓存内容。
      * 阿里云百炼 Context Cache 可将此部分缓存 5 分钟，减少重复计算。
-     *
+     * <p>
      * 接入方式（待 LangChain4j 支持）：
      * - 将此部分作为 SystemMessage 或标记为 cached content
      * - 在 ChatRequest 中设置 cache 参数
@@ -124,12 +124,12 @@ public class StudyPlanAiService {
                 + "{\"advice\":\"针对当前状态的具体建议（100-150字）\","
                 + "\"tasks\":[{\"taskId\":\"\",\"subject\":\"科目\",\"content\":\"具体任务(25-40字之间)\",\"completed\":false}]}\n"
                 + "\n"
-                + "要求：advice 100-150字；tasks 3-5项；每项 content 25-40字之间；任务具体可执行。";
+                + "要求：tasks3-5项；科目分为政治，英语，数学和408，其中数学包括高等数学，线性代数和概率论，408包括数据结构、操作系统、计算机网络和计算机组成原理，因此数学和408的科目写小分类即可；确保当日提出的科目不能有重复";
     }
 
     /**
      * 动态内容部分：用户历史摘要 + 昨日反馈。
-     *
+     * <p>
      * 这部分每次请求都不同，不适合缓存。
      */
     private String buildDynamicContent(String history, String feedback) {

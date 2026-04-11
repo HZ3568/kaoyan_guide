@@ -39,6 +39,8 @@
             <if test="isDoubleFirstClass != null">is_double_first_class,</if>
             <if test="officialWebsite != null">official_website,</if>
             <if test="description != null">description,</if>
+            <if test="longitude != null">longitude,</if>
+            <if test="latitude != null">latitude,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
@@ -53,6 +55,8 @@
             <if test="isDoubleFirstClass != null">#{isDoubleFirstClass},</if>
             <if test="officialWebsite != null">#{officialWebsite},</if>
             <if test="description != null">#{description},</if>
+            <if test="longitude != null">#{longitude},</if>
+            <if test="latitude != null">#{latitude},</if>
         </trim>
     </insert>
 
@@ -91,6 +95,12 @@
             </if>
             <if test="description != null">
                 description = #{description},
+            </if>
+            <if test="longitude != null">
+                longitude = #{longitude},
+            </if>
+            <if test="latitude != null">
+                latitude = #{latitude},
             </if>
         </set>
         where id = #{id}

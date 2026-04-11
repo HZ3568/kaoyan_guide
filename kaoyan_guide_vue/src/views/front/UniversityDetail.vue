@@ -81,28 +81,52 @@
           <div style="color: red">（每人每个学校只能评价一次）</div>
         </div>
       </div>
-      <div style="width: 100px">
-        <div style="display: flex; grid-gap: 10px; align-items: center">
-          <el-icon
-            style="font-size: 24px; cursor: pointer"
-            v-if="!data.universityData.collectFlag"
-            @click="collectGoods(data.universityData.collectFlag)"
-          >
-            <Star />
-          </el-icon>
-          <div v-if="!data.universityData.collectFlag">收藏</div>
-          <el-icon
-            style="font-size: 24px; color: red; cursor: pointer"
-            v-if="data.universityData.collectFlag"
-            @click="collectGoods(data.universityData.collectFlag)"
-          >
-            <Star />
-          </el-icon>
+      <div style="width: 420px; display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; justify-content: flex-end">
+          <div style="display: flex; grid-gap: 10px; align-items: center">
+            <el-icon
+              style="font-size: 24px; cursor: pointer"
+              v-if="!data.universityData.collectFlag"
+              @click="collectGoods(data.universityData.collectFlag)"
+            >
+              <Star />
+            </el-icon>
+            <div v-if="!data.universityData.collectFlag">收藏</div>
+
+            <el-icon
+              style="font-size: 24px; color: red; cursor: pointer"
+              v-if="data.universityData.collectFlag"
+              @click="collectGoods(data.universityData.collectFlag)"
+            >
+              <Star />
+            </el-icon>
+            <div
+              v-if="data.universityData.collectFlag"
+              style="color: red"
+            >
+              取消收藏
+            </div>
+          </div>
+        </div>
+
+        <div class="map-wrapper">
           <div
-            v-if="data.universityData.collectFlag"
-            style="color: red"
+            id="university-map"
+            class="map-container"
+          ></div>
+
+          <div
+            v-if="data.mapLoading"
+            class="map-mask"
           >
-            取消收藏
+            地图加载中...
+          </div>
+
+          <div
+            v-else-if="data.mapError"
+            class="map-mask"
+          >
+            {{ data.mapError }}
           </div>
         </div>
       </div>
@@ -252,7 +276,7 @@
 </template>
 
 <script setup>
-import { reactive, onMounted, ref } from "vue";
+import { reactive, onMounted, ref, nextTick } from "vue";
 import request from "@/utils/request";
 import { ElMessage } from "element-plus";
 import { useRoute } from "vue-router";
@@ -270,6 +294,8 @@ const data = reactive({
   categorysList: [],
   commentList: [],
   activeCategoryId: null,
+  mapLoading: false,
+  mapError: "",
   rules: {
     details: [{ required: true, message: "请输入评价内容", trigger: "blur" }],
     mark: [{ required: true, message: "请选择评分", trigger: "blur" }],
@@ -284,10 +310,133 @@ const loadUniversity = () => {
     .then((res) => {
       if (res.code === "200") {
         data.universityData = res.data;
+        nextTick(() => {
+          initUniversityMap();
+        });
       } else {
         ElMessage.error(res.msg);
       }
     });
+};
+
+const loadBaiduMap = () => {
+  return new Promise((resolve, reject) => {
+    if (window.BMapGL && window.BMapGL.Map) {
+      resolve(window.BMapGL);
+      return;
+    }
+
+    const ak = import.meta.env.VITE_BAIDU_MAP_AK;
+    if (!ak) {
+      reject(new Error("未配置百度地图 AK"));
+      return;
+    }
+
+    // 百度地图用全局回调通知真正就绪，不能依赖 script.onload
+    const callbackName = "__bmap_init_cb__";
+    window[callbackName] = () => {
+      delete window[callbackName];
+      resolve(window.BMapGL);
+    };
+
+    const existedScript = document.getElementById("baidu-map-script");
+    if (existedScript) {
+      // 脚本已插入但还未就绪，等回调即可
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "baidu-map-script";
+    script.src = `https://api.map.baidu.com/api?v=1.0&type=webgl&ak=${ak}&callback=${callbackName}`;
+    script.async = true;
+    script.onerror = () => reject(new Error("百度地图脚本加载失败"));
+    document.head.appendChild(script);
+  });
+};
+
+const renderMapByPoint = (BMapGL, point) => {
+  const container = document.getElementById("university-map");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  const map = new BMapGL.Map("university-map", {
+    enableRotate: false,
+    enableTilt: false,
+  });
+
+  map.centerAndZoom(point, 16);
+  map.enableScrollWheelZoom(true);
+
+  const marker = new BMapGL.Marker(point);
+  map.addOverlay(marker);
+
+  const name = data.universityData.name || "学校";
+  const address = [
+    data.universityData.provinceName,
+    data.universityData.address,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const infoContent = `<div style="padding:4px 6px;font-size:13px;line-height:1.8">
+    <b>${name}</b>${address ? `<br/>${address}` : ""}
+  </div>`;
+  const infoWindow = new BMapGL.InfoWindow(infoContent, { width: 220 });
+  marker.addEventListener("click", () => map.openInfoWindow(infoWindow, point));
+  map.openInfoWindow(infoWindow, point);
+};
+
+const initUniversityMap = async () => {
+  data.mapError = "";
+  data.mapLoading = true;
+
+  try {
+    const BMapGL = await loadBaiduMap();
+    await nextTick();
+
+    // 方案1：优先使用数据库中的经纬度直接定位
+    const rawLng = data.universityData.longitude;
+    const rawLat = data.universityData.latitude;
+    const lng = rawLng != null && rawLng !== "" ? Number(rawLng) : NaN;
+    const lat = rawLat != null && rawLat !== "" ? Number(rawLat) : NaN;
+
+    if (!Number.isNaN(lng) && !Number.isNaN(lat) && lng !== 0 && lat !== 0) {
+      const point = new BMapGL.Point(lng, lat);
+      renderMapByPoint(BMapGL, point);
+      data.mapLoading = false;
+      return;
+    }
+
+    // 方案2：当前先用地址解析
+    const address = `${data.universityData.provinceName || ""}${
+      data.universityData.address || ""
+    }`.trim();
+
+    if (!address) {
+      data.mapLoading = false;
+      data.mapError = "暂无学校地址，无法显示地图";
+      return;
+    }
+
+    const geocoder = new BMapGL.Geocoder();
+    geocoder.getPoint(
+      address,
+      (point) => {
+        data.mapLoading = false;
+
+        if (!point) {
+          data.mapError = "地址解析失败，请补充更精确的学校地址";
+          return;
+        }
+
+        renderMapByPoint(BMapGL, point);
+      },
+      data.universityData.provinceName || ""
+    );
+  } catch (e) {
+    data.mapLoading = false;
+    data.mapError = e.message || "地图加载失败";
+  }
 };
 
 const collectGoods = (flag) => {
@@ -403,5 +552,32 @@ loadComment();
   margin-right: 20px;
   color: #49c48d;
   cursor: pointer;
+}
+
+.map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8f8f8;
+}
+
+.map-container {
+  width: 100%;
+  height: 100%;
+}
+
+.map-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  z-index: 10;
 }
 </style>

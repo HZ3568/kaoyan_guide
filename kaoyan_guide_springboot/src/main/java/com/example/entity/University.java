@@ -1,6 +1,7 @@
 package com.example.entity;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 public class University {
     private Integer id;
@@ -20,6 +21,8 @@ public class University {
     private LocalDateTime updateTime;
     private Boolean collectFlag;
     private Boolean commentFlag;
+    private BigDecimal longitude; // 百度经度(BD09)
+    private BigDecimal latitude;  // 百度纬度(BD09)
 
     public Integer getId() {
         return id;
@@ -155,5 +158,21 @@ public class University {
 
     public void setCommentFlag(Boolean commentFlag) {
         this.commentFlag = commentFlag;
+    }
+
+    public BigDecimal getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(BigDecimal longitude) {
+        this.longitude = longitude;
+    }
+
+    public BigDecimal getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(BigDecimal latitude) {
+        this.latitude = latitude;
     }
 }
