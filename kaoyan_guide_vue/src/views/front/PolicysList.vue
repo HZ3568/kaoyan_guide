@@ -20,8 +20,23 @@
           <div style="flex: 1; font-size: 24px; font-weight: bold">
             招生政策
           </div>
+          <el-input
+            v-model="data.keyword"
+            placeholder="请输入院校名称或招生政策标题"
+            clearable
+            @clear="handleClear"
+            @keyup.enter="handleSearch"
+            style="width: 300px"
+          >
+            <template #append>
+              <el-button :icon="Search" @click="handleSearch" />
+            </template>
+          </el-input>
         </div>
         <div>
+          <div v-if="data.tableData.length === 0" style="text-align: center; padding: 40px; color: #999;">
+            暂无相关招生政策
+          </div>
           <div
             v-for="item in data.tableData"
             :key="item.id"
@@ -145,6 +160,7 @@
 import { reactive } from "vue";
 import request from "@/utils/request";
 import { ElMessage } from "element-plus";
+import { Search } from "@element-plus/icons-vue";
 
 const data = reactive({
   user: JSON.parse(localStorage.getItem("xm-user") || "{}"),
@@ -153,6 +169,7 @@ const data = reactive({
   pageNum: 1, // 当前的页码
   pageSize: 5, // 每页的个数
   policysList: [],
+  keyword: "", // 搜索关键字
 });
 
 // 加载表格数据
@@ -162,6 +179,7 @@ const load = () => {
       params: {
         pageNum: data.pageNum,
         pageSize: data.pageSize,
+        keyword: data.keyword,
       },
     })
     .then((res) => {
@@ -172,6 +190,19 @@ const load = () => {
 };
 
 load();
+
+// 搜索处理
+const handleSearch = () => {
+  data.pageNum = 1; // 重置为第一页
+  load();
+};
+
+// 清空搜索
+const handleClear = () => {
+  data.keyword = "";
+  data.pageNum = 1;
+  load();
+};
 
 // 获取浏览量最多的前10个政策
 const loadHotPolicys = () => {

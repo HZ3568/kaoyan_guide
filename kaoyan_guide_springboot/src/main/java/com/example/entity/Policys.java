@@ -21,6 +21,8 @@ public class Policys {
     private String time;
     private String universityName;
     private String universityAvatar;
+    /** 搜索关键字 */
+    private String keyword;
 
     public String getUniversityAvatar() {
         return universityAvatar;
@@ -92,6 +94,14 @@ public class Policys {
 
     public void setTime(String time) {
         this.time = time;
+    }
+
+    public String getKeyword() {
+        return keyword;
+    }
+
+    public void setKeyword(String keyword) {
+        this.keyword = keyword;
     }
 
 }
