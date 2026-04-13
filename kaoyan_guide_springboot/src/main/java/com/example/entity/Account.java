@@ -8,6 +8,8 @@ public class Account {
     private String role;
     private String newPassword;
     private String token;
+    private String uuid;     // 验证码 uuid
+    private String captcha;  // 用户输入的验证码
 
     public Integer getId() {
         return id;
@@ -55,5 +57,21 @@ public class Account {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
+    }
+
+    public String getCaptcha() {
+        return captcha;
+    }
+
+    public void setCaptcha(String captcha) {
+        this.captcha = captcha;
     }
 }

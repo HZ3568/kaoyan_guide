@@ -56,6 +56,25 @@
               />
             </el-form-item>
 
+            <el-form-item prop="captcha">
+              <div class="captcha-row">
+                <el-input
+                  v-model="data.form.captcha"
+                  placeholder="请输入验证码"
+                  size="large"
+                  style="flex: 1"
+                  @keydown.enter.prevent="login"
+                />
+                <img
+                  :src="data.captchaImg"
+                  class="captcha-img"
+                  @click="loadCaptcha"
+                  alt="点击刷新"
+                  title="点击刷新"
+                />
+              </div>
+            </el-form-item>
+
             <el-form-item prop="role">
               <el-radio-group
                 v-model="data.form.role"
@@ -94,7 +113,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from "vue";
+import { reactive, ref, onMounted } from "vue";
 import { Lock, User } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import router from "@/router/index.js";
@@ -110,16 +129,29 @@ const data = reactive({
     username: "",
     password: "",
     role: "USER",
+    captcha: "",
+    uuid: "",
   },
+  captchaImg: "",
   rules: {
     username: [{ required: true, message: "请输入账号", trigger: "blur" }],
     password: [{ required: true, message: "请输入密码", trigger: "blur" }],
+    captcha: [{ required: true, message: "请输入验证码", trigger: "blur" }],
     role: [{ required: true, message: "请选择登录身份", trigger: "change" }],
   },
 });
 
 const formRef = ref();
 const loading = ref(false);
+
+const loadCaptcha = () => {
+  request.get("/captcha").then((res) => {
+    if (res.code === "200") {
+      data.form.uuid = res.data.uuid;
+      data.captchaImg = "data:image/png;base64," + res.data.img;
+    }
+  });
+};
 
 const login = () => {
   if (loading.value) return;
@@ -134,7 +166,12 @@ const login = () => {
       .then((res) => {
         if (res.code === "200") {
           ElMessage.success("登录成功");
-          localStorage.setItem("xm-user", JSON.stringify(res.data));
+          // 按角色分开存储 token，防止跨角色访问
+          if (res.data.role === 'ADMIN') {
+            localStorage.setItem('xm-admin', JSON.stringify(res.data));
+          } else {
+            localStorage.setItem('xm-user', JSON.stringify(res.data));
+          }
 
           if (res.data.role === "USER") {
             router.push("/front/home");
@@ -143,16 +180,24 @@ const login = () => {
           }
         } else {
           ElMessage.error(res.msg);
+          // 登录失败重新加载验证码
+          loadCaptcha();
         }
       })
       .catch(() => {
         ElMessage.error("登录失败，请稍后重试");
+        loadCaptcha();
       })
       .finally(() => {
         loading.value = false;
       });
   });
 };
+
+// 组件挂载时加载验证码
+onMounted(() => {
+  loadCaptcha();
+});
 </script>
 
 <style scoped>
@@ -374,6 +419,27 @@ const login = () => {
 
 :deep(.el-form-item) {
   margin-bottom: 24px;
+}
+
+/* 验证码区域 */
+.captcha-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.captcha-img {
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid #e6f4ea;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.captcha-img:hover {
+  opacity: 0.8;
 }
 
 /* Radio Group 样式 */

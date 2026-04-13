@@ -47,4 +47,22 @@
         WHERE id = #{id} AND user_id = #{userId}
     </update>
 
+    <!-- ========== 管理员接口 ========== -->
+
+    <!-- 管理员查询所有用户成绩（分页） -->
+    <select id="selectAllAdminPaged" resultType="map">
+        SELECT e.id, e.user_id AS userId, u.name AS userName,
+               e.subject, e.question_source AS questionSource,
+               e.score, e.duration_seconds AS durationSeconds,
+               e.simulation_mode AS simulationMode,
+               e.create_time AS createTime
+        FROM exam_result e
+        LEFT JOIN user u ON e.user_id = u.id
+        ORDER BY e.create_time DESC
+    </select>
+
+    <select id="countAllAdmin" resultType="long">
+        SELECT COUNT(*) FROM exam_result
+    </select>
+
 </mapper>

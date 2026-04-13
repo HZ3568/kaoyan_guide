@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * JWT拦截器
+ * JWT拦截器：校验 token 有效性 + 路径角色一致性
  */
 @Component
 public class JWTInterceptor implements HandlerInterceptor {
@@ -35,19 +35,19 @@ public class JWTInterceptor implements HandlerInterceptor {
         // 1. 从http请求标头里面拿到token
         String token = request.getHeader(Constants.TOKEN);
         if (ObjectUtil.isNull(token)) {
-            // 如果没拿到，那么再从请求参数里拿一次
             token = request.getParameter(Constants.TOKEN);
         }
-        // 2. 开始执行认证
         if (token == null || token.trim().isEmpty()) {
             throw new CustomException(ResultCodeEnum.TOKEN_INVALID_ERROR.code, "未登录或登录已失效");
         }
+
+        // 2. 解析 token 中的角色
+        String role = null;
         Account account = null;
         try {
             String audience = JWT.decode(token).getAudience().get(0);
             String userId = audience.split("-")[0];
-            String role = audience.split("-")[1];
-            // 根据用户角色判断用户属于哪个数据库表 然后查询用户数据
+            role = audience.split("-")[1];
             if (RoleEnum.ADMIN.name().equals(role)) {
                 account = adminService.selectById(Integer.valueOf(userId));
             } else if (RoleEnum.USER.name().equals(role)) {
@@ -56,19 +56,24 @@ public class JWTInterceptor implements HandlerInterceptor {
         } catch (Exception e) {
             throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "token 校验失败");
         }
-        // 根据token里面携带的用户ID去对应的角色表查询  没查到 所有报了这个“用户不存在”错误
+
         if (ObjectUtil.isNull(account)) {
-            // 用户不存在
-            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "token 校验失败");
+            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "用户不存在");
         }
+
         try {
-            // 通过用户的密码作为密钥再次验证token的合法性
             JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(account.getPassword())).build();
-            jwtVerifier.verify(token);  // 验证token
+            jwtVerifier.verify(token);
         } catch (JWTVerificationException e) {
-            // 用户不存在
             throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "token 校验失败");
         }
+
+        // 3. 路径 vs 角色一致性校验
+        String path = request.getRequestURI();
+        if (path.startsWith("/admin") && !RoleEnum.ADMIN.name().equals(role)) {
+            throw new CustomException("403", "无权限访问管理后台");
+        }
+
         return true;
     }
 

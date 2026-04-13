@@ -21,7 +21,7 @@
           <div class="manager-user">
             <img
               style="width: 40px; height: 40px; border-radius: 50%"
-              :src="data.user.avatar"
+              :src="data.user.avatar || defaultAvatar"
               @error="handleAvatarError"
               alt=""
             />
@@ -62,31 +62,62 @@
             </el-icon>
             <span>数据统计</span>
           </el-menu-item>
+
+          <!-- 院校信息管理 -->
           <el-sub-menu
-            index="1"
+            index="school"
             v-if="data.user.role === 'ADMIN'"
           >
             <template #title>
               <el-icon>
-                <Menu />
+                <School />
               </el-icon>
-              <span>信息管理</span>
+              <span>院校信息管理</span>
             </template>
-            <el-menu-item index="/manager/university">学校信息</el-menu-item>
-            <el-menu-item index="/manager/areas">地区信息</el-menu-item>
-            <el-menu-item index="/manager/categorys">门类信息</el-menu-item>
-            <el-menu-item index="/manager/specialtys">专业信息</el-menu-item>
-            <el-menu-item index="/manager/interpretations">专业解读</el-menu-item>
-            <el-menu-item index="/manager/universitySpecialtys">学校专业</el-menu-item>
-            <el-menu-item index="/manager/policys">招生政策</el-menu-item>
-            <el-menu-item index="/manager/comment">学校评价</el-menu-item>
-            <el-menu-item index="/manager/slideshow">轮播图信息</el-menu-item>
-            <el-menu-item index="/manager/notice">系统公告</el-menu-item>
-            <el-menu-item index="/manager/question">题库管理</el-menu-item>
-            <el-menu-item index="/manager/knowledgeBase">知识库管理</el-menu-item>
+            <el-menu-item index="/manager/school/university">学校信息</el-menu-item>
+            <el-menu-item index="/manager/school/areas">地区信息</el-menu-item>
+            <el-menu-item index="/manager/school/categorys">门类信息</el-menu-item>
+            <el-menu-item index="/manager/school/specialtys">专业信息</el-menu-item>
+            <el-menu-item index="/manager/school/interpretations">专业解读</el-menu-item>
+            <el-menu-item index="/manager/school/policys">招生政策</el-menu-item>
+            <el-menu-item index="/manager/school/comment">院校评价</el-menu-item>
+            <el-menu-item index="/manager/school/universitySpecialtys">学校专业</el-menu-item>
           </el-sub-menu>
+
+          <!-- 智能服务管理 -->
           <el-sub-menu
-            index="2"
+            index="ai"
+            v-if="data.user.role === 'ADMIN'"
+          >
+            <template #title>
+              <el-icon>
+                <Cpu />
+              </el-icon>
+              <span>智能服务管理</span>
+            </template>
+            <el-menu-item index="/manager/ai/knowledgeBase">知识库管理</el-menu-item>
+            <el-menu-item index="/manager/ai/consultSession">咨询会话管理</el-menu-item>
+            <el-menu-item index="/manager/ai/studyPlan">学习规划管理</el-menu-item>
+          </el-sub-menu>
+
+          <!-- 考场模拟管理 -->
+          <el-sub-menu
+            index="exam"
+            v-if="data.user.role === 'ADMIN'"
+          >
+            <template #title>
+              <el-icon>
+                <Document />
+              </el-icon>
+              <span>考场模拟管理</span>
+            </template>
+            <el-menu-item index="/manager/exam/question">题库管理</el-menu-item>
+            <el-menu-item index="/manager/exam/examData">考试数据管理</el-menu-item>
+          </el-sub-menu>
+
+          <!-- 用户管理 -->
+          <el-sub-menu
+            index="user"
             v-if="data.user.role === 'ADMIN'"
           >
             <template #title>
@@ -95,8 +126,23 @@
               </el-icon>
               <span>用户管理</span>
             </template>
-            <el-menu-item index="/manager/admin">管理员信息</el-menu-item>
-            <el-menu-item index="/manager/user">学生信息</el-menu-item>
+            <el-menu-item index="/manager/user/admin">管理员信息</el-menu-item>
+            <el-menu-item index="/manager/user/user">学生信息</el-menu-item>
+          </el-sub-menu>
+
+          <!-- 系统内容管理 -->
+          <el-sub-menu
+            index="system"
+            v-if="data.user.role === 'ADMIN'"
+          >
+            <template #title>
+              <el-icon>
+                <Setting />
+              </el-icon>
+              <span>系统内容管理</span>
+            </template>
+            <el-menu-item index="/manager/system/slideshow">轮播图管理</el-menu-item>
+            <el-menu-item index="/manager/system/notice">系统公告</el-menu-item>
           </el-sub-menu>
         </el-menu>
       </div>
@@ -115,16 +161,16 @@ import { ElMessage } from "element-plus";
 import defaultAvatar from "@/assets/imgs/avatar.png";
 
 const data = reactive({
-  user: JSON.parse(localStorage.getItem("xm-user") || "{}"),
+  user: JSON.parse(localStorage.getItem("xm-admin") || "{}"),
 });
 
 const logout = () => {
-  localStorage.removeItem("xm-user");
+  localStorage.removeItem("xm-admin");
   router.push("/login");
 };
 
 const updateUser = () => {
-  data.user = JSON.parse(localStorage.getItem("xm-user") || "{}");
+  data.user = JSON.parse(localStorage.getItem("xm-admin") || "{}");
 };
 
 const handleAvatarError = (event) => {

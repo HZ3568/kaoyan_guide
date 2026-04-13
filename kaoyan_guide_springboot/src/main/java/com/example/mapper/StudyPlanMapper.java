@@ -2,16 +2,11 @@ package com.example.mapper;
 
 import com.example.entity.DailyStudyPlan;
 import com.example.entity.StudyPlanTask;
-import org.apache.ibatis.annotations.Delete;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Options;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface StudyPlanMapper {
@@ -81,7 +76,7 @@ public interface StudyPlanMapper {
         @Update("UPDATE study_plan_task SET subject = #{subject}, content = #{content} " +
                         "WHERE plan_id = #{planId} AND task_id = #{taskId}")
         int updateTaskByPlanIdAndTaskId(@Param("planId") Long planId, @Param("taskId") String taskId,
-                        @Param("subject") String subject, @Param("src/main/uploads/content") String content);
+                        @Param("subject") String subject, @Param("content") String content);
 
         @Update("UPDATE study_plan SET user_feedback = #{userFeedback}, ai_advice = #{aiAdvice}, plan_status = #{planStatus}, update_time = #{updateTime} WHERE id = #{id}")
         int updatePlanCoreById(DailyStudyPlan plan);
@@ -108,4 +103,34 @@ public interface StudyPlanMapper {
 
         @Delete("DELETE FROM study_plan_task WHERE plan_id = #{planId}")
         void deleteTasksByPlanId(@Param("planId") Long planId);
+
+        // ==================== 管理员接口 ====================
+
+        /**
+         * 查询所有用户的学习计划（分页）
+         */
+        @Select("SELECT p.*, u.name AS userName FROM study_plan p " +
+                "LEFT JOIN user u ON p.user_id = u.id " +
+                "ORDER BY p.plan_date DESC")
+        List<Map<String, Object>> selectAllAdminPaged();
+
+        /**
+         * 查询所有用户的学习计划总数
+         */
+        @Select("SELECT COUNT(*) FROM study_plan")
+        long countAllAdmin();
+
+        /**
+         * 管理员删除指定用户指定日期的计划
+         */
+        @Delete("DELETE FROM study_plan WHERE user_id = #{userId} AND plan_date = #{date}")
+        void deleteByDateAdmin(@Param("userId") Integer userId, @Param("date") LocalDate date);
+
+        /**
+         * 管理员修改任务完成状态
+         */
+        @Update("UPDATE study_plan_task SET completed = #{completed}, update_time = NOW() " +
+                "WHERE plan_id = #{planId} AND task_id = #{taskId}")
+        int updateTaskCompletedAdmin(@Param("planId") Long planId, @Param("taskId") String taskId,
+                        @Param("completed") Boolean completed);
 }
