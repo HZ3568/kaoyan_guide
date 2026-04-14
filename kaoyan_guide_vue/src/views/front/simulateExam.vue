@@ -158,7 +158,7 @@
 </template>
 
 <script setup>
-import { reactive, computed, ref, onMounted, onUnmounted, nextTick } from "vue";
+import { reactive, computed, ref, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { DataLine, VideoPlay, VideoPause, FullScreen } from "@element-plus/icons-vue";
@@ -172,6 +172,15 @@ const user = JSON.parse(localStorage.getItem("xm-user") || "{}");
 
 // ================== 响应式状态 ==================
 const examMode = ref(60);
+
+// 切换模式时，若未开始考试，立即更新剩余时间显示
+watch(examMode, (newVal) => {
+  if (!data.isStarted) {
+    data.remainingSeconds = newVal;
+    data.totalDuration = newVal;
+  }
+});
+
 const data = reactive({
   isStarted: false,
   isFinished: false,

@@ -44,6 +44,17 @@ public interface StudyPlanMapper {
                         "VALUES (#{taskId}, #{planId}, #{subject}, #{content}, #{completed}, #{taskSource}, #{sortNo}, #{createTime}, #{updateTime})")
         void insertTask(StudyPlanTask task);
 
+        /**
+         * 批量插入任务（用于 replacePlanTasks 减少 N 次 DB 调用）
+         */
+        @Insert("<script>" +
+                "INSERT INTO study_plan_task (task_id, plan_id, subject, content, completed, task_source, sort_no, create_time, update_time) VALUES " +
+                "<foreach collection='tasks' item='t' separator=','>" +
+                "(#{t.taskId}, #{t.planId}, #{t.subject}, #{t.content}, #{t.completed}, #{t.taskSource}, #{t.sortNo}, #{t.createTime}, #{t.updateTime})" +
+                "</foreach>" +
+                "</script>")
+        void batchInsertTasks(@Param("tasks") List<StudyPlanTask> tasks);
+
         @Select("SELECT * FROM study_plan_task WHERE plan_id = #{planId} ORDER BY sort_no ASC, id ASC")
         List<StudyPlanTask> selectTasksByPlanId(@Param("planId") Long planId);
 
@@ -85,6 +96,15 @@ public interface StudyPlanMapper {
         int updatePlanStatusById(@Param("id") Long id, @Param("planStatus") String planStatus,
                         @Param("updateTime") java.time.LocalDateTime updateTime);
 
+        /**
+         * 根据 planId 统计任务数量和完成数量，回写主表状态
+         */
+        @Select("SELECT COUNT(*) FROM study_plan_task WHERE plan_id = #{planId}")
+        int countTasksByPlanId(@Param("planId") Long planId);
+
+        @Select("SELECT COUNT(*) FROM study_plan_task WHERE plan_id = #{planId} AND completed = 1")
+        int countCompletedTasksByPlanId(@Param("planId") Long planId);
+
         @Update("UPDATE study_plan_task SET completed = #{completed} " +
                         "WHERE plan_id = #{planId} AND task_id = #{taskId}")
         int updateTaskCompletedByPlanIdAndTaskId(@Param("planId") Long planId, @Param("taskId") String taskId,
@@ -108,11 +128,28 @@ public interface StudyPlanMapper {
 
         /**
          * 查询所有用户的学习计划（分页）
+         * 显式别名保证 MyBatis 返回 camelCase 键名，与前端字段一致
          */
-        @Select("SELECT p.*, u.name AS userName FROM study_plan p " +
-                "LEFT JOIN user u ON p.user_id = u.id " +
+        @Select("SELECT p.id AS planId, p.user_id AS userId, p.plan_date AS planDate, " +
+                "p.user_feedback AS userFeedback, p.ai_advice AS aiAdvice, " +
+                "p.plan_status AS planStatus, " +
+                "p.create_time AS createTime, p.update_time AS updateTime, " +
+                "u.name AS userName " +
+                "FROM study_plan p LEFT JOIN user u ON p.user_id = u.id " +
                 "ORDER BY p.plan_date DESC")
         List<Map<String, Object>> selectAllAdminPaged();
+
+        /**
+         * 根据 ID 查询单条计划（含完整字段，用于管理员详情）
+         */
+        @Select("SELECT p.id AS planId, p.user_id AS userId, p.plan_date AS planDate, " +
+                "p.user_feedback AS userFeedback, p.ai_advice AS aiAdvice, " +
+                "p.plan_status AS planStatus, " +
+                "p.create_time AS createTime, p.update_time AS updateTime, " +
+                "u.name AS userName " +
+                "FROM study_plan p LEFT JOIN user u ON p.user_id = u.id " +
+                "WHERE p.id = #{planId}")
+        Map<String, Object> selectAdminDetailById(@Param("planId") Long planId);
 
         /**
          * 查询所有用户的学习计划总数

@@ -23,15 +23,18 @@
     <div class="card" style="margin-bottom: 5px">
       <el-table stripe :data="data.tableData">
         <el-table-column prop="userId" label="用户ID" width="100" />
+        <el-table-column prop="userName" label="用户名" width="120" />
         <el-table-column prop="moduleType" label="模块" width="160">
           <template #default="scope">
             {{ moduleTypeLabel(scope.row.moduleType) }}
           </template>
         </el-table-column>
-        <el-table-column prop="sessionId" label="会话ID" min-width="200" show-overflow-tooltip />
         <el-table-column prop="messageCount" label="消息数" width="90" />
-        <el-table-column prop="lastMessage" label="最后一条消息" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="updatedAt" label="最后活跃时间" width="180" />
+        <el-table-column prop="lastActiveTime" label="最后活跃时间" width="180">
+          <template #default="scope">
+            {{ scope.row.lastActiveTime ? formatTime(scope.row.lastActiveTime) : '-' }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="scope">
             <el-button type="primary" link @click="showHistory(scope.row)">查看详情</el-button>
@@ -102,6 +105,17 @@ const stripPrefix = (content) => {
   // 去掉 AI 消息类型的典型前缀，如 "AI: " 或 "SYSTEM: "
   if (!content) return "";
   return content.replace(/^(AI|USER|SYSTEM):\s*/i, "").trim();
+};
+
+const formatTime = (time) => {
+  if (!time) return "-";
+  try {
+    const d = new Date(time);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  } catch {
+    return time;
+  }
 };
 
 const load = () => {

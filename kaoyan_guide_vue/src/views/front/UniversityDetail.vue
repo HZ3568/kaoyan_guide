@@ -639,6 +639,10 @@ const loadComment = () => {
   margin-bottom: 20px;
   padding: 26px;
   border-radius: 22px;
+  transition: box-shadow 0.3s ease;
+}
+.hero-card:hover {
+  box-shadow: 0 12px 40px rgba(73, 196, 141, 0.1);
 }
 
 .hero-main {
@@ -684,6 +688,11 @@ const loadComment = () => {
   justify-content: center;
   box-shadow: inset 0 0 0 8px #f8fbf9;
   margin-bottom: 18px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.logo-shell:hover {
+  transform: scale(1.04);
+  box-shadow: inset 0 0 0 8px #f8fbf9, 0 8px 24px rgba(73, 196, 141, 0.2);
 }
 
 .school-logo {
@@ -1173,9 +1182,11 @@ const loadComment = () => {
 }
 
 .specialtys-active:hover {
-  color: #49c48d;
+  color: #fff;
   border-color: #49c48d;
-  background: #f1fcf6;
+  background: linear-gradient(135deg, #49c48d 0%, #3db87d 100%);
+  box-shadow: 0 4px 12px rgba(73, 196, 141, 0.3);
+  font-weight: 500;
 }
 
 .comment-area {

@@ -20,6 +20,10 @@ export const studyPlanList = (params) => {
   return request.get("/admin/ai/studyPlan/list", { params });
 };
 
+export const studyPlanDetail = (params) => {
+  return request.get("/admin/ai/studyPlan/detail", { params });
+};
+
 export const studyPlanTaskUpdate = (params) => {
   return request.put("/admin/ai/studyPlan/task/update", null, { params });
 };

@@ -1,12 +1,7 @@
 <template>
   <div style="width: 60%; margin: 20px auto; min-height: 100vh">
     <div
-      style="
-        border: 1px solid #eeeeee;
-        padding: 20px 24px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-      "
+      class="filter-panel"
     >
       <div
         style="
@@ -243,4 +238,39 @@ const reset = () => {
 loadAreas();
 load();
 </script>
-<style scoped></style>
+<style scoped>
+.filter-panel {
+  border: 1px solid #eeeeee;
+  padding: 20px 24px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  background: #fafbfc;
+  transition: box-shadow 0.2s;
+}
+.filter-panel:focus-within {
+  box-shadow: 0 4px 16px rgba(73, 196, 141, 0.12);
+  border-color: #49c48d;
+}
+:deep(.el-input__wrapper) {
+  border-radius: 8px;
+}
+:deep(.el-select) {
+  width: 100%;
+}
+.card {
+  border-radius: 14px;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.card:hover {
+  border-color: #49c48d;
+  box-shadow: 0 8px 24px rgba(73, 196, 141, 0.15);
+  transform: translateY(-2px);
+}
+:deep(.el-tag) {
+  border-radius: 6px;
+}
+</style>

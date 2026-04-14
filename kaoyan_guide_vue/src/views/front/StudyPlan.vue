@@ -595,24 +595,26 @@ const generatePlan = () => {
     return;
   }
   generating.value = true;
-  generateStatusText.value = "正在提交生成任务...";
+  generateStatusText.value = "正在生成，请稍候...";
 
   request
-    .post("/study-plan/generate-async", { feedback: feedback.value })
+    .post("/study-plan/generate", { feedback: feedback.value })
     .then((res) => {
-      if (res.code === "200" && res.data && res.data.taskId) {
-        // 拿到 taskId，开始轮询
-        pollGenerateStatus(res.data.taskId);
+      generating.value = false;
+      generateStatusText.value = "";
+      if (res.code === "200" && res.data) {
+        ElMessage.success("生成成功！加油！");
+        currentPlan.value = res.data;
+        feedback.value = "";
+        taskList.value = res.data.taskList || [];
       } else {
-        generating.value = false;
-        generateStatusText.value = "";
-        ElMessage.error({ message: res.msg || "提交生成任务失败，请稍后重试", duration: 5000 });
+        ElMessage.error({ message: res.msg || "生成失败，请稍后重试", duration: 5000 });
       }
     })
     .catch((err) => {
       generating.value = false;
       generateStatusText.value = "";
-      console.error("提交生成任务失败:", err);
+      console.error("生成失败:", err);
       if (err.code === "ECONNABORTED" || (err.message && err.message.includes("timeout"))) {
         ElMessage.error({ message: "请求超时，请检查网络后重试", duration: 5000 });
       } else if (err.response) {
@@ -635,14 +637,19 @@ const withdrawPlan = () => {
   )
     .then(() => {
       loading.value = true;
+      // 撤回前先停止旧轮询，避免撤回后旧轮询响应继续干扰状态
+      stopPolling();
+      generating.value = false;
+      generateStatusText.value = "";
       request
         .delete("/study-plan/" + formatDate(selectedDate.value))
         .then((res) => {
           if (res.code === "200") {
             ElMessage.success("撤回成功");
+            // 完整重置页面状态，恢复到"从未生成过"的初始态
             currentPlan.value = null;
-            // 重新获取一下（虽然已经置空，但为了保险起见，或者直接置空即可）
-            // fetchPlan(formatDate(selectedDate.value)); // 不需要，因为已经置空了
+            feedback.value = "";
+            taskList.value = [];
           } else {
             ElMessage.error(res.msg || "撤回失败");
           }

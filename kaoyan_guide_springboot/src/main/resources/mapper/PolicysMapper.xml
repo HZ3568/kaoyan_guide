@@ -9,6 +9,7 @@
         left join university on policys.university_id = university.id
         <where>
             <if test="name != null"> and policys.name like concat('%', #{name}, '%')</if>
+            <if test="intro != null"> and policys.intro like concat('%', #{intro}, '%')</if>
             <if test="universityId != null"> and policys.university_id = #{universityId}</if>
         </where>
         order by id desc

@@ -60,6 +60,18 @@ public class AdminAiController {
     // ==================== 学习规划管理 ====================
 
     /**
+     * 查询学习计划详情（含反馈、AI建议、任务列表）
+     */
+    @GetMapping("/studyPlan/detail")
+    public Result studyPlanDetail(@RequestParam Long planId) {
+        Map<String, Object> detail = service.getStudyPlanDetail(planId);
+        if (detail == null) {
+            return Result.error("计划不存在");
+        }
+        return Result.success(detail);
+    }
+
+    /**
      * 分页查询所有用户的学习计划
      */
     @GetMapping("/studyPlan/list")
