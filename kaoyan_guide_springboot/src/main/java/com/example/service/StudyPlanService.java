@@ -83,6 +83,12 @@ public class StudyPlanService {
         if (existingPlan != null && PLAN_STATUS_GENERATED.equalsIgnoreCase(existingPlan.getPlanStatus())) {
             throw new RuntimeException("今日计划已生成，请直接查看");
         }
+        // 防并发重复生成：若已有 PENDING 状态的计划，说明上一次生成请求尚未完成
+        if (existingPlan != null && PLAN_STATUS_PENDING.equalsIgnoreCase(existingPlan.getPlanStatus())) {
+            log.warn("[StudyPlan] 拒绝重复生成请求 userId={} date={} planId={} status=PENDING",
+                    userId, today, existingPlan.getId());
+            throw new RuntimeException("当前学习计划正在生成中，请勿重复提交");
+        }
         log.info("[StudyPlan] 生成开始 userId={} date={} 查旧计划cost={}ms hasOldPlan={}",
                 userId, today, t1 - t0, hasOldPlan);
 

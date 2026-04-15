@@ -100,7 +100,7 @@
             <el-menu-item index="/manager/ai/studyPlan">学习规划管理</el-menu-item>
           </el-sub-menu>
 
-          <!-- 考场模拟管理 -->
+          <!-- 考试练习管理模块 -->
           <el-sub-menu
             index="exam"
             v-if="data.user.role === 'ADMIN'"
@@ -109,10 +109,10 @@
               <el-icon>
                 <Document />
               </el-icon>
-              <span>考场模拟管理</span>
+              <span>考试练习管理</span>
             </template>
-            <el-menu-item index="/manager/exam/question">题库管理</el-menu-item>
-            <el-menu-item index="/manager/exam/examData">考试数据管理</el-menu-item>
+            <el-menu-item index="/manager/exam/question">每日一题管理</el-menu-item>
+            <el-menu-item index="/manager/exam/examData">模拟考试数据管理</el-menu-item>
           </el-sub-menu>
 
           <!-- 用户管理 -->

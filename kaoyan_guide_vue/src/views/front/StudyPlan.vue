@@ -400,7 +400,6 @@ const feedback = ref("");
 const loading = ref(false);
 const generating = ref(false);
 const generateStatusText = ref(""); // 生成阶段文案
-let pollTimer = null; // 轮询定时器句柄
 const taskActionLoading = ref(false);
 const daysLeft = ref(0);
 const addTaskDialogVisible = ref(false);
@@ -514,79 +513,45 @@ const refreshCurrentDatePlan = () => {
   return fetchPlan(formatDate(selectedDate.value));
 };
 
-// 停止轮询
-const stopPolling = () => {
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
+/**
+ * 超时回查机制：前端超时后，轮询查询今日计划详情
+ * 最多查询 MAX_FALLBACK_RETRIES 次，每次间隔 FALLBACK_INTERVAL_MS 毫秒
+ */
+const MAX_FALLBACK_RETRIES = 5;
+const FALLBACK_INTERVAL_MS = 1500;
+
+const pollPlanDetailForFallback = (dateStr, retriesLeft) => {
+  if (retriesLeft <= 0) {
+    // 全部回查失败，才是真正的失败
+    generating.value = false;
+    generateStatusText.value = "";
+    ElMessage.error({ message: "生成超时且未查到计划，请稍后重试", duration: 5000 });
+    return;
   }
-};
-
-// 轮询任务状态（最多轮询 90s，避免无限等待）
-const pollGenerateStatus = (taskId) => {
-  const phases = [
-    "已提交，等待处理...",
-    "正在分析最近学习记录...",
-    "正在生成今日学习计划...",
-    "正在保存任务清单...",
-  ];
-  let phaseIndex = 0;
-  let pollCount = 0;
-  const MAX_POLL = 45; // 2s * 45 = 90s 超时保护
-  generateStatusText.value = phases[0];
-
-  pollTimer = setInterval(() => {
-    // 超时保护：轮询次数超限则中止
-    pollCount++;
-    if (pollCount > MAX_POLL) {
-      stopPolling();
-      generating.value = false;
-      generateStatusText.value = "";
-      ElMessage.error({ message: "生成超时，请稍后重试或刷新页面查看结果", duration: 6000 });
-      return;
-    }
-
-    // 每隔几次切换阶段文案，让用户感知进度
-    phaseIndex = Math.min(phaseIndex + 1, phases.length - 1);
-    generateStatusText.value = phases[phaseIndex];
-
-    request
-      .get("/study-plan/generate-status/" + taskId)
-      .then((res) => {
-        if (res.code !== "200") {
-          stopPolling();
-          generating.value = false;
-          generateStatusText.value = "";
-          ElMessage.error({ message: res.msg || "查询任务状态失败", duration: 5000 });
-          return;
-        }
-        const data = res.data;
-        if (data.status === "SUCCESS") {
-          stopPolling();
-          generating.value = false;
-          generateStatusText.value = "";
-          ElMessage.success("生成成功！加油！");
-          feedback.value = "";
-          // 后端 SUCCESS 响应中直接附带了计划数据
-          if (data.plan) {
-            currentPlan.value = data.plan;
-          } else {
-            refreshCurrentDatePlan();
-          }
-        } else if (data.status === "FAILED") {
-          stopPolling();
-          generating.value = false;
-          generateStatusText.value = "";
-          const errMsg = data.message || "生成失败，请稍后重试";
-          ElMessage.error({ message: errMsg, duration: 6000 });
-        }
-        // PENDING / RUNNING 继续等待下一次轮询
-      })
-      .catch((err) => {
-        // 轮询本身的网络错误不立即停止，最多容忍几次
-        console.warn("轮询状态请求异常:", err);
-      });
-  }, 2000);
+  const tryCount = MAX_FALLBACK_RETRIES - retriesLeft + 1;
+  console.log(`[生成回查] 第${tryCount}次尝试查询今日计划: dateStr=${dateStr}`);
+  request
+    .get("/study-plan/" + dateStr)
+    .then((res) => {
+      if (res.code === "200" && res.data) {
+        // 回查命中，后端其实已经生成成功
+        console.log(`[生成回查] 第${tryCount}次成功命中计划 planId=${res.data.planId}`);
+        generating.value = false;
+        generateStatusText.value = "";
+        ElMessage.success("生成成功！加油！");
+        feedback.value = "";
+        currentPlan.value = res.data;
+      } else {
+        // 未查到计划，继续回查
+        console.log(`[生成回查] 第${tryCount}次未命中，${FALLBACK_INTERVAL_MS}ms 后重试...`);
+        setTimeout(() => pollPlanDetailForFallback(dateStr, retriesLeft - 1), FALLBACK_INTERVAL_MS);
+      }
+    })
+    .catch(() => {
+      // 查询详情也失败了，继续回查
+      console.log(`[生成回查] 第${tryCount}次查询异常，${FALLBACK_INTERVAL_MS}ms 后重试...`);
+      setTimeout(() => pollPlanDetailForFallback(dateStr, retriesLeft - 1), FALLBACK_INTERVAL_MS);
+    });
 };
 
 const generatePlan = () => {
@@ -596,30 +561,39 @@ const generatePlan = () => {
   }
   generating.value = true;
   generateStatusText.value = "正在生成，请稍候...";
+  const startTime = Date.now();
+  const todayStr = formatDate(selectedDate.value);
 
   request
-    .post("/study-plan/generate", { feedback: feedback.value })
+    .post("/study-plan/generate", { feedback: feedback.value }, { timeout: 180000 })
     .then((res) => {
+      const cost = Date.now() - startTime;
+      console.log(`[生成成功] 耗时=${cost}ms`);
       generating.value = false;
       generateStatusText.value = "";
       if (res.code === "200" && res.data) {
         ElMessage.success("生成成功！加油！");
-        currentPlan.value = res.data;
         feedback.value = "";
-        taskList.value = res.data.taskList || [];
+        refreshCurrentDatePlan();
       } else {
         ElMessage.error({ message: res.msg || "生成失败，请稍后重试", duration: 5000 });
       }
     })
     .catch((err) => {
-      generating.value = false;
-      generateStatusText.value = "";
-      console.error("生成失败:", err);
+      const cost = Date.now() - startTime;
+      console.error(`[生成失败] 耗时=${cost}ms code=${err.code} message=${err.message}`);
       if (err.code === "ECONNABORTED" || (err.message && err.message.includes("timeout"))) {
-        ElMessage.error({ message: "请求超时，请检查网络后重试", duration: 5000 });
+        // 前端超时，但后端可能还在处理 → 启动回查机制
+        console.log(`[生成超时] 前端超时(${cost}ms)，启动回查机制，最多${MAX_FALLBACK_RETRIES}次，每隔${FALLBACK_INTERVAL_MS}ms一次`);
+        generateStatusText.value = "生成超时，正在确认结果...";
+        setTimeout(() => pollPlanDetailForFallback(todayStr, MAX_FALLBACK_RETRIES), FALLBACK_INTERVAL_MS);
       } else if (err.response) {
+        generating.value = false;
+        generateStatusText.value = "";
         ElMessage.error({ message: "服务端异常（" + err.response.status + "），请稍后重试", duration: 5000 });
       } else {
+        generating.value = false;
+        generateStatusText.value = "";
         ElMessage.error({ message: "网络异常，请检查网络连接", duration: 5000 });
       }
     });
@@ -637,8 +611,6 @@ const withdrawPlan = () => {
   )
     .then(() => {
       loading.value = true;
-      // 撤回前先停止旧轮询，避免撤回后旧轮询响应继续干扰状态
-      stopPolling();
       generating.value = false;
       generateStatusText.value = "";
       request
@@ -928,7 +900,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (timer) clearInterval(timer);
-  stopPolling();
 });
 </script>
 

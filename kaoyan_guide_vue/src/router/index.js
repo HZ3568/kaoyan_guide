@@ -39,9 +39,9 @@ const router = createRouter({
         { path: 'ai/consultSession', meta: { name: '咨询会话管理' }, component: () => import('@/views/manager/ConsultSession.vue') },
         { path: 'ai/studyPlan', meta: { name: '学习规划管理' }, component: () => import('@/views/manager/StudyPlanManagement.vue') },
 
-        // ---------- 考场模拟管理（exam） ----------
-        { path: 'exam/question', meta: { name: '题库管理' }, component: () => import('@/views/manager/Question.vue') },
-        { path: 'exam/examData', meta: { name: '考试数据管理' }, component: () => import('@/views/manager/ExamData.vue') },
+        // ---------- 考试练习管理模块（exam） ----------
+        { path: 'exam/question', meta: { name: '每日一题管理' }, component: () => import('@/views/manager/Question.vue') },
+        { path: 'exam/examData', meta: { name: '模拟考试数据管理' }, component: () => import('@/views/manager/ExamData.vue') },
 
         // ---------- 用户管理（user） ----------
         { path: 'user/admin', meta: { name: '管理员信息' }, component: () => import('@/views/manager/Admin.vue') },
