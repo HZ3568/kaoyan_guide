@@ -1,5 +1,7 @@
 package com.example.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class Admin extends Account {
 
     /** 主键ID */
@@ -10,6 +12,7 @@ public class Admin extends Account {
     private String name;
     private String avatar;
     private String role;
+    private Integer status;
     private String phone;
     private String email;
 
@@ -29,6 +32,7 @@ public class Admin extends Account {
         this.username = username;
     }
 
+    @JsonIgnore
     public String getPassword() {
         return password;
     }
@@ -59,6 +63,14 @@ public class Admin extends Account {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
     }
 
     public String getPhone() {

@@ -6,7 +6,9 @@
     <select id="selectAll" resultType="com.example.entity.Admin">
         select * from `admin`
         <where>
-            <if test="name != null"> and name like concat('%', #{name}, '%')</if>
+            <if test="name != null and name != ''">
+                and (name like concat('%', #{name}, '%') or username like concat('%', #{name}, '%'))
+            </if>
         </where>
         order by id desc
     </select>
@@ -27,6 +29,7 @@
             <if test="email != null">email,</if>
             <if test="avatar != null">avatar,</if>
             <if test="role != null">role,</if>
+            <if test="status != null">status,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
@@ -37,6 +40,7 @@
             <if test="email != null">#{email},</if>
             <if test="avatar != null">#{avatar},</if>
             <if test="role != null">#{role},</if>
+            <if test="status != null">#{status},</if>
         </trim>
     </insert>
 
@@ -63,6 +67,9 @@
             </if>
             <if test="role != null">
                 role = #{role},
+            </if>
+            <if test="status != null">
+                status = #{status},
             </if>
         </set>
         where id = #{id}

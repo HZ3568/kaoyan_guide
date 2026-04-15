@@ -33,6 +33,30 @@ CREATE TABLE `admin`  (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '管理员信息' ROW_FORMAT = DYNAMIC;
 
+
+-- CREATE TABLE `user` (
+--   `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '用户唯一标识',
+--   `username` VARCHAR(255) NOT NULL COMMENT '用户登录账号',
+--   `password` VARCHAR(255) NOT NULL COMMENT '登录密码（加密存储）',
+--   `name` VARCHAR(255) DEFAULT NULL COMMENT '用户姓名',
+--   `avatar` VARCHAR(255) DEFAULT NULL COMMENT '用户头像URL',
+--   `role` VARCHAR(50) NOT NULL COMMENT '用户角色',
+--   `phone` VARCHAR(20) DEFAULT NULL COMMENT '联系电话',
+--   `email` VARCHAR(255) DEFAULT NULL COMMENT '电子邮箱',
+--   `status` INT NOT NULL DEFAULT 1 COMMENT '账号状态：1正常，0禁用'
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- CREATE TABLE `admin` (
+--   `id` INT PRIMARY KEY AUTO_INCREMENT COMMENT '管理员唯一标识',
+--   `username` VARCHAR(255) NOT NULL COMMENT '管理员登录账号',
+--   `password` VARCHAR(255) NOT NULL COMMENT '登录密码（加密存储）',
+--   `name` VARCHAR(255) DEFAULT NULL COMMENT '管理员姓名',
+--   `avatar` VARCHAR(255) DEFAULT NULL COMMENT '头像URL',
+--   `role` VARCHAR(50) NOT NULL COMMENT '管理员角色类型',
+--   `phone` VARCHAR(20) DEFAULT NULL COMMENT '联系电话',
+--   `email` VARCHAR(255) DEFAULT NULL COMMENT '电子邮箱'
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- ----------------------------
 -- Table structure for areas
 -- ----------------------------

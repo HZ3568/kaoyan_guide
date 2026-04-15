@@ -311,8 +311,22 @@ const ensureChatSessionId = (chat) => {
   return chat.sessionId;
 };
 
-const loadChatsFromLocalStorage = () => {
-  const savedChats = localStorage.getItem("consult-college-ai-chats");
+const getStorageKey = (userId) =>
+  userId ? `consult-college-ai-chats-${userId}` : null;
+
+const getCurrentUserId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("xm-user") || "{}");
+    return user.id || user.user?.id || null;
+  } catch {
+    return null;
+  }
+};
+
+const loadChatsFromLocalStorage = (userId) => {
+  const key = getStorageKey(userId);
+  if (!key) return null;
+  const savedChats = localStorage.getItem(key);
   if (savedChats) {
     try {
       const parsedChats = JSON.parse(savedChats);
@@ -329,31 +343,36 @@ const loadChatsFromLocalStorage = () => {
   return null;
 };
 
-const chats = ref(
-  loadChatsFromLocalStorage() || [
-    {
-      id: Date.now(),
-      sessionId: createSessionId(),
-      title: "新的咨询会话",
-      messages: [
-        {
-          id: Date.now(),
-          role: "assistant",
-          text: "你好！我是你的考研院校咨询助手。我可以帮你查询院校信息、分析录取数据、规划备考方案。请告诉我你想了解什么？",
-          displayedText:
-            "你好！我是你的考研院校咨询助手。我可以帮你查询院校信息、分析录取数据、规划备考方案。请告诉我你想了解什么？",
-          timestamp: new Date().toISOString(),
-        },
-      ],
-    },
-  ]
-);
+const currentUserId = computed(() => getCurrentUserId());
+
+const defaultChats = [
+  {
+    id: Date.now(),
+    sessionId: createSessionId(),
+    title: "新的咨询会话",
+    messages: [
+      {
+        id: Date.now(),
+        role: "assistant",
+        text: "你好！我是你的考研院校咨询助手。我可以帮你查询院校信息、分析录取数据、规划备考方案。请告诉我你想了解什么？",
+        displayedText:
+          "你好！我是你的考研院校咨询助手。我可以帮你查询院校信息、分析录取数据、规划备考方案。请告诉我你想了解什么？",
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  },
+];
+
+const chats = ref(loadChatsFromLocalStorage(currentUserId.value) || [...defaultChats]);
 
 const currentChatIndex = ref(0);
 const currentChat = computed(() => chats.value[currentChatIndex.value]);
 
-const saveChatsToLocalStorage = () => {
-  localStorage.setItem("consult-college-ai-chats", JSON.stringify(chats.value));
+const saveChatsToLocalStorage = (userId) => {
+  const key = getStorageKey(userId);
+  if (key) {
+    localStorage.setItem(key, JSON.stringify(chats.value));
+  }
 };
 
 const editingChatId = ref(null);
@@ -375,7 +394,7 @@ function confirmRename(chat) {
   const newTitle = (editingTitle.value || "").trim();
   if (newTitle) {
     chat.title = newTitle;
-    saveChatsToLocalStorage();
+    saveChatsToLocalStorage(currentUserId.value);
     ElMessage.success("会话名称已更新");
   }
   editingChatId.value = null;
@@ -403,7 +422,7 @@ async function requestDeleteChat(index) {
     } else if (currentChatIndex.value >= chats.value.length) {
       currentChatIndex.value = chats.value.length - 1;
     }
-    saveChatsToLocalStorage();
+    saveChatsToLocalStorage(currentUserId.value);
     ElMessage.success("已删除");
   } catch (e) {
     // cancelled
@@ -440,7 +459,7 @@ let saveTimer = null;
 function scheduleSaveChats() {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    saveChatsToLocalStorage();
+    saveChatsToLocalStorage(currentUserId.value);
     saveTimer = null;
   }, 300);
 }
@@ -529,7 +548,7 @@ async function sendMessage() {
   const assistantMsg =
     currentChat.value.messages[currentChat.value.messages.length - 1];
   scrollToBottom();
-  saveChatsToLocalStorage();
+  saveChatsToLocalStorage(currentUserId.value);
 
   let timeoutId = null;
   let pendingText = "";
@@ -641,7 +660,7 @@ async function sendMessage() {
     assistantMsg.isStreaming = false;
     controller.value = null;
     scheduleScrollToBottom();
-    saveChatsToLocalStorage();
+    saveChatsToLocalStorage(currentUserId.value);
   }
 }
 
@@ -662,7 +681,7 @@ function createNewChat() {
     ],
   });
   currentChatIndex.value = chats.value.length - 1;
-  saveChatsToLocalStorage();
+  saveChatsToLocalStorage(currentUserId.value);
   scrollToBottom();
 }
 
@@ -716,10 +735,19 @@ function formatTime(timestamp) {
 watch(
   chats,
   () => {
-    saveChatsToLocalStorage();
+    saveChatsToLocalStorage(currentUserId.value);
   },
   { deep: true }
 );
+
+// 用户切换时重新加载属于当前用户的会话
+watch(currentUserId, (newId, oldId) => {
+  if (newId !== oldId) {
+    const loaded = loadChatsFromLocalStorage(newId);
+    chats.value = loaded || [...defaultChats];
+    currentChatIndex.value = 0;
+  }
+});
 </script>
 
 <style scoped>

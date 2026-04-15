@@ -1,7 +1,7 @@
 <template>
   <div style="width: 40%; margin: 20px auto; min-height: 100vh">
     <div class="card">
-      <el-form ref="user" :model="data.user" label-width="60px" style="padding: 20px">
+      <el-form ref="formRef" :model="data.user" :rules="data.rules" label-width="60px" style="padding: 20px">
         <div style="text-align: center; margin-bottom: 20px">
           <el-upload
               :action="baseUrl + '/files/upload'"
@@ -20,10 +20,10 @@
           <el-input v-model="data.user.name" placeholder="请输入姓名"></el-input>
         </el-form-item>
         <el-form-item prop="phone" label="电话">
-          <el-input v-model="data.user.phone" placeholder="请输入电话"></el-input>
+          <el-input v-model="data.user.phone" placeholder="请输入11位数字电话" maxlength="11"></el-input>
         </el-form-item>
         <el-form-item prop="email" label="邮箱">
-          <el-input v-model="data.user.email" placeholder="请输入邮箱"></el-input>
+          <el-input v-model="data.user.email" placeholder="请输入标准格式邮箱"></el-input>
         </el-form-item>
         <div style="text-align: center">
           <el-button type="primary" @click="update">保 存</el-button>
@@ -34,15 +34,25 @@
 </template>
 
 <script setup>
-import { reactive } from "vue";
+import { reactive, ref } from "vue";
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
+import {Plus} from "@element-plus/icons-vue";
 import defaultAvatar from "@/assets/imgs/avatar.png";
 
 const baseUrl = import.meta.env.VITE_BASE_URL
+const formRef = ref()
 
 const data = reactive({
-  user: JSON.parse(localStorage.getItem('xm-user') || '{}')
+  user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
+  rules: {
+    phone: [
+      { pattern: /^\d{11}$/, message: "电话必须为11位数字", trigger: "blur" }
+    ],
+    email: [
+      { pattern: /^[\w.-]+@[\w.-]+\.\w+$/, message: "邮箱格式不正确", trigger: "blur" }
+    ],
+  }
 })
 
 const handleFileUpload = (res) => {
@@ -55,7 +65,8 @@ const handleAvatarError = (event) => {
 
 const emit = defineEmits(['updateUser'])
 const update = () => {
-  if (data.user.role === 'USER') {
+  formRef.value.validate(valid => {
+    if (!valid) return
     request.put('/user/update', data.user).then(res => {
       if (res.code === '200') {
         ElMessage.success('保存成功')
@@ -65,7 +76,7 @@ const update = () => {
         ElMessage.error(res.msg)
       }
     })
-  }
+  })
 }
 </script>
 

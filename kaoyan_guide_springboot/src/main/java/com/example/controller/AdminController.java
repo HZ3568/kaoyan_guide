@@ -10,7 +10,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 前端请求接口
+ * 管理员接口
+ *
+ * 安全设计说明：
+ * 系统仅设"管理员"单一后台角色，不设超级管理员。
+ * 为防止管理员之间越权管理，管理员账号由系统维护者直接在数据库层管理，
+ * 后台仅开放查看功能，关闭新增/编辑/删除接口。
  */
 @RestController
 @RequestMapping("/admin")
@@ -18,42 +23,6 @@ public class AdminController {
 
     @Resource
     private AdminService adminService;
-
-    /**
-     * 新增
-     */
-    @PostMapping("/add")
-    public Result add(@RequestBody Admin admin) {
-        adminService.add(admin);
-        return Result.success();
-    }
-
-    /**
-     * 修改
-     */
-    @PutMapping("/update")
-    public Result update(@RequestBody Admin admin) {
-        adminService.updateById(admin);
-        return Result.success();
-    }
-
-    /**
-     * 单个删除
-     */
-    @DeleteMapping("/delete/{id}")
-    public Result delete(@PathVariable Integer id) {
-        adminService.deleteById(id);
-        return Result.success();
-    }
-
-    /**
-     * 批量删除
-     */
-    @DeleteMapping("/delete/batch")
-    public Result delete(@RequestBody List<Integer> ids) {
-        adminService.deleteBatch(ids);
-        return Result.success();
-    }
 
     /**
      * 单个查询
