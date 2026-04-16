@@ -9,7 +9,9 @@
       "Bash(iconv -f UTF-8 -t UTF-8 -c StudyPlanController.java)",
       "Bash(mv StudyPlanController.java.tmp StudyPlanController.java)",
       "Bash(mvn compile -q)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(git fetch *)",
+      "Bash(git ls-tree *)"
     ],
     "additionalDirectories": [
       "\\tmp"
