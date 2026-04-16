@@ -38,7 +38,7 @@
             <div style="display: flex; align-items: center">
               <img
                 style="width: 40px; height: 40px; border-radius: 50%"
-                :src="data.user.avatar"
+                :src="data.user.avatar || defaultAvatar"
                 @error="handleAvatarError"
                 alt=""
               />

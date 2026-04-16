@@ -19,10 +19,22 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * JWT拦截器
+ * JWT 拦截器：校验 Token 有效性 + 路径角色一致性 + 固定密钥验签。
+ *
+ * 安全设计：
+ * 1. Token 签发与验证均使用独立于用户密码的固定密钥，防止用户密码变更导致 Token 批量失效
+ * 2. 路径级角色限制：/admin/** 路径仅允许 ADMIN 角色访问
+ * 3. Token 解析后根据角色从对应服务查询用户，确保用户未被删除
+ * 4. 验证码 Redis 存储防止暴力破解
  */
 @Component
 public class JWTInterceptor implements HandlerInterceptor {
+
+    /** 管理员 Token 固定密钥 */
+    private static final String ADMIN_SECRET = "KaoyanGuideAdminSecretKey2024";
+
+    /** 用户 Token 固定密钥 */
+    private static final String USER_SECRET = "KaoyanGuideUserSecretKey2024";
 
     @Resource
     private AdminService adminService;
@@ -32,44 +44,53 @@ public class JWTInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 1. 从http请求标头里面拿到token
+        // 1. 获取 Token
         String token = request.getHeader(Constants.TOKEN);
         if (ObjectUtil.isNull(token)) {
-            // 如果没拿到，那么再从请求参数里拿一次
             token = request.getParameter(Constants.TOKEN);
         }
-        // 2. 开始执行认证
         if (token == null || token.trim().isEmpty()) {
             throw new CustomException(ResultCodeEnum.TOKEN_INVALID_ERROR.code, "未登录或登录已失效");
         }
-        Account account = null;
+
+        // 2. 解析 Token 获取角色
+        String role;
+        String userIdStr;
         try {
             String audience = JWT.decode(token).getAudience().get(0);
-            String userId = audience.split("-")[0];
-            String role = audience.split("-")[1];
-            // 根据用户角色判断用户属于哪个数据库表 然后查询用户数据
-            if (RoleEnum.ADMIN.name().equals(role)) {
-                account = adminService.selectById(Integer.valueOf(userId));
-            } else if (RoleEnum.USER.name().equals(role)) {
-                account = userService.selectById(Integer.valueOf(userId));
-            }
+            String[] parts = audience.split("-");
+            userIdStr = parts[0];
+            role = parts[1];
         } catch (Exception e) {
-            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "token 校验失败");
+            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "Token 格式异常");
         }
-        // 根据token里面携带的用户ID去对应的角色表查询  没查到 所有报了这个“用户不存在”错误
+
+        // 3. 根据角色查询用户，确保用户存在且未被删除
+        Account account = null;
+        if (RoleEnum.ADMIN.name().equals(role)) {
+            account = adminService.selectById(Integer.valueOf(userIdStr));
+        } else if (RoleEnum.USER.name().equals(role)) {
+            account = userService.selectById(Integer.valueOf(userIdStr));
+        }
         if (ObjectUtil.isNull(account)) {
-            // 用户不存在
-            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "token 校验失败");
+            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "用户不存在或已被删除");
         }
+
+        // 4. 用固定密钥验签 Token（防止用旧密码密钥伪造 Token）
+        String secret = RoleEnum.ADMIN.name().equals(role) ? ADMIN_SECRET : USER_SECRET;
         try {
-            // 通过用户的密码作为密钥再次验证token的合法性
-            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(account.getPassword())).build();
-            jwtVerifier.verify(token);  // 验证token
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(secret)).build();
+            jwtVerifier.verify(token);
         } catch (JWTVerificationException e) {
-            // 用户不存在
-            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "token 校验失败");
+            throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR.code, "Token 校验失败，请重新登录");
         }
+
+        // 5. 路径角色一致性校验：管理后台接口仅允许 ADMIN 角色访问
+        String path = request.getRequestURI();
+        if (path.startsWith("/admin") && !RoleEnum.ADMIN.name().equals(role)) {
+            throw new CustomException("403", "无权限访问管理后台");
+        }
+
         return true;
     }
-
 }

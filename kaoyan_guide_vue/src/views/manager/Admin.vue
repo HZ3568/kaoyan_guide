@@ -1,204 +1,188 @@
 <template>
   <div>
-    <div class="card" style="margin-bottom: 5px">
-      <el-input v-model="data.name" style="width: 240px; margin-right: 10px" placeholder="请输入名称查询"></el-input>
-      <el-button type="info" plain @click="load">查询</el-button>
-      <el-button type="warning" plain style="margin: 0 10px" @click="reset">重置</el-button>
-    </div>
-    <div class="card" style="margin-bottom: 5px">
-      <el-button type="primary" plain @click="handleAdd">新增</el-button>
-      <el-button type="danger" plain @click="delBatch">批量删除</el-button>
-    </div>
-
-    <div class="card" style="margin-bottom: 5px">
-      <el-table stripe :data="data.tableData" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="username" label="账号" />
-        <el-table-column prop="avatar" label="头像">
-          <template v-slot="scope">
-            <el-image style="width: 40px; height: 40px; border-radius: 50%; display: block" v-if="scope.row.avatar"
-                      :src="scope.row.avatar" :preview-src-list="[scope.row.avatar]" preview-teleported>
-              <template #error>
-                <img :src="defaultAvatar" style="width: 40px; height: 40px; border-radius: 50%; display: block" alt="">
-              </template>
-            </el-image>
-          </template>
-        </el-table-column>
-        <el-table-column prop="name" label="姓名" />
-        <el-table-column prop="role" label="角色" />
-        <el-table-column prop="phone" label="电话" />
-        <el-table-column prop="email" label="邮箱" />
-        <el-table-column label="操作" width="100" fixed="right">
-          <template v-slot="scope">
-            <el-button type="primary" circle :icon="Edit" @click="handleEdit(scope.row)"></el-button>
-            <el-button type="danger" circle :icon="Delete" @click="del(scope.row.id)"></el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
-    <div class="card" v-if="data.total">
-      <el-pagination @current-change="load" background layout="total, prev, pager, next" :page-size="data.pageSize" v-model:current-page="data.pageNum" :total="data.total" />
+    <!-- 工具栏 -->
+    <div class="card toolbar-card">
+      <el-input
+        v-model="data.name"
+        style="width: 200px"
+        placeholder="请输入姓名或用户名"
+        clearable
+      />
+      <el-button type="primary" @click="load">查询</el-button>
+      <el-button @click="reset">重置</el-button>
     </div>
 
-    <el-dialog title="管理员信息" v-model="data.formVisible" width="40%" destroy-on-close>
-      <el-form ref="formRef" :rules="data.rules" :model="data.form" label-width="70px" style="padding: 20px">
-        <el-form-item prop="username" label="账号">
-          <el-input v-model="data.form.username" placeholder="请输入账号" :disabled="data.form.id !== undefined"></el-input>
-        </el-form-item>
-        <el-form-item prop="avatar" label="头像">
-          <el-upload
-              :action="baseUrl + '/files/upload'"
-              :on-success="handleFileUpload"
-              list-type="picture"
+    <!-- 管理员卡片列表 -->
+    <div class="card admin-card">
+      <div
+        v-for="admin in data.tableData"
+        :key="admin.id"
+        class="admin-item"
+      >
+        <div class="admin-left">
+          <el-avatar :size="48" :src="admin.avatar || defaultAvatar" />
+          <div class="admin-info">
+            <div class="admin-name-row">
+              <span class="admin-name">{{ admin.name || admin.username }}</span>
+              <el-tag size="small" type="warning">管理员</el-tag>
+              <el-tag
+                size="small"
+                :type="admin.status === 1 ? 'success' : 'danger'"
               >
-            <el-button type="primary">点击上传</el-button>
-          </el-upload>
-        </el-form-item>
-        <el-form-item prop="name" label="姓名">
-          <el-input v-model="data.form.name" placeholder="请输入姓名"></el-input>
-        </el-form-item>
-        <el-form-item prop="phone" label="电话">
-          <el-input v-model="data.form.phone" placeholder="请输入电话"></el-input>
-        </el-form-item>
-        <el-form-item prop="email" label="邮箱">
-          <el-input v-model="data.form.email" placeholder="请输入邮箱"></el-input>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="data.formVisible = false">取 消</el-button>
-          <el-button type="primary" @click="save">确 定</el-button>
-        </span>
-      </template>
-    </el-dialog>
+                {{ admin.status === 1 ? '正常' : '禁用' }}
+              </el-tag>
+            </div>
+            <div class="admin-detail">
+              <span class="detail-item">
+                <el-icon><User /></el-icon>
+                {{ admin.username }}
+              </span>
+              <span class="detail-item" v-if="admin.phone">
+                <el-icon><Phone /></el-icon>
+                {{ admin.phone }}
+              </span>
+              <span class="detail-item" v-if="admin.email" :title="admin.email">
+                <el-icon><Message /></el-icon>
+                {{ admin.email.length > 22 ? admin.email.slice(0, 22) + '…' : admin.email }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <el-empty
+        v-if="data.tableData.length === 0"
+        description="暂无管理员数据"
+      />
+    </div>
+
+    <!-- 分页 -->
+    <div class="card pagination-card" v-if="data.total > 0">
+      <el-pagination
+        @current-change="load"
+        background
+        layout="total, prev, pager, next"
+        :page-size="data.pageSize"
+        :current-page="data.pageNum"
+        :total="data.total"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
-
-import {reactive, ref} from "vue";
+import { reactive } from "vue";
+import { User, Phone, Message } from "@element-plus/icons-vue";
 import request from "@/utils/request.js";
-import {ElMessage, ElMessageBox} from "element-plus";
-import {Delete, Edit} from "@element-plus/icons-vue";
 import defaultAvatar from "@/assets/imgs/avatar.png";
 
-const baseUrl = import.meta.env.VITE_BASE_URL
-const formRef = ref()
 const data = reactive({
-  formVisible: false,
-  form: {},
   tableData: [],
   pageNum: 1,
   pageSize: 10,
   total: 0,
   name: null,
-  ids: [],
-  rules: {
-    username: [
-      { required: true, message: '请输入账号', trigger: 'blur' },
-    ],
-    name: [
-      { required: true, message: '请输入姓名', trigger: 'blur' },
-    ],
-  },
-})
+});
 
 const load = () => {
-  request.get('/admin/selectPage', {
+  request.get("/admin/selectPage", {
     params: {
       pageNum: data.pageNum,
       pageSize: data.pageSize,
-      name: data.name
+      name: data.name,
+    },
+  }).then((res) => {
+    if (res.code === "200") {
+      data.tableData = res.data?.list || [];
+      data.total = res.data?.total || 0;
     }
-  }).then(res => {
-    if (res.code === '200') {
-      data.tableData = res.data?.list || []
-      data.total = res.data?.total
-    }
-  })
-}
-const handleAdd = () => {
-  data.form = {}
-  data.formVisible = true
-}
-const handleEdit = (row) => {
-  data.form = JSON.parse(JSON.stringify(row))
-  data.formVisible = true
-}
-const add = () => {
-  request.post('/admin/add', data.form).then(res => {
-    if (res.code === '200') {
-      ElMessage.success('操作成功')
-      data.formVisible = false
-      load()
-    } else {
-      ElMessage.error(res.msg)
-    }
-  })
-}
-
-const update = () => {
-  request.put('/admin/update', data.form).then(res => {
-    if (res.code === '200') {
-      ElMessage.success('操作成功')
-      data.formVisible = false
-      load()
-    }
-  })
-}
-
-const save = () => {
-  formRef.value.validate(valid => {
-    if (valid) {
-      data.form.id ? update() : add()
-    }
-  })
-}
-
-const del = (id) => {
-  ElMessageBox.confirm('删除后数据无法恢复，您确定删除吗？', '删除确认', { type: 'warning' }).then(res => {
-    request.delete('/admin/delete/' + id).then(res => {
-      if (res.code === '200') {
-        ElMessage.success("删除成功")
-        load()
-      } else {
-        ElMessage.error(res.msg)
-      }
-    })
-  }).catch(err => {
-    console.error(err)
-  })
-}
-const delBatch = () => {
-  if (!data.ids.length) {
-    ElMessage.warning("请选择数据")
-    return
-  }
-  ElMessageBox.confirm('删除后数据无法恢复，您确定删除吗？', '删除确认', { type: 'warning' }).then(res => {
-    request.delete("/admin/delete/batch", {data: data.ids}).then(res => {
-      if (res.code === '200') {
-        ElMessage.success('操作成功')
-        load()
-      } else {
-        ElMessage.error(res.msg)
-      }
-    })
-  }).catch(err => {
-    console.error(err)
-  })
-}
-const handleSelectionChange = (rows) => {
-  data.ids = rows.map(v => v.id)
-}
-
-const handleFileUpload = (res) => {
-  data.form.avatar = res.data
-}
+  });
+};
 
 const reset = () => {
-  data.name = null
-  load()
+  data.name = null;
+  data.pageNum = 1;
+  load();
+};
+
+load();
+</script>
+
+<style scoped>
+.toolbar-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
 }
 
-load()
-</script>
+.admin-card {
+  padding: 4px 0;
+}
+
+.admin-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.admin-item:last-child {
+  border-bottom: none;
+}
+
+.admin-item:hover {
+  background-color: #fafafa;
+}
+
+.admin-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.admin-detail {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.pagination-card {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+}
+</style>

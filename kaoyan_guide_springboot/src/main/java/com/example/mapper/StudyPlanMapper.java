@@ -2,16 +2,11 @@ package com.example.mapper;
 
 import com.example.entity.DailyStudyPlan;
 import com.example.entity.StudyPlanTask;
-import org.apache.ibatis.annotations.Delete;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Options;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface StudyPlanMapper {
@@ -49,6 +44,17 @@ public interface StudyPlanMapper {
                         "VALUES (#{taskId}, #{planId}, #{subject}, #{content}, #{completed}, #{taskSource}, #{sortNo}, #{createTime}, #{updateTime})")
         void insertTask(StudyPlanTask task);
 
+        /**
+         * 批量插入任务（用于 replacePlanTasks 减少 N 次 DB 调用）
+         */
+        @Insert("<script>" +
+                "INSERT INTO study_plan_task (task_id, plan_id, subject, content, completed, task_source, sort_no, create_time, update_time) VALUES " +
+                "<foreach collection='tasks' item='t' separator=','>" +
+                "(#{t.taskId}, #{t.planId}, #{t.subject}, #{t.content}, #{t.completed}, #{t.taskSource}, #{t.sortNo}, #{t.createTime}, #{t.updateTime})" +
+                "</foreach>" +
+                "</script>")
+        void batchInsertTasks(@Param("tasks") List<StudyPlanTask> tasks);
+
         @Select("SELECT * FROM study_plan_task WHERE plan_id = #{planId} ORDER BY sort_no ASC, id ASC")
         List<StudyPlanTask> selectTasksByPlanId(@Param("planId") Long planId);
 
@@ -81,7 +87,7 @@ public interface StudyPlanMapper {
         @Update("UPDATE study_plan_task SET subject = #{subject}, content = #{content} " +
                         "WHERE plan_id = #{planId} AND task_id = #{taskId}")
         int updateTaskByPlanIdAndTaskId(@Param("planId") Long planId, @Param("taskId") String taskId,
-                        @Param("subject") String subject, @Param("src/main/uploads/content") String content);
+                        @Param("subject") String subject, @Param("content") String content);
 
         @Update("UPDATE study_plan SET user_feedback = #{userFeedback}, ai_advice = #{aiAdvice}, plan_status = #{planStatus}, update_time = #{updateTime} WHERE id = #{id}")
         int updatePlanCoreById(DailyStudyPlan plan);
@@ -89,6 +95,15 @@ public interface StudyPlanMapper {
         @Update("UPDATE study_plan SET plan_status = #{planStatus}, update_time = #{updateTime} WHERE id = #{id}")
         int updatePlanStatusById(@Param("id") Long id, @Param("planStatus") String planStatus,
                         @Param("updateTime") java.time.LocalDateTime updateTime);
+
+        /**
+         * 根据 planId 统计任务数量和完成数量，回写主表状态
+         */
+        @Select("SELECT COUNT(*) FROM study_plan_task WHERE plan_id = #{planId}")
+        int countTasksByPlanId(@Param("planId") Long planId);
+
+        @Select("SELECT COUNT(*) FROM study_plan_task WHERE plan_id = #{planId} AND completed = 1")
+        int countCompletedTasksByPlanId(@Param("planId") Long planId);
 
         @Update("UPDATE study_plan_task SET completed = #{completed} " +
                         "WHERE plan_id = #{planId} AND task_id = #{taskId}")
@@ -108,4 +123,51 @@ public interface StudyPlanMapper {
 
         @Delete("DELETE FROM study_plan_task WHERE plan_id = #{planId}")
         void deleteTasksByPlanId(@Param("planId") Long planId);
+
+        // ==================== 管理员接口 ====================
+
+        /**
+         * 查询所有用户的学习计划（分页）
+         * 显式别名保证 MyBatis 返回 camelCase 键名，与前端字段一致
+         */
+        @Select("SELECT p.id AS planId, p.user_id AS userId, p.plan_date AS planDate, " +
+                "p.user_feedback AS userFeedback, p.ai_advice AS aiAdvice, " +
+                "p.plan_status AS planStatus, " +
+                "p.create_time AS createTime, p.update_time AS updateTime, " +
+                "u.name AS userName " +
+                "FROM study_plan p LEFT JOIN user u ON p.user_id = u.id " +
+                "ORDER BY p.plan_date DESC")
+        List<Map<String, Object>> selectAllAdminPaged();
+
+        /**
+         * 根据 ID 查询单条计划（含完整字段，用于管理员详情）
+         */
+        @Select("SELECT p.id AS planId, p.user_id AS userId, p.plan_date AS planDate, " +
+                "p.user_feedback AS userFeedback, p.ai_advice AS aiAdvice, " +
+                "p.plan_status AS planStatus, " +
+                "p.create_time AS createTime, p.update_time AS updateTime, " +
+                "u.name AS userName " +
+                "FROM study_plan p LEFT JOIN user u ON p.user_id = u.id " +
+                "WHERE p.id = #{planId}")
+        Map<String, Object> selectAdminDetailById(@Param("planId") Long planId);
+
+        /**
+         * 查询所有用户的学习计划总数
+         */
+        @Select("SELECT COUNT(*) FROM study_plan")
+        long countAllAdmin();
+
+        /**
+         * 管理员删除指定用户指定日期的计划
+         */
+        @Delete("DELETE FROM study_plan WHERE user_id = #{userId} AND plan_date = #{date}")
+        void deleteByDateAdmin(@Param("userId") Integer userId, @Param("date") LocalDate date);
+
+        /**
+         * 管理员修改任务完成状态
+         */
+        @Update("UPDATE study_plan_task SET completed = #{completed}, update_time = NOW() " +
+                "WHERE plan_id = #{planId} AND task_id = #{taskId}")
+        int updateTaskCompletedAdmin(@Param("planId") Long planId, @Param("taskId") String taskId,
+                        @Param("completed") Boolean completed);
 }

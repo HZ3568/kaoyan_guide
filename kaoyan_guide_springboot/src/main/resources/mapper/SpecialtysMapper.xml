@@ -32,12 +32,22 @@
             <if test="categorysId != null">categorys_id,</if>
             <if test="name != null">name,</if>
             <if test="specialtyNumber != null">specialty_number,</if>
+            <if test="intro != null">intro,</if>
+            <if test="trainingObjective != null">training_objective,</if>
+            <if test="mainCourses != null">main_courses,</if>
+            <if test="employmentDirection != null">employment_direction,</if>
+            <if test="officialSourceUrl != null">official_source_url,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
             <if test="categorysId != null">#{categorysId},</if>
             <if test="name != null">#{name},</if>
             <if test="specialtyNumber != null">#{specialtyNumber},</if>
+            <if test="intro != null">#{intro},</if>
+            <if test="trainingObjective != null">#{trainingObjective},</if>
+            <if test="mainCourses != null">#{mainCourses},</if>
+            <if test="employmentDirection != null">#{employmentDirection},</if>
+            <if test="officialSourceUrl != null">#{officialSourceUrl},</if>
         </trim>
     </insert>
 
@@ -53,8 +63,23 @@
             <if test="specialtyNumber != null">
                 specialty_number = #{specialtyNumber},
             </if>
+            <if test="intro != null">
+                intro = #{intro},
+            </if>
+            <if test="trainingObjective != null">
+                training_objective = #{trainingObjective},
+            </if>
+            <if test="mainCourses != null">
+                main_courses = #{mainCourses},
+            </if>
+            <if test="employmentDirection != null">
+                employment_direction = #{employmentDirection},
+            </if>
+            <if test="officialSourceUrl != null">
+                official_source_url = #{officialSourceUrl},
+            </if>
         </set>
-        where id = #{id} 
+        where id = #{id}
     </update>
 
 </mapper>

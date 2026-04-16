@@ -186,9 +186,23 @@ const ensureChatSessionId = (chat) => {
   return chat.sessionId;
 };
 
+const getStorageKey = (userId) =>
+  userId ? `consult-college-ai-chats-${userId}` : null;
+
+const getCurrentUserId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("xm-user") || "{}");
+    return user.id || user.user?.id || null;
+  } catch {
+    return null;
+  }
+};
+
 // 从本地存储加载聊天记录
-const loadChatsFromLocalStorage = () => {
-  const savedChats = localStorage.getItem("consult-college-ai-chats");
+const loadChatsFromLocalStorage = (userId) => {
+  const key = getStorageKey(userId);
+  if (!key) return null;
+  const savedChats = localStorage.getItem(key);
   if (savedChats) {
     try {
       const parsedChats = JSON.parse(savedChats);
@@ -205,24 +219,28 @@ const loadChatsFromLocalStorage = () => {
   return null;
 };
 
+const currentUserId = computed(() => getCurrentUserId());
+
+const defaultChats = [
+  {
+    id: Date.now(),
+    sessionId: createSessionId(),
+    title: "院校咨询",
+    messages: [
+      {
+        id: Date.now(),
+        role: "assistant",
+        text: "你好，我是院校咨询助手！请问有什么可以帮到你？",
+        displayedText: "你好，我是院校咨询助手！请问有什么可以帮到你？",
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  },
+];
+
 // 初始化聊天记录
 const chats = ref(
-  loadChatsFromLocalStorage() || [
-    {
-      id: Date.now(),
-      sessionId: createSessionId(),
-      title: "院校咨询",
-      messages: [
-        {
-          id: Date.now(),
-          role: "assistant",
-          text: "你好，我是院校咨询助手！请问有什么可以帮到你？",
-          displayedText: "你好，我是院校咨询助手！请问有什么可以帮到你？",
-          timestamp: new Date().toISOString(),
-        },
-      ],
-    },
-  ]
+  loadChatsFromLocalStorage(currentUserId.value) || [...defaultChats]
 );
 
 const currentChatIndex = ref(0);
@@ -238,8 +256,11 @@ const floatingInputStyle = computed(() => ({
 }));
 
 // 保存聊天记录到本地存储
-const saveChatsToLocalStorage = () => {
-  localStorage.setItem("consult-college-ai-chats", JSON.stringify(chats.value));
+const saveChatsToLocalStorage = (userId) => {
+  const key = getStorageKey(userId);
+  if (key) {
+    localStorage.setItem(key, JSON.stringify(chats.value));
+  }
 };
 
 // 重命名与删除：编辑状态
@@ -270,7 +291,7 @@ function confirmRename(chat) {
   chat.title = newTitle;
   editingChatId.value = null;
   editingTitle.value = "";
-  saveChatsToLocalStorage();
+  saveChatsToLocalStorage(currentUserId.value);
   ElMessage.success("名称已更新");
 }
 
@@ -308,7 +329,7 @@ async function requestDeleteChat(index) {
       }
     }
 
-    saveChatsToLocalStorage();
+    saveChatsToLocalStorage(currentUserId.value);
     ElMessage.success("已删除");
   } catch (e) {
     // 用户取消
@@ -408,7 +429,7 @@ async function sendMessage() {
   scrollToBottom();
 
   // 保存聊天记录
-  saveChatsToLocalStorage();
+  saveChatsToLocalStorage(currentUserId.value);
 
   try {
     // 添加调试输出，帮助定位问题
@@ -491,7 +512,7 @@ async function sendMessage() {
            scrollToBottom();
         }
       }
-      saveChatsToLocalStorage();
+      saveChatsToLocalStorage(currentUserId.value);
     }
     
     // 处理剩余 buffer
@@ -539,7 +560,7 @@ async function sendMessage() {
       //   currentChat.value.title = "请求失败的聊天";
       // }
 
-      saveChatsToLocalStorage();
+      saveChatsToLocalStorage(currentUserId.value);
     }
   } finally {
     const lastMessage =
@@ -579,7 +600,7 @@ function createNewChat() {
     ],
   });
   currentChatIndex.value = chats.value.length - 1;
-  saveChatsToLocalStorage();
+  saveChatsToLocalStorage(currentUserId.value);
   scrollToBottom();
 }
 
@@ -638,10 +659,19 @@ watch(
   chats,
   () => {
     scrollToBottom();
-    saveChatsToLocalStorage();
+    saveChatsToLocalStorage(currentUserId.value);
   },
   { deep: true }
 );
+
+// 用户切换时重新加载属于当前用户的会话
+watch(currentUserId, (newId, oldId) => {
+  if (newId !== oldId) {
+    const loaded = loadChatsFromLocalStorage(newId);
+    chats.value = loaded || [...defaultChats];
+    currentChatIndex.value = 0;
+  }
+});
 
 // 高亮与换行配置
 marked.setOptions({

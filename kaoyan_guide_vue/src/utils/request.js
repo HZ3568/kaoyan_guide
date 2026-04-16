@@ -14,7 +14,10 @@ request.interceptors.request.use(config => {
     } else {
         config.headers['Content-Type'] = 'application/json;charset=utf-8';
     }
-    let user = JSON.parse(localStorage.getItem("xm-user") || '{}')
+    // 路径以 /admin 或 /knowledge-base 开头 → admin token；其余 → user token
+    const isAdminRequest = config.url.startsWith('/admin') || config.url.startsWith('/knowledge-base');
+    const storageKey = isAdminRequest ? 'xm-admin' : 'xm-user';
+    let user = JSON.parse(localStorage.getItem(storageKey) || '{}')
     config.headers['token'] = user.token || ''
     return config
 }, error => {

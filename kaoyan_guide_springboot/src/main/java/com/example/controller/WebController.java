@@ -6,6 +6,7 @@ import com.example.common.enums.RoleEnum;
 import com.example.entity.*;
 import com.example.service.*;
 import jakarta.annotation.Resource;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -16,6 +17,9 @@ import java.util.Map;
 @RestController
 public class WebController {
 
+    private static final String CAPTCHA_PREFIX = "captcha:";
+    private static final long CAPTCHA_EXPIRE_SECONDS = 60L;
+
     @Resource
     private AdminService adminService;
 
@@ -24,6 +28,12 @@ public class WebController {
 
     @Resource
     private UniversityService universityService;
+
+    private final StringRedisTemplate redisTemplate;
+
+    public WebController(StringRedisTemplate redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
 
     /**
      * 默认请求接口
@@ -38,6 +48,24 @@ public class WebController {
      */
     @PostMapping("/login")
     public Result login(@RequestBody Account account) {
+        // 验证码校验
+        String uuid = account.getUuid();
+        String captcha = account.getCaptcha();
+        if (uuid == null || captcha == null || captcha.trim().isEmpty()) {
+            return Result.error("400", "请输入验证码");
+        }
+        String redisKey = CAPTCHA_PREFIX + uuid;
+        String cached = redisTemplate.opsForValue().get(redisKey);
+        if (cached == null) {
+            return Result.error("400", "验证码已过期，请重新获取");
+        }
+        if (!cached.equalsIgnoreCase(captcha.trim())) {
+            return Result.error("400", "验证码错误");
+        }
+        // 校验成功，删除 Redis 中的验证码
+        redisTemplate.delete(redisKey);
+
+        // 正常登录
         Account loginAccount = null;
         if (RoleEnum.ADMIN.name().equals(account.getRole())) {
             loginAccount = adminService.login(account);
@@ -47,7 +75,7 @@ public class WebController {
         return Result.success(loginAccount);
     }
 
-      /**
+    /**
      * 注册
      */
     @PostMapping("/register")
@@ -55,6 +83,8 @@ public class WebController {
         if (RoleEnum.USER.name().equals(account.getRole())) {
             User user = new User();
             BeanUtil.copyProperties(account, user);
+            // 不设置头像，让前端显示本地默认头像
+            user.setAvatar(null);
             userService.add(user);
         }
         return Result.success();

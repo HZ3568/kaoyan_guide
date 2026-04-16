@@ -43,6 +43,21 @@
         <el-form-item label="专业代码" prop="specialtyNumber">
           <el-input v-model="data.form.specialtyNumber" placeholder="专业代码"></el-input>
         </el-form-item>
+        <el-form-item label="专业简介">
+          <el-input v-model="data.form.intro" type="textarea" :rows="3" placeholder="专业简介"></el-input>
+        </el-form-item>
+        <el-form-item label="培养目标">
+          <el-input v-model="data.form.trainingObjective" type="textarea" :rows="3" placeholder="培养目标"></el-input>
+        </el-form-item>
+        <el-form-item label="主要课程">
+          <el-input v-model="data.form.mainCourses" type="textarea" :rows="3" placeholder="主要课程"></el-input>
+        </el-form-item>
+        <el-form-item label="就业方向">
+          <el-input v-model="data.form.employmentDirection" type="textarea" :rows="3" placeholder="就业方向"></el-input>
+        </el-form-item>
+        <el-form-item label="官方来源">
+          <el-input v-model="data.form.officialSourceUrl" placeholder="官方来源链接"></el-input>
+        </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">

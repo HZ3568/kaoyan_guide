@@ -8,7 +8,8 @@
       "WebFetch(domain:docs.langchain4j.info)",
       "Bash(iconv -f UTF-8 -t UTF-8 -c StudyPlanController.java)",
       "Bash(mv StudyPlanController.java.tmp StudyPlanController.java)",
-      "Bash(mvn compile -q)"
+      "Bash(mvn compile -q)",
+      "Bash(npm run:*)"
     ]
   }
 }

@@ -14,6 +14,16 @@ public class Specialtys {
     /** 专业代码 */
     private String specialtyNumber;
     private String categorysName;
+    /** 专业简介 */
+    private String intro;
+    /** 培养目标 */
+    private String trainingObjective;
+    /** 主要课程 */
+    private String mainCourses;
+    /** 就业方向 */
+    private String employmentDirection;
+    /** 官方来源 */
+    private String officialSourceUrl;
 
     public Integer getId() {
         return id;
@@ -53,6 +63,46 @@ public class Specialtys {
 
     public void setSpecialtyNumber(String specialtyNumber) {
         this.specialtyNumber = specialtyNumber;
+    }
+
+    public String getIntro() {
+        return intro;
+    }
+
+    public void setIntro(String intro) {
+        this.intro = intro;
+    }
+
+    public String getTrainingObjective() {
+        return trainingObjective;
+    }
+
+    public void setTrainingObjective(String trainingObjective) {
+        this.trainingObjective = trainingObjective;
+    }
+
+    public String getMainCourses() {
+        return mainCourses;
+    }
+
+    public void setMainCourses(String mainCourses) {
+        this.mainCourses = mainCourses;
+    }
+
+    public String getEmploymentDirection() {
+        return employmentDirection;
+    }
+
+    public void setEmploymentDirection(String employmentDirection) {
+        this.employmentDirection = employmentDirection;
+    }
+
+    public String getOfficialSourceUrl() {
+        return officialSourceUrl;
+    }
+
+    public void setOfficialSourceUrl(String officialSourceUrl) {
+        this.officialSourceUrl = officialSourceUrl;
     }
 
 }

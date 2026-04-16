@@ -7,7 +7,7 @@
           <el-input v-model="data.user.password" placeholder="请输入原密码" show-password></el-input>
         </el-form-item>
         <el-form-item label="新密码" prop="newPassword">
-          <el-input v-model="data.user.newPassword" placeholder="请输入新密码" show-password></el-input>
+          <el-input v-model="data.user.newPassword" placeholder="请输入新密码（6-20位字母或数字）" show-password></el-input>
         </el-form-item>
         <el-form-item label="确认密码" prop="confirmPassword">
           <el-input v-model="data.user.confirmPassword" placeholder="请确认新密码" show-password></el-input>
@@ -33,11 +33,22 @@ const validatePass = (rule, value, callback) => {
     callback(new Error('请确认密码'))
   } else {
     if (value !== data.user.newPassword) {
-      callback(new Error("确认密码跟原密码不一致!"))
+      callback(new Error("确认密码跟新密码不一致!"))
     }
     callback()
   }
 }
+
+const validateNewPassword = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入新密码'))
+  } else if (!/^[a-zA-Z0-9]{6,20}$/.test(value)) {
+    callback(new Error('新密码必须为6-20位字母或数字'))
+  } else {
+    callback()
+  }
+}
+
 const data = reactive({
   user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
   rules: {
@@ -46,8 +57,10 @@ const data = reactive({
     ],
     newPassword: [
       { required: true, message: '请输入新密码', trigger: 'blur' },
+      { validator: validateNewPassword, trigger: 'blur' }
     ],
     confirmPassword: [
+      { required: true, message: '请确认密码', trigger: 'blur' },
       { validator: validatePass, trigger: 'blur' }
     ]
   }

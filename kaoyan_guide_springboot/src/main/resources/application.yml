@@ -59,11 +59,10 @@ langchain4j:
       base-url: ${lhz.langchain4j.open-ai.chat-model.base-url}
       api-key: ${lhz.langchain4j.open-ai.chat-model.api-key}
       model-name: ${lhz.langchain4j.open-ai.chat-model.model-name}
-      # 学习规划是用户交互型请求，60s 超时快速失败
-      timeout: 60s
-      # 不自动重试，避免一次慢请求拖得更久
+      # timeout 180s 足够模型完整生成，max-retries=0 不允许 retry 叠加耗时
+      timeout: 180s
       max-retries: 0
-      max-tokens: 2000
+      max-tokens: 1500
 
     streaming-chat-model:
       base-url: ${lhz.langchain4j.open-ai.streaming-chat-model.base-url}

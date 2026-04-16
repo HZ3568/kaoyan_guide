@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface ExamResultMapper {
@@ -20,4 +21,12 @@ public interface ExamResultMapper {
 
     // 更新单条记录（只允许修改自己的）
     int updateById(ExamResult examResult);
+
+    // ========== 以下为管理员接口 ==========
+
+    // 管理员查询所有用户成绩（分页，带userName）
+    List<Map<String, Object>> selectAllAdminPaged();
+
+    // 管理员查询所有用户成绩总数
+    long countAllAdmin();
 }
