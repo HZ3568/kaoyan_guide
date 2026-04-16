@@ -24,7 +24,7 @@
     <div class="form-side">
       <div class="register-box">
         <div class="register-header">
-          <h1 class="main-title">考研学习规划与资源整合系统</h1>
+          <h1 class="main-title">欢迎注册</h1>
           <p class="sub-title">开启你的备考之旅</p>
         </div>
         <div class="register-card">
@@ -69,13 +69,25 @@ const validatePass = (rule, value, callback) => {
   }
 }
 
+const validatePassword = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入密码'))
+  } else if (value.length < 5 || value.length > 18) {
+    callback(new Error('密码必须为5-18位'))
+  } else if (!/[a-zA-Z]/.test(value) || !/\d/.test(value)) {
+    callback(new Error('密码必须同时包含字母和数字'))
+  } else {
+    callback()
+  }
+}
+
 const data = reactive({
   form: {
     role: "USER"
   },
   rules: {
     username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
-    password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+    password: [{ validator: validatePassword, trigger: 'blur' }],
     confirmPassword: [{ validator: validatePass, trigger: 'blur' }]
   }
 })
@@ -87,8 +99,10 @@ const register = () => {
     if (valid) {
       request.post('/register', data.form).then(res => {
         if (res.code === '200') {
-          ElMessage.success('注册成功')
-          router.push('/login')
+          ElMessage.success('注册成功，即将跳转到登录页')
+          setTimeout(() => {
+            router.push('/login')
+          }, 1500)
         } else {
           ElMessage.error(res.msg)
         }

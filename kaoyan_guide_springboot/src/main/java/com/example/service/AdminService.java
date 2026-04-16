@@ -28,8 +28,8 @@ public class AdminService {
     /** 固定 Token 签名密钥（独立于用户密码） */
     private static final String TOKEN_SECRET = "KaoyanGuideAdminSecretKey2024";
 
-    /** 登录密码：6-20位字母或数字 */
-    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^[a-zA-Z0-9]{6,20}$");
+    /** 登录密码：6-20位，至少一个字母+一个数字，允许其他符号 */
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[a-zA-Z])(?=.*\\d).{6,20}$");
 
     /** 手机号：11位纯数字 */
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{11}$");
@@ -79,7 +79,7 @@ public class AdminService {
             throw new CustomException(ResultCodeEnum.PARAM_ERROR);
         }
         if (!PASSWORD_PATTERN.matcher(account.getNewPassword()).matches()) {
-            throw new CustomException("400", "新密码必须为6-20位字母或数字");
+            throw new CustomException("400", "新密码必须为6-20位且同时包含字母和数字");
         }
         Admin dbAdmin = adminMapper.selectByUsername(account.getUsername());
         if (ObjectUtil.isNull(dbAdmin)) {
@@ -120,20 +120,42 @@ public class AdminService {
      * 管理员登录（BCrypt 校验 + 固定密钥签发 Token）
      */
     public Admin login(Account account) {
+        System.out.println("[AdminService.login] ====== 管理员登录开始 ======");
+        System.out.println("[AdminService.login] 输入: username=" + account.getUsername() + ", role=" + account.getRole() + ", password存在=" + (account.getPassword() != null));
+
         Admin dbAdmin = adminMapper.selectByUsername(account.getUsername());
+        System.out.println("[AdminService.login] 查表结果: " + (dbAdmin != null ? "找到 admin, id=" + dbAdmin.getId() + ", username=" + dbAdmin.getUsername() + ", status=" + dbAdmin.getStatus() + ", password有值=" + (dbAdmin.getPassword() != null) : "null(未找到)"));
+
         if (ObjectUtil.isNull(dbAdmin)) {
-            throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR);
+            System.out.println("[AdminService.login] 管理员不存在，抛出异常");
+            throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR.code, "账号不存在");
         }
-        if (!PasswordEncoder.matches(account.getPassword(), dbAdmin.getPassword())) {
-            throw new CustomException(ResultCodeEnum.USER_ACCOUNT_ERROR);
+
+        boolean passwordMatch = PasswordEncoder.matches(account.getPassword(), dbAdmin.getPassword());
+        System.out.println("[AdminService.login] 密码校验: " + passwordMatch + " (输入密码=" + account.getPassword() + ")");
+
+        if (!passwordMatch) {
+            System.out.println("[AdminService.login] 密码错误，抛出异常");
+            throw new CustomException(ResultCodeEnum.USER_ACCOUNT_ERROR.code, "密码错误");
         }
+
+        System.out.println("[AdminService.login] status检查: dbAdmin.status=" + dbAdmin.getStatus() + ", NORMAL.code()=" + StatusEnum.NORMAL.code());
         // 校验账号状态：只有正常状态(1)才允许登录
         if (dbAdmin.getStatus() == null || !StatusEnum.NORMAL.code().equals(dbAdmin.getStatus())) {
+            System.out.println("[AdminService.login] 账号已被禁用，status=" + dbAdmin.getStatus() + "，抛出异常");
             throw new CustomException("401", "账号已被禁用，无法登录");
         }
+        System.out.println("[AdminService.login] status检查通过，可以登录");
+
         // 使用固定密钥签发 Token，避免用户修改密码导致所有 Token 失效
-        String token = TokenUtils.createToken(dbAdmin.getId() + "-" + dbAdmin.getRole(), TOKEN_SECRET);
+        String tokenStr = dbAdmin.getId() + "-" + dbAdmin.getRole();
+        System.out.println("[AdminService.login] 生成token, audience=" + tokenStr + ", secret=" + TOKEN_SECRET);
+        String token = TokenUtils.createToken(tokenStr, TOKEN_SECRET);
+        System.out.println("[AdminService.login] token生成结果: " + (token != null ? "成功(" + token.substring(0, Math.min(20, token.length())) + "...)" : "null"));
+
         dbAdmin.setToken(token);
+        System.out.println("[AdminService.login] setToken完成, dbAdmin.token=" + (dbAdmin.getToken() != null ? "有值" : "null"));
+        System.out.println("[AdminService.login] ====== 管理员登录成功 ======");
         return dbAdmin;
     }
 

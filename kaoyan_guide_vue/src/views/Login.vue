@@ -160,36 +160,55 @@ const login = () => {
     if (!valid) return;
 
     loading.value = true;
+    console.log("[Login.vue] ====== 登录开始 ======");
+    console.log("[Login.vue] 提交数据:", { username: data.form.username, role: data.form.role, password: "***", uuid: data.form.uuid, captcha: data.form.captcha ? "有值" : "空" });
 
     request
       .post("/login", data.form)
       .then((res) => {
+        console.log("[Login.vue] ====== 收到响应 ======");
+        console.log("[Login.vue] 响应: code=" + res.code + ", msg=" + res.msg + ", data=" + JSON.stringify(res.data));
+        console.log("[Login.vue] res.data.role=" + (res.data ? res.data.role : "res.data为空"));
+        console.log("[Login.vue] res.data.token=" + (res.data && res.data.token ? "有值" : "null"));
+        console.log("[Login.vue] res.data.id=" + (res.data ? res.data.id : "null"));
+        console.log("[Login.vue] res.data.username=" + (res.data ? res.data.username : "null"));
+
         if (res.code === "200") {
-          ElMessage.success("登录成功");
+          console.log("[Login.vue] 登录成功，准备存储token");
           // 按角色分开存储 token，防止跨角色访问
           if (res.data.role === 'ADMIN') {
+            console.log("[Login.vue] 角色为ADMIN，存入 xm-admin");
             localStorage.setItem('xm-admin', JSON.stringify(res.data));
+            console.log("[Login.vue] xm-admin 存储内容:", JSON.stringify(res.data));
           } else {
+            console.log("[Login.vue] 角色为USER，存入 xm-user");
             localStorage.setItem('xm-user', JSON.stringify(res.data));
           }
 
+          console.log("[Login.vue] 准备跳转, role=" + res.data.role);
           if (res.data.role === "USER") {
+            console.log("[Login.vue] 跳转到 /front/home");
             router.push("/front/home");
           } else {
+            console.log("[Login.vue] 跳转到 /manager/home");
             router.push("/manager/home");
           }
         } else {
+          console.log("[Login.vue] 登录失败，提示: " + res.msg);
           ElMessage.error(res.msg);
           // 登录失败重新加载验证码
           loadCaptcha();
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.log("[Login.vue] ====== 请求catch异常 ======");
+        console.log("[Login.vue] err:", err);
         ElMessage.error("登录失败，请稍后重试");
         loadCaptcha();
       })
       .finally(() => {
         loading.value = false;
+        console.log("[Login.vue] ====== 登录结束 ======");
       });
   });
 };

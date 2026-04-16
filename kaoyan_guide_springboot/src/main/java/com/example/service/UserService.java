@@ -28,8 +28,8 @@ public class UserService {
     /** 固定 Token 签名密钥（独立于用户密码） */
     private static final String TOKEN_SECRET = "KaoyanGuideUserSecretKey2024";
 
-    /** 登录密码：6-20位字母或数字 */
-    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^[a-zA-Z0-9]{6,20}$");
+    /** 登录密码：5-18位，至少一个字母+一个数字，允许其他符号 */
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[a-zA-Z])(?=.*\\d).{5,18}$");
 
     /** 手机号：11位纯数字 */
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{11}$");
@@ -79,7 +79,7 @@ public class UserService {
             throw new CustomException(ResultCodeEnum.PARAM_ERROR);
         }
         if (!PASSWORD_PATTERN.matcher(account.getNewPassword()).matches()) {
-            throw new CustomException("400", "新密码必须为6-20位字母或数字");
+            throw new CustomException("400", "新密码必须为5-18位且同时包含字母和数字");
         }
         User dbUser = userMapper.selectByUsername(account.getUsername());
         if (ObjectUtil.isNull(dbUser)) {
@@ -122,10 +122,10 @@ public class UserService {
     public User login(Account account) {
         User dbUser = userMapper.selectByUsername(account.getUsername());
         if (ObjectUtil.isNull(dbUser)) {
-            throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR);
+            throw new CustomException(ResultCodeEnum.USER_NOT_EXIST_ERROR.code, "账号不存在");
         }
         if (!PasswordEncoder.matches(account.getPassword(), dbUser.getPassword())) {
-            throw new CustomException(ResultCodeEnum.USER_ACCOUNT_ERROR);
+            throw new CustomException(ResultCodeEnum.USER_ACCOUNT_ERROR.code, "密码错误");
         }
         // 校验账号状态：只有正常状态(1)才允许登录
         if (dbUser.getStatus() == null || !StatusEnum.NORMAL.code().equals(dbUser.getStatus())) {
@@ -146,6 +146,9 @@ public class UserService {
         }
         if (user.getUsername().length() < 3 || user.getUsername().length() > 20) {
             throw new CustomException("400", "账号长度需在3-20位之间");
+        }
+        if (ObjectUtil.isNotNull(user.getPassword()) && !PASSWORD_PATTERN.matcher(user.getPassword()).matches()) {
+            throw new CustomException("400", "密码必须为5-18位且包含字母和数字");
         }
         if (ObjectUtil.isNotNull(user.getPhone()) && !PHONE_PATTERN.matcher(user.getPhone()).matches()) {
             throw new CustomException("400", "手机号必须为11位数字");
