@@ -20,7 +20,7 @@
         <div class="card" style="flex: 1; padding: 20px; display: flex; align-items: center; grid-gap: 20px">
           <img style="width: 80px; height: 80px" src="@/assets/imgs/大学.png" alt="">
           <div style="flex: 1; font-size: 20px">
-            <div style="margin-bottom: 10px">认证大学</div>
+            <div style="margin-bottom: 10px">院校总数</div>
             <div style="font-weight: bold">{{ data.count.universityNumber || 0  }}</div>
           </div>
         </div>
@@ -28,7 +28,7 @@
         <div class="card" style="flex: 1; padding: 20px; display: flex; align-items: center; grid-gap: 20px">
           <img style="width: 80px; height: 80px" src="@/assets/imgs/学生.png" alt="">
           <div style="flex: 1; font-size: 20px">
-            <div style="margin-bottom: 10px">认证学生</div>
+            <div style="margin-bottom: 10px">注册用户</div>
             <div style="font-weight: bold">{{ data.count.userNumber || 0  }}</div>
           </div>
         </div>
@@ -51,42 +51,61 @@ import * as echarts from 'echarts'
 
 const pieOption = {
   title: {
-    text: '不同门类专业数量分布图',
-    subtext: '统计维度：不同门类专业数量',
-    left: 'center'
+    text: '各门类专业数量分布',
+    subtext: '当前系统各门类下收录的专业数量统计',
+    left: 'center',
+    textStyle: { fontSize: 16, fontWeight: 600, color: '#333' },
+    subtextStyle: { fontSize: 12, color: '#999' },
+    top: 10
   },
   tooltip: {
-    trigger: 'item'
+    trigger: 'item',
+    formatter(param) {
+      return `<b>${param.name}</b><br/>专业数量：${param.value} 个<br/>占比：${param.percent}%`;
+    }
   },
   legend: {
-    orient: 'vertical',
-    left: 'left'
+    orient: 'horizontal',
+    bottom: 10,
+    left: 'center',
+    itemGap: 20,
+    textStyle: { color: '#666', fontSize: 12 }
   },
   series: [
     {
       type: 'pie',
-      center: ['50%', '60%'],
-      radius: '60%',
+      center: ['50%', '50%'],
+      radius: ['35%', '60%'],
       data: [],
       label: {
         show: true,
         formatter(param) {
-          return param.name + ' (' + param.percent + '%)';
-        }
+          return param.name + '\n' + param.value + '个';
+        },
+        fontSize: 11,
+        color: '#666',
+        lineHeight: 18
       },
+      labelLine: { show: true, length: 8, length2: 6 },
       emphasis: {
         itemStyle: {
-          shadowBlur: 10,
+          shadowBlur: 12,
           shadowOffsetX: 0,
-          shadowColor: 'rgba(0, 0, 0, 0.5)'
-        }
+          shadowColor: 'rgba(0, 0, 0, 0.2)'
+        },
+        label: { show: true, fontSize: 13, fontWeight: 600 }
+      },
+      itemStyle: {
+        borderRadius: 6,
+        borderColor: '#fff',
+        borderWidth: 2
       }
     }
   ]
 }
 
 const data = reactive({
-  user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
+  user: JSON.parse(localStorage.getItem('xm-admin') || '{}'),
   count: {}
 })
 

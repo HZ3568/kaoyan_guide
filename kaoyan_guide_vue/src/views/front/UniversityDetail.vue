@@ -258,20 +258,15 @@
           </div>
 
           <div class="major-list">
-            <span
+            <div
               v-for="specialtysItem in data.specialtysList"
               :key="specialtysItem.id"
+              v-show="specialtysItem.categorysId === categorysItem.id"
+              class="specialtys-active"
+              @click="$router.push('/front/specialtysDetail?id=' + specialtysItem.id)"
             >
-              <div
-                class="specialtys-active"
-                v-if="specialtysItem.categorysId === categorysItem.id"
-                @click="
-                  $router.push('/front/specialtysDetail?id=' + specialtysItem.id)
-                "
-              >
-                {{ specialtysItem.specialtysName }}
-              </div>
-            </span>
+              {{ specialtysItem.specialtysName }}
+            </div>
           </div>
         </div>
       </div>
@@ -1152,23 +1147,28 @@ const loadComment = () => {
 }
 
 .major-block {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+  background: #fafbfc;
+  border: 1px solid #f0f2f5;
+  border-radius: 16px;
+  padding: 18px 20px 20px;
 }
 
 .major-block-title {
   width: fit-content;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 3px solid #49c48d;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   margin-bottom: 14px;
+  color: #1f2937;
 }
 
 .major-list {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px 16px;
+  gap: 10px 14px;
 }
 
 .specialtys-active {
