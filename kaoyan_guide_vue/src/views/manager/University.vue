@@ -352,19 +352,113 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item prop="officialWebsite" label="官方网址">
-          <el-input
-            v-model="data.form.officialWebsite"
-            placeholder="请输入官方网址"
-          ></el-input>
+        <!-- 基本信息 -->
+        <div class="form-section-title">基本信息</div>
+        <el-row :gutter="16">
+          <el-col :span="8">
+            <el-form-item label="英文名称">
+              <el-input v-model="data.form.englishName" placeholder="如：Tsinghua University" clearable></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="创办时间">
+              <el-input v-model="data.form.foundedYear" placeholder="如：1911年" clearable></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="隶属单位">
+              <el-input v-model="data.form.affiliation" placeholder="如：教育部" clearable></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 学校概况 -->
+        <div class="form-section-title">学校概况</div>
+        <el-form-item label="学校领导">
+          <el-input v-model="data.form.leaderInfo" placeholder="如：校长 XXX 教授" clearable></el-input>
         </el-form-item>
-        <el-form-item prop="description" label="学校简介">
-          <el-input
-            v-model="data.form.description"
-            type="textarea"
-            :rows="6"
-            placeholder="请输入学校简介"
-          ></el-input>
+        <el-form-item label="学校简介">
+          <el-input v-model="data.form.schoolIntro" type="textarea" :rows="4" placeholder="请输入学校简介" clearable></el-input>
+        </el-form-item>
+        <el-form-item label="周边环境">
+          <el-input v-model="data.form.campusEnvironment" type="textarea" :rows="3" placeholder="校园周边环境、交通、设施等情况" clearable></el-input>
+        </el-form-item>
+
+        <!-- 联系方式 -->
+        <div class="form-section-title">联系方式</div>
+        <el-form-item label="通讯地址">
+          <el-input v-model="data.form.contactAddress" placeholder="请输入通讯地址" clearable></el-input>
+        </el-form-item>
+        <el-row :gutter="16">
+          <el-col :span="8">
+            <el-form-item label="联系电话">
+              <el-input v-model="data.form.contactPhone" placeholder="如：010-62785001" clearable></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="联系邮箱">
+              <el-input v-model="data.form.contactEmail" placeholder="如：info@tsinghua.edu.cn" clearable></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="邮编">
+              <el-input v-model="data.form.postcode" placeholder="如：100084" clearable></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 学习生活 -->
+        <div class="form-section-title">学习生活</div>
+        <el-form-item label="图书馆">
+          <el-input v-model="data.form.libraryInfo" placeholder="图书馆规模、藏书量、开放时间等" clearable></el-input>
+        </el-form-item>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="宿舍情况">
+              <el-input v-model="data.form.dormitoryInfo" placeholder="宿舍条件、几人间等" clearable></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="食堂情况">
+              <el-input v-model="data.form.canteenInfo" placeholder="食堂数量、菜品特色等" clearable></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="交通情况">
+          <el-input v-model="data.form.transportInfo" placeholder="校内外交通情况，如：地铁直达、公交线路等" clearable></el-input>
+        </el-form-item>
+
+        <!-- 学科与考研 -->
+        <div class="form-section-title">学科与考研</div>
+        <el-form-item label="硕士点">
+          <el-input v-model="data.form.masterProgramInfo" type="textarea" :rows="3" placeholder="硕士点数量及优势学科" clearable></el-input>
+        </el-form-item>
+        <el-form-item label="重点学科">
+          <el-input v-model="data.form.keyDisciplineInfo" type="textarea" :rows="3" placeholder="国家级/省级重点学科" clearable></el-input>
+        </el-form-item>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="特色专业">
+              <el-input v-model="data.form.featuredMajorInfo" placeholder="学校的特色优势专业" clearable></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="一流本科专业">
+              <el-input v-model="data.form.firstClassMajorInfo" placeholder="双万计划一流本科专业" clearable></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="热门考研专业">
+          <el-input v-model="data.form.graduateHotMajorInfo" placeholder="历年报考热度较高的专业方向" clearable></el-input>
+        </el-form-item>
+
+        <!-- 原字段保留 -->
+        <div class="form-section-title">官方信息</div>
+        <el-form-item prop="officialWebsite" label="官方网址">
+          <el-input v-model="data.form.officialWebsite" placeholder="请输入官方网址"></el-input>
+        </el-form-item>
+        <el-form-item prop="description" label="学校简介(旧)">
+          <el-input v-model="data.form.description" type="textarea" :rows="4" placeholder="原有简介字段，保留兼容"></el-input>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -584,3 +678,15 @@ const preview = (content) => {
 loadAreas();
 load();
 </script>
+
+<style scoped>
+.form-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #5B50E7;
+  margin: 16px 0 10px;
+  padding-left: 8px;
+  border-left: 4px solid #5B50E7;
+  line-height: 1.4;
+}
+</style>

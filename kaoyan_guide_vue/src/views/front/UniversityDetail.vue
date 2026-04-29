@@ -201,35 +201,6 @@
         v-if="data.selectType === '学校简介'"
         class="content-inner intro-page"
       >
-        <div class="intro-header">
-          <div class="intro-header-left">
-            <div class="intro-kicker">UNIVERSITY PROFILE</div>
-            <div class="intro-title">学校简介</div>
-            <div class="intro-desc">
-              了解 {{ data.universityData.name || "该院校" }} 的基本情况、办学特色与发展概况
-            </div>
-          </div>
-        </div>
-
-        <div class="intro-meta-bar">
-          <div class="intro-meta-item">
-            <span class="intro-meta-label">院校名称</span>
-            <span class="intro-meta-value">{{ data.universityData.name || "-" }}</span>
-          </div>
-          <div class="intro-meta-item">
-            <span class="intro-meta-label">所在地区</span>
-            <span class="intro-meta-value">{{ data.universityData.provinceName || "-" }}</span>
-          </div>
-          <div class="intro-meta-item">
-            <span class="intro-meta-label">院校类型</span>
-            <span class="intro-meta-value">{{ data.universityData.schoolType || "-" }}</span>
-          </div>
-          <div class="intro-meta-item">
-            <span class="intro-meta-label">办学层次</span>
-            <span class="intro-meta-value">{{ data.universityData.educationLevel || "-" }}</span>
-          </div>
-        </div>
-
         <div class="intro-article-card">
           <div class="intro-article-head">
             <div class="intro-article-title">院校概况</div>
@@ -238,8 +209,33 @@
 
           <div
             class="rich-content official-rich-content"
-            v-html="data.universityData.description || '暂无学校简介'"
+            v-html="(data.universityData.schoolIntro || data.universityData.description) || '暂无学校简介'"
           ></div>
+        </div>
+
+        <div class="intro-article-card" v-if="data.universityData.campusEnvironment">
+          <div class="intro-article-head">
+            <div class="intro-article-title">周边环境</div>
+            <div class="intro-article-line"></div>
+          </div>
+
+          <div
+            class="rich-content official-rich-content"
+            v-html="data.universityData.campusEnvironment"
+          ></div>
+        </div>
+
+        <div class="intro-article-card" v-if="data.universityData.contactAddress">
+          <div class="intro-article-head">
+            <div class="intro-article-title">通讯地址</div>
+            <div class="intro-article-line"></div>
+          </div>
+
+          <div class="rich-content official-rich-content">
+            {{ data.universityData.contactAddress }}
+            <span v-if="data.universityData.contactPhone"> · {{ data.universityData.contactPhone }}</span>
+            <span v-if="data.universityData.postcode"> · {{ data.universityData.postcode }}</span>
+          </div>
         </div>
       </div>
 
@@ -268,6 +264,138 @@
               {{ specialtysItem.specialtysName }}
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- 更多信息 -->
+      <div
+        v-if="data.selectType === '更多信息'"
+        class="content-inner more-info-page"
+      >
+        <!-- 基本信息 -->
+        <div class="info-section-block" v-if="hasExtraInfo">
+          <div class="info-section-head">
+            <div class="info-section-icon">
+              <el-icon color="#49c48d" :size="20"><School /></el-icon>
+            </div>
+            <div class="info-section-title">基本信息</div>
+          </div>
+          <div class="info-section-grid">
+            <div class="info-row" v-if="data.universityData.englishName">
+              <span class="info-row-label">英文名称</span>
+              <span class="info-row-value">{{ data.universityData.englishName }}</span>
+            </div>
+            <div class="info-row" v-if="data.universityData.foundedYear">
+              <span class="info-row-label">创办时间</span>
+              <span class="info-row-value">{{ data.universityData.foundedYear }}</span>
+            </div>
+            <div class="info-row" v-if="data.universityData.affiliation">
+              <span class="info-row-label">隶属单位</span>
+              <span class="info-row-value">{{ data.universityData.affiliation }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 历史与定位 -->
+        <div class="info-section-block" v-if="data.universityData.schoolIntro">
+          <div class="info-section-head">
+            <div class="info-section-icon">
+              <el-icon color="#49c48d" :size="20"><Reading /></el-icon>
+            </div>
+            <div class="info-section-title">历史与定位</div>
+          </div>
+          <div class="info-article-full">
+            <div class="info-article-content">{{ data.universityData.schoolIntro }}</div>
+          </div>
+        </div>
+
+        <!-- 联系方式 -->
+        <div class="info-section-block" v-if="hasContactInfo">
+          <div class="info-section-head">
+            <div class="info-section-icon">
+              <el-icon color="#49c48d" :size="20"><Message /></el-icon>
+            </div>
+            <div class="info-section-title">联系方式</div>
+          </div>
+          <div class="info-section-grid">
+            <div class="info-row" v-if="data.universityData.contactAddress">
+              <span class="info-row-label">通讯地址</span>
+              <span class="info-row-value">{{ data.universityData.contactAddress }}</span>
+            </div>
+            <div class="info-row" v-if="data.universityData.contactPhone">
+              <span class="info-row-label">联系电话</span>
+              <span class="info-row-value">{{ data.universityData.contactPhone }}</span>
+            </div>
+            <div class="info-row" v-if="data.universityData.contactEmail">
+              <span class="info-row-label">联系邮箱</span>
+              <span class="info-row-value">{{ data.universityData.contactEmail }}</span>
+            </div>
+            <div class="info-row" v-if="data.universityData.postcode">
+              <span class="info-row-label">邮编</span>
+              <span class="info-row-value">{{ data.universityData.postcode }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 学习生活 -->
+        <div class="info-section-block" v-if="hasLifeInfo">
+          <div class="info-section-head">
+            <div class="info-section-icon">
+              <el-icon color="#49c48d" :size="20"><HomeFilled /></el-icon>
+            </div>
+            <div class="info-section-title">学习生活</div>
+          </div>
+          <div class="info-article" v-if="data.universityData.libraryInfo">
+            <div class="info-article-label">图书馆</div>
+            <div class="info-article-content">{{ data.universityData.libraryInfo }}</div>
+          </div>
+          <div class="info-article" v-if="data.universityData.dormitoryInfo">
+            <div class="info-article-label">宿舍情况</div>
+            <div class="info-article-content">{{ data.universityData.dormitoryInfo }}</div>
+          </div>
+          <div class="info-article" v-if="data.universityData.canteenInfo">
+            <div class="info-article-label">食堂情况</div>
+            <div class="info-article-content">{{ data.universityData.canteenInfo }}</div>
+          </div>
+          <div class="info-article" v-if="data.universityData.transportInfo">
+            <div class="info-article-label">交通情况</div>
+            <div class="info-article-content">{{ data.universityData.transportInfo }}</div>
+          </div>
+        </div>
+
+        <!-- 学科与考研 -->
+        <div class="info-section-block" v-if="hasAcademicInfo">
+          <div class="info-section-head">
+            <div class="info-section-icon">
+              <el-icon color="#49c48d" :size="20"><Medal /></el-icon>
+            </div>
+            <div class="info-section-title">学科与考研</div>
+          </div>
+          <div class="info-article" v-if="data.universityData.masterProgramInfo">
+            <div class="info-article-label">硕士点</div>
+            <div class="info-article-content">{{ data.universityData.masterProgramInfo }}</div>
+          </div>
+          <div class="info-article" v-if="data.universityData.keyDisciplineInfo">
+            <div class="info-article-label">重点学科</div>
+            <div class="info-article-content">{{ data.universityData.keyDisciplineInfo }}</div>
+          </div>
+          <div class="info-article" v-if="data.universityData.featuredMajorInfo">
+            <div class="info-article-label">特色专业</div>
+            <div class="info-article-content">{{ data.universityData.featuredMajorInfo }}</div>
+          </div>
+          <div class="info-article" v-if="data.universityData.firstClassMajorInfo">
+            <div class="info-article-label">一流本科专业</div>
+            <div class="info-article-content">{{ data.universityData.firstClassMajorInfo }}</div>
+          </div>
+          <div class="info-article" v-if="data.universityData.graduateHotMajorInfo">
+            <div class="info-article-label">热门考研专业</div>
+            <div class="info-article-content">{{ data.universityData.graduateHotMajorInfo }}</div>
+          </div>
+        </div>
+
+        <!-- 无数据提示 -->
+        <div class="no-info-tip" v-if="!hasExtraInfo && !data.universityData.schoolIntro && !hasContactInfo && !hasLifeInfo && !hasAcademicInfo">
+          <el-empty description="暂无更多信息" :image-size="80" />
         </div>
       </div>
 
@@ -363,11 +491,11 @@
 </template>
 
 <script setup>
-import { reactive, onMounted, ref, nextTick } from "vue";
+import { reactive, computed, onMounted, ref, nextTick } from "vue";
 import request from "@/utils/request";
 import { ElMessage } from "element-plus";
 import { useRoute } from "vue-router";
-import { Star } from "@element-plus/icons-vue";
+import { Star, School, Reading, Message, HomeFilled, Medal } from "@element-plus/icons-vue";
 
 const route = useRoute();
 const formRef = ref();
@@ -379,7 +507,7 @@ const data = reactive({
   formVisible: false,
   form: {},
   selectType: "学校简介",
-  activeCategory: ["学校简介", "专业介绍", "学校评价"],
+  activeCategory: ["学校简介", "专业介绍", "更多信息", "学校评价"],
   specialtysList: [],
   categorysList: [],
   commentList: [],
@@ -390,6 +518,32 @@ const data = reactive({
     details: [{ required: true, message: "请输入评价内容", trigger: "blur" }],
     mark: [{ required: true, message: "请选择评分", trigger: "blur" }],
   },
+});
+
+const hasExtraInfo = computed(() => {
+  const u = data.universityData;
+  return !!(u.englishName || u.foundedYear || u.affiliation);
+});
+
+const hasContactInfo = computed(() => {
+  const u = data.universityData;
+  return !!(u.contactAddress || u.contactPhone || u.contactEmail || u.postcode);
+});
+
+const hasLifeInfo = computed(() => {
+  const u = data.universityData;
+  return !!(u.libraryInfo || u.dormitoryInfo || u.canteenInfo || u.transportInfo);
+});
+
+const hasAcademicInfo = computed(() => {
+  const u = data.universityData;
+  return !!(
+    u.masterProgramInfo ||
+    u.keyDisciplineInfo ||
+    u.featuredMajorInfo ||
+    u.firstClassMajorInfo ||
+    u.graduateHotMajorInfo
+  );
 });
 
 onMounted(() => {
@@ -1187,6 +1341,106 @@ const loadComment = () => {
   background: linear-gradient(135deg, #49c48d 0%, #3db87d 100%);
   box-shadow: 0 4px 12px rgba(73, 196, 141, 0.3);
   font-weight: 500;
+}
+
+/* 更多信息页面 */
+.more-info-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info-section-block {
+  background: #fff;
+  border: 1px solid #eef2f6;
+  border-radius: 18px;
+  padding: 20px 22px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+.info-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f2f4f7;
+}
+
+.info-section-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #e8faf0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-section-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.info-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 32px;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-row-label {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.info-row-value {
+  font-size: 15px;
+  color: #374151;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.info-article {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  background: #fafbfc;
+  border-radius: 12px;
+  border: 1px solid #f0f2f5;
+}
+
+.info-article:last-child {
+  margin-bottom: 0;
+}
+
+/* 无标签通栏文章 */
+.info-article-full {
+  padding: 2px 0 4px;
+}
+
+.info-article-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #49c48d;
+  margin-bottom: 6px;
+}
+
+.info-article-content {
+  font-size: 15px;
+  color: #4b5563;
+  line-height: 1.8;
+}
+
+.no-info-tip {
+  padding: 40px 0;
+  text-align: center;
 }
 
 .comment-area {

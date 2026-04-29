@@ -41,6 +41,25 @@
             <if test="description != null">description,</if>
             <if test="longitude != null">longitude,</if>
             <if test="latitude != null">latitude,</if>
+            <if test="englishName != null">english_name,</if>
+            <if test="foundedYear != null">founded_year,</if>
+            <if test="affiliation != null">affiliation,</if>
+            <if test="leaderInfo != null">leader_info,</if>
+            <if test="schoolIntro != null">school_intro,</if>
+            <if test="campusEnvironment != null">campus_environment,</if>
+            <if test="contactAddress != null">contact_address,</if>
+            <if test="contactPhone != null">contact_phone,</if>
+            <if test="contactEmail != null">contact_email,</if>
+            <if test="postcode != null">postcode,</if>
+            <if test="libraryInfo != null">library_info,</if>
+            <if test="dormitoryInfo != null">dormitory_info,</if>
+            <if test="canteenInfo != null">canteen_info,</if>
+            <if test="transportInfo != null">transport_info,</if>
+            <if test="masterProgramInfo != null">master_program_info,</if>
+            <if test="keyDisciplineInfo != null">key_discipline_info,</if>
+            <if test="featuredMajorInfo != null">featured_major_info,</if>
+            <if test="firstClassMajorInfo != null">first_class_major_info,</if>
+            <if test="graduateHotMajorInfo != null">graduate_hot_major_info,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
@@ -57,6 +76,25 @@
             <if test="description != null">#{description},</if>
             <if test="longitude != null">#{longitude},</if>
             <if test="latitude != null">#{latitude},</if>
+            <if test="englishName != null">#{englishName},</if>
+            <if test="foundedYear != null">#{foundedYear},</if>
+            <if test="affiliation != null">#{affiliation},</if>
+            <if test="leaderInfo != null">#{leaderInfo},</if>
+            <if test="schoolIntro != null">#{schoolIntro},</if>
+            <if test="campusEnvironment != null">#{campusEnvironment},</if>
+            <if test="contactAddress != null">#{contactAddress},</if>
+            <if test="contactPhone != null">#{contactPhone},</if>
+            <if test="contactEmail != null">#{contactEmail},</if>
+            <if test="postcode != null">#{postcode},</if>
+            <if test="libraryInfo != null">#{libraryInfo},</if>
+            <if test="dormitoryInfo != null">#{dormitoryInfo},</if>
+            <if test="canteenInfo != null">#{canteenInfo},</if>
+            <if test="transportInfo != null">#{transportInfo},</if>
+            <if test="masterProgramInfo != null">#{masterProgramInfo},</if>
+            <if test="keyDisciplineInfo != null">#{keyDisciplineInfo},</if>
+            <if test="featuredMajorInfo != null">#{featuredMajorInfo},</if>
+            <if test="firstClassMajorInfo != null">#{firstClassMajorInfo},</if>
+            <if test="graduateHotMajorInfo != null">#{graduateHotMajorInfo},</if>
         </trim>
     </insert>
 
@@ -101,6 +139,63 @@
             </if>
             <if test="latitude != null">
                 latitude = #{latitude},
+            </if>
+            <if test="englishName != null">
+                english_name = #{englishName},
+            </if>
+            <if test="foundedYear != null">
+                founded_year = #{foundedYear},
+            </if>
+            <if test="affiliation != null">
+                affiliation = #{affiliation},
+            </if>
+            <if test="leaderInfo != null">
+                leader_info = #{leaderInfo},
+            </if>
+            <if test="schoolIntro != null">
+                school_intro = #{schoolIntro},
+            </if>
+            <if test="campusEnvironment != null">
+                campus_environment = #{campusEnvironment},
+            </if>
+            <if test="contactAddress != null">
+                contact_address = #{contactAddress},
+            </if>
+            <if test="contactPhone != null">
+                contact_phone = #{contactPhone},
+            </if>
+            <if test="contactEmail != null">
+                contact_email = #{contactEmail},
+            </if>
+            <if test="postcode != null">
+                postcode = #{postcode},
+            </if>
+            <if test="libraryInfo != null">
+                library_info = #{libraryInfo},
+            </if>
+            <if test="dormitoryInfo != null">
+                dormitory_info = #{dormitoryInfo},
+            </if>
+            <if test="canteenInfo != null">
+                canteen_info = #{canteenInfo},
+            </if>
+            <if test="transportInfo != null">
+                transport_info = #{transportInfo},
+            </if>
+            <if test="masterProgramInfo != null">
+                master_program_info = #{masterProgramInfo},
+            </if>
+            <if test="keyDisciplineInfo != null">
+                key_discipline_info = #{keyDisciplineInfo},
+            </if>
+            <if test="featuredMajorInfo != null">
+                featured_major_info = #{featuredMajorInfo},
+            </if>
+            <if test="firstClassMajorInfo != null">
+                first_class_major_info = #{firstClassMajorInfo},
+            </if>
+            <if test="graduateHotMajorInfo != null">
+                graduate_hot_major_info = #{graduateHotMajorInfo},
             </if>
         </set>
         where id = #{id}
