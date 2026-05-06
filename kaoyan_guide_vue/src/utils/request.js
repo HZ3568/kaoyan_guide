@@ -18,6 +18,7 @@ request.interceptors.request.use(config => {
     const isAdminRequest = config.url.startsWith('/admin') || config.url.startsWith('/knowledge-base');
     const storageKey = isAdminRequest ? 'xm-admin' : 'xm-user';
     let user = JSON.parse(localStorage.getItem(storageKey) || '{}')
+    console.log("[RequestInterceptor] URL=" + config.url + ", isAdminRequest=" + isAdminRequest + ", storageKey=" + storageKey + ", token=" + (user.token ? "有值" : "null") + ", role=" + (user.role || "null"));
     config.headers['token'] = user.token || ''
     return config
 }, error => {
@@ -37,6 +38,7 @@ request.interceptors.response.use(
         }
         // 当权限验证不通过的时候给出提示
         if (res.code === '401') {
+            console.log("[ResponseInterceptor] 收到业务层401, msg=" + res.msg + ", URL=" + response.config.url);
             ElMessage.error(res.msg)
             router.push('/login')
         }
@@ -47,6 +49,13 @@ request.interceptors.response.use(
         return res;
     },
     error => {
+        console.log("[ResponseInterceptor] ====== 请求异常 ======");
+        console.log("[ResponseInterceptor] error.response:", error.response ? "有值, status=" + error.response.status : "无response");
+        console.log("[ResponseInterceptor] error.code:", error.code);
+        console.log("[ResponseInterceptor] error.message:", error.message);
+        if (error.response) {
+            console.log("[ResponseInterceptor] 响应数据:", JSON.stringify(error.response.data));
+        }
         // 区分三类错误：超时 / 服务端异常 / 网络异常
         if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
             ElMessage.error({ message: '请求超时，请检查网络或稍后重试', duration: 5000 })
@@ -57,6 +66,7 @@ request.interceptors.response.use(
             } else if (status === 500) {
                 ElMessage.error('服务端异常，请稍后重试')
             } else if (status === 401) {
+                console.log("[ResponseInterceptor] 收到HTTP 401, URL=" + error.config.url + ", 准备跳转/login");
                 ElMessage.error('登录已过期，请重新登录')
                 router.push('/login')
             } else {

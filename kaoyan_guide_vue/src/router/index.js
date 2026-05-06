@@ -101,32 +101,40 @@ const router = createRouter({
 // ==================== 路由守卫 ====================
 router.beforeEach((to, from) => {
   const path = to.path;
+  console.log("[RouterGuard] ====== 路由守卫触发 ======");
+  console.log("[RouterGuard] 目标路径: " + path);
 
   // 访问管理后台 → 必须有 admin token 且 role=ADMIN
   if (path.startsWith('/manager')) {
     const admin = JSON.parse(localStorage.getItem('xm-admin') || '{}');
+    console.log("[RouterGuard] /manager路径, xm-admin: id=" + admin.id + ", role=" + admin.role + ", token=" + (admin.token ? "有值" : "null"));
     if (!admin.id) {
+      console.log("[RouterGuard] xm-admin没有id，跳转到/login");
       return '/login';
     }
     if (admin.role !== 'ADMIN') {
-      // 非管理员强制跳转用户端
+      console.log("[RouterGuard] xm-admin.role不是ADMIN，是" + admin.role + "，跳转到/front/home");
       return '/front/home';
     }
+    console.log("[RouterGuard] /manager路径检查通过，允许访问");
   }
 
   // 访问用户前端 → 必须有 user token 且 role=USER
   if (path.startsWith('/front')) {
     const user = JSON.parse(localStorage.getItem('xm-user') || '{}');
+    console.log("[RouterGuard] /front路径, xm-user: id=" + user.id + ", role=" + user.role + ", token=" + (user.token ? "有值" : "null"));
     if (!user.id) {
+      console.log("[RouterGuard] xm-user没有id，跳转到/login");
       return '/login';
     }
     if (user.role !== 'USER') {
-      // 管理员走管理端入口
+      console.log("[RouterGuard] xm-user.role不是USER，是" + user.role + "，跳转到/manager/home");
       return '/manager/home';
     }
   }
 
   // 放行：login / register / 404
+  console.log("[RouterGuard] 路径检查通过，允许访问");
   return true;
 });
 

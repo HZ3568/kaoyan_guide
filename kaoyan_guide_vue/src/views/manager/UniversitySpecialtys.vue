@@ -7,6 +7,7 @@
     </div>
 
     <div class="card" style="margin-bottom: 5px">
+      <el-button type="primary" @click="handleAdd">新增</el-button>
       <el-button type="danger" plain @click="delBatch">批量删除</el-button>
     </div>
 

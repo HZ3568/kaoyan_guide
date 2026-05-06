@@ -48,30 +48,44 @@ public class WebController {
      */
     @PostMapping("/login")
     public Result login(@RequestBody Account account) {
+        System.out.println("[WebController.login] >>>>> login 请求开始");
+        System.out.println("[WebController.login] 用户名: " + account.getUsername() + ", 角色: " + account.getRole() + ", 密码: " + (account.getPassword() != null ? "有值(" + account.getPassword().length() + "位)" : "为空"));
+
         // 验证码校验
         String uuid = account.getUuid();
         String captcha = account.getCaptcha();
         if (uuid == null || captcha == null || captcha.trim().isEmpty()) {
+            System.out.println("[WebController.login] 验证码为空");
             return Result.error("400", "请输入验证码");
         }
         String redisKey = CAPTCHA_PREFIX + uuid;
         String cached = redisTemplate.opsForValue().get(redisKey);
         if (cached == null) {
+            System.out.println("[WebController.login] 验证码已过期, uuid=" + uuid);
             return Result.error("400", "验证码已过期，请重新获取");
         }
         if (!cached.equalsIgnoreCase(captcha.trim())) {
+            System.out.println("[WebController.login] 验证码错误, 输入=" + captcha + ", 正确=" + cached);
             return Result.error("400", "验证码错误");
         }
+        System.out.println("[WebController.login] 验证码校验通过，删除Redis验证码");
         // 校验成功，删除 Redis 中的验证码
         redisTemplate.delete(redisKey);
 
         // 正常登录
         Account loginAccount = null;
+        System.out.println("[WebController.login] 进入分支判断, role=" + account.getRole());
         if (RoleEnum.ADMIN.name().equals(account.getRole())) {
+            System.out.println("[WebController.login] 进入 ADMIN 分支");
             loginAccount = adminService.login(account);
+            System.out.println("[WebController.login] adminService.login() 返回, loginAccount=" + (loginAccount != null ? loginAccount.getUsername() : "null") + ", token=" + (loginAccount != null ? loginAccount.getToken() : "null"));
         } else if (RoleEnum.USER.name().equals(account.getRole())) {
+            System.out.println("[WebController.login] 进入 USER 分支");
             loginAccount = userService.login(account);
+        } else {
+            System.out.println("[WebController.login] 角色不匹配，未进入任何分支，role=" + account.getRole());
         }
+        System.out.println("[WebController.login] <<<<< login 请求结束，返回: " + (loginAccount != null ? "code=200, username=" + loginAccount.getUsername() + ", role=" + loginAccount.getRole() + ", token=" + (loginAccount.getToken() != null ? "有值" : "null") : "null"));
         return Result.success(loginAccount);
     }
 

@@ -23,6 +23,25 @@ public class University {
     private Boolean commentFlag;
     private BigDecimal longitude; // 百度经度(BD09)
     private BigDecimal latitude;  // 百度纬度(BD09)
+    private String englishName;
+    private String foundedYear;
+    private String affiliation;
+    private String leaderInfo;
+    private String schoolIntro;
+    private String campusEnvironment;
+    private String contactAddress;
+    private String contactPhone;
+    private String contactEmail;
+    private String postcode;
+    private String libraryInfo;
+    private String dormitoryInfo;
+    private String canteenInfo;
+    private String transportInfo;
+    private String masterProgramInfo;
+    private String keyDisciplineInfo;
+    private String featuredMajorInfo;
+    private String firstClassMajorInfo;
+    private String graduateHotMajorInfo;
 
     public Integer getId() {
         return id;
@@ -175,4 +194,61 @@ public class University {
     public void setLatitude(BigDecimal latitude) {
         this.latitude = latitude;
     }
+
+    public String getEnglishName() { return englishName; }
+    public void setEnglishName(String englishName) { this.englishName = englishName; }
+
+    public String getFoundedYear() { return foundedYear; }
+    public void setFoundedYear(String foundedYear) { this.foundedYear = foundedYear; }
+
+    public String getAffiliation() { return affiliation; }
+    public void setAffiliation(String affiliation) { this.affiliation = affiliation; }
+
+    public String getLeaderInfo() { return leaderInfo; }
+    public void setLeaderInfo(String leaderInfo) { this.leaderInfo = leaderInfo; }
+
+    public String getSchoolIntro() { return schoolIntro; }
+    public void setSchoolIntro(String schoolIntro) { this.schoolIntro = schoolIntro; }
+
+    public String getCampusEnvironment() { return campusEnvironment; }
+    public void setCampusEnvironment(String campusEnvironment) { this.campusEnvironment = campusEnvironment; }
+
+    public String getContactAddress() { return contactAddress; }
+    public void setContactAddress(String contactAddress) { this.contactAddress = contactAddress; }
+
+    public String getContactPhone() { return contactPhone; }
+    public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
+
+    public String getContactEmail() { return contactEmail; }
+    public void setContactEmail(String contactEmail) { this.contactEmail = contactEmail; }
+
+    public String getPostcode() { return postcode; }
+    public void setPostcode(String postcode) { this.postcode = postcode; }
+
+    public String getLibraryInfo() { return libraryInfo; }
+    public void setLibraryInfo(String libraryInfo) { this.libraryInfo = libraryInfo; }
+
+    public String getDormitoryInfo() { return dormitoryInfo; }
+    public void setDormitoryInfo(String dormitoryInfo) { this.dormitoryInfo = dormitoryInfo; }
+
+    public String getCanteenInfo() { return canteenInfo; }
+    public void setCanteenInfo(String canteenInfo) { this.canteenInfo = canteenInfo; }
+
+    public String getTransportInfo() { return transportInfo; }
+    public void setTransportInfo(String transportInfo) { this.transportInfo = transportInfo; }
+
+    public String getMasterProgramInfo() { return masterProgramInfo; }
+    public void setMasterProgramInfo(String masterProgramInfo) { this.masterProgramInfo = masterProgramInfo; }
+
+    public String getKeyDisciplineInfo() { return keyDisciplineInfo; }
+    public void setKeyDisciplineInfo(String keyDisciplineInfo) { this.keyDisciplineInfo = keyDisciplineInfo; }
+
+    public String getFeaturedMajorInfo() { return featuredMajorInfo; }
+    public void setFeaturedMajorInfo(String featuredMajorInfo) { this.featuredMajorInfo = featuredMajorInfo; }
+
+    public String getFirstClassMajorInfo() { return firstClassMajorInfo; }
+    public void setFirstClassMajorInfo(String firstClassMajorInfo) { this.firstClassMajorInfo = firstClassMajorInfo; }
+
+    public String getGraduateHotMajorInfo() { return graduateHotMajorInfo; }
+    public void setGraduateHotMajorInfo(String graduateHotMajorInfo) { this.graduateHotMajorInfo = graduateHotMajorInfo; }
 }

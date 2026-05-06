@@ -26,7 +26,7 @@ import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
 
 const data = reactive({
-  user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
+  user: JSON.parse(localStorage.getItem('xm-admin') || '{}'),
   noticeData: []
 })
 
