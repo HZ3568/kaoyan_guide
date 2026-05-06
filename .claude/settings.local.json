@@ -11,7 +11,11 @@
       "Bash(mvn compile -q)",
       "Bash(npm run:*)",
       "Bash(git fetch *)",
-      "Bash(git ls-tree *)"
+      "Bash(git ls-tree *)",
+      "Bash(pip install *)",
+      "Bash(python generate_db_doc.py)",
+      "Bash(echo \"exit code: $?\")",
+      "Bash(python -c \"import docx; print\\('ok'\\)\")"
     ],
     "additionalDirectories": [
       "\\tmp"
