@@ -12,3 +12,6 @@ Thumbs.db
 
 # Temp
 tmp/
+
+# data
+data/
