@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.AdmissionOcrBatchMapper">
+
+    <insert id="insert" parameterType="com.example.entity.AdmissionOcrBatch" useGeneratedKeys="true" keyProperty="id">
+        insert into admission_ocr_batch
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="batchNo != null">batch_no,</if>
+            <if test="sourceType != null">source_type,</if>
+            <if test="sourcePath != null">source_path,</if>
+            <if test="fileCount != null">file_count,</if>
+            <if test="totalRecords != null">total_records,</if>
+            <if test="validRecords != null">valid_records,</if>
+            <if test="invalidRecords != null">invalid_records,</if>
+            <if test="status != null">status,</if>
+            <if test="remark != null">remark,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="batchNo != null">#{batchNo},</if>
+            <if test="sourceType != null">#{sourceType},</if>
+            <if test="sourcePath != null">#{sourcePath},</if>
+            <if test="fileCount != null">#{fileCount},</if>
+            <if test="totalRecords != null">#{totalRecords},</if>
+            <if test="validRecords != null">#{validRecords},</if>
+            <if test="invalidRecords != null">#{invalidRecords},</if>
+            <if test="status != null">#{status},</if>
+            <if test="remark != null">#{remark},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.AdmissionOcrBatch">
+        update admission_ocr_batch
+        <set>
+            <if test="batchNo != null">batch_no = #{batchNo},</if>
+            <if test="sourceType != null">source_type = #{sourceType},</if>
+            <if test="sourcePath != null">source_path = #{sourcePath},</if>
+            <if test="fileCount != null">file_count = #{fileCount},</if>
+            <if test="totalRecords != null">total_records = #{totalRecords},</if>
+            <if test="validRecords != null">valid_records = #{validRecords},</if>
+            <if test="invalidRecords != null">invalid_records = #{invalidRecords},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <select id="selectById" resultType="com.example.entity.AdmissionOcrBatch">
+        select *
+        from admission_ocr_batch
+        where id = #{id}
+        limit 1
+    </select>
+
+    <select id="selectByBatchNo" resultType="com.example.entity.AdmissionOcrBatch">
+        select *
+        from admission_ocr_batch
+        where batch_no = #{batchNo}
+        limit 1
+    </select>
+
+    <select id="selectPage" resultType="com.example.entity.AdmissionOcrBatch">
+        select *
+        from admission_ocr_batch
+        <where>
+            <if test="batchNo != null and batchNo != ''">
+                and batch_no like concat('%', #{batchNo}, '%')
+            </if>
+            <if test="sourceType != null and sourceType != ''">
+                and source_type = #{sourceType}
+            </if>
+            <if test="sourcePath != null and sourcePath != ''">
+                and source_path like concat('%', #{sourcePath}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+        </where>
+        order by id desc
+    </select>
+
+</mapper>

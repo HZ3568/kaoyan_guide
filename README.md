@@ -67,6 +67,7 @@
 系统将大模型问答能力与本地院校/专业/政策等业务数据深度结合，实现垂直场景的智能问答：
 
 **技术实现：**
+
 - ✅ **统一聊天网关**：通过 `/chat` 接口统一处理所有 AI 请求，支持模块化路由
 - ✅ **会话记忆管理**：基于 Redis 实现多轮对话上下文记忆（支持 TTL 配置）
 - ✅ **RAG 检索增强**：集成 Redis Vector 向量数据库，支持文档向量化与相似度检索
@@ -75,6 +76,7 @@
 - ✅ **异常处理与降级**：完善的超时处理、错误提示、根因分析
 
 **业务价值：**
+
 - 支持围绕院校、专业、报考、政策等内容进行自然语言咨询
 - 支持多轮对话，无需重复背景信息
 - 结合本地知识库，回答更准确、更贴近业务场景
@@ -86,6 +88,7 @@
 系统能够基于用户近期学习历史、完成情况和主观反馈，生成结构化的每日学习计划：
 
 **技术实现：**
+
 - ✅ **历史上下文分析**：读取前 3 天学习记录，包括任务内容、完成状态、用户反馈
 - ✅ **结构化输出解析**：强约束 AI 输出 JSON 格式，包含 `advice`（建议）和 `tasks`（任务列表）
 - ✅ **数据清洗与校验**：清洗 Markdown 代码块、校验 JSON 格式、过滤空内容
@@ -94,11 +97,13 @@
 - ✅ **任务去重与顺延**：支持任务签名去重、未完成任务顺延到次日
 
 **业务价值：**
+
 - 自动生成学习建议，按学科拆分任务
 - 支持任务状态管理（完成/未完成）
 - 基于历史表现持续调整计划，形成”生成—执行—反馈—再生成”的学习闭环
 
 **关键代码设计：**
+
 ```java
 // 事务边界优化：AI 调用在非事务环境中执行
 public DailyStudyPlan generatePlan(Integer userId, String feedback) {
@@ -117,6 +122,7 @@ public DailyStudyPlan generatePlan(Integer userId, String feedback) {
 支持文档上传、向量化、检索增强，为 AI 问答提供本地知识支持：
 
 **技术实现：**
+
 - ✅ **文件上传与去重**：基于文件 MD5 去重，避免重复上传
 - ✅ **文档向量化**：使用 Embedding 模型将文档转换为向量（1024 维）
 - ✅ **向量存储**：基于 Redis Vector 存储文档向量，支持相似度检索
@@ -142,12 +148,14 @@ public DailyStudyPlan generatePlan(Integer userId, String feedback) {
 项目同时提供学生端和管理端，职责清晰：
 
 **学生端：**
+
 - 信息获取：浏览院校、专业、政策、公告
 - 智能咨询：AI 问答、知识库检索
 - 学习规划：生成计划、管理任务、记录反馈
 - 练习支持：模拟考试、日常练习
 
 **管理端：**
+
 - 数据维护：院校、专业、政策、公告、题库管理
 - 用户管理：用户信息、管理员管理
 - 知识库管理：文档上传、向量化、删除
@@ -160,10 +168,12 @@ public DailyStudyPlan generatePlan(Integer userId, String feedback) {
 #### 难点 1：学习计划任务内容丢失问题
 
 **问题描述：**
+
 - AI 返回的任务 `content` 字段在数据库中全部为空字符串
 - 根本原因：代码中使用了错误的 JSON key `”src/main/uploads/content”` 而不是 `”content”`
 
 **解决方案：**
+
 - 全局搜索并修复 9 处错误的 JSON key
 - 增加 3 处关键日志（AI 原始响应、解析后对象、入库前实体）
 - 增加数据验证，过滤空内容任务
@@ -173,16 +183,18 @@ public DailyStudyPlan generatePlan(Integer userId, String feedback) {
 #### 难点 2：AI 生成超时问题
 
 **问题描述：**
+
 - 调用大模型接口时经常出现 `SocketTimeoutException`
 - 超时后异常栈直接暴露给前端，用户体验差
 
 **解决方案：**
+
 - 配置优化：增加 `timeout: 120s`、`max-retries: 1`、`max-tokens: 2000`
 - 异常处理：递归提取根因，根据异常类型返回友好提示（504/503/400/500）
 - 事务优化：AI 调用移出事务，避免长时间占用数据库连接
 - Prompt 优化：减少输出长度要求，控制任务数量
 
-**详细分析：** 参见计划文件 [hashed-inventing-peach.md](C:\Users\21941\.claude\plans\hashed-inventing-peach.md)
+**详细分析：** 参见计划文件 [hashed-inventing-peach.md](C:\Users\21941.claude\plans\hashed-inventing-peach.md)
 
 ---
 
@@ -207,21 +219,22 @@ public DailyStudyPlan generatePlan(Integer userId, String feedback) {
 
 ### 后端技术栈
 
-| 技术                  | 版本      | 说明                                    |
-| --------------------- | --------- | --------------------------------------- |
-| Java                  | 17        | 核心开发语言                            |
-| Spring Boot           | 3.2.x     | 后端主框架                              |
-| Spring Web / WebFlux  | -         | REST 接口与流式响应支持（SSE）          |
-| MyBatis               | 3.5.x     | 数据持久层框架                          |
-| MySQL                 | 8.0       | 业务数据存储                            |
-| Redis                 | 7.0       | 缓存、会话记忆、向量存储                |
-| LangChain4j           | 1.0.1-beta6 | 大模型集成与 AI 能力编排              |
-| JWT                   | -         | 登录鉴权                                |
-| PageHelper            | -         | 分页支持                                |
-| Hutool                | 5.8.x     | 常用工具库（JSON、加密、文件等）        |
-| Lombok                | -         | 简化实体类代码                          |
+| 技术                 | 版本        | 说明                             |
+| -------------------- | ----------- | -------------------------------- |
+| Java                 | 17          | 核心开发语言                     |
+| Spring Boot          | 3.2.x       | 后端主框架                       |
+| Spring Web / WebFlux | -           | REST 接口与流式响应支持（SSE）   |
+| MyBatis              | 3.5.x       | 数据持久层框架                   |
+| MySQL                | 8.0         | 业务数据存储                     |
+| Redis                | 7.0         | 缓存、会话记忆、向量存储         |
+| LangChain4j          | 1.0.1-beta6 | 大模型集成与 AI 能力编排         |
+| JWT                  | -           | 登录鉴权                         |
+| PageHelper           | -           | 分页支持                         |
+| Hutool               | 5.8.x       | 常用工具库（JSON、加密、文件等） |
+| Lombok               | -           | 简化实体类代码                   |
 
 **核心依赖配置：**
+
 ```xml
 <!-- LangChain4j 大模型集成 -->
 <dependency>
@@ -242,34 +255,34 @@ public DailyStudyPlan generatePlan(Integer userId, String feedback) {
 
 ### 前端技术栈
 
-| 技术         | 版本   | 说明                          |
-| ------------ | ------ | ----------------------------- |
-| Vue          | 3.4.x  | 前端主框架（Composition API） |
-| Vite         | 5.x    | 前端构建工具                  |
-| Vue Router   | 4.x    | 路由管理                      |
-| Pinia        | 2.x    | 状态管理                      |
-| Element Plus | 2.x    | UI 组件库                     |
-| Axios        | 1.x    | 网络请求                      |
-| ECharts      | 5.x    | 数据可视化                    |
-| wangEditor   | 5.x    | 富文本编辑                    |
-| marked       | -      | Markdown 渲染                 |
-| KaTeX        | -      | 数学公式渲染                  |
-| highlight.js | -      | 代码高亮                      |
-| Sass         | -      | 样式增强                      |
+| 技术         | 版本  | 说明                          |
+| ------------ | ----- | ----------------------------- |
+| Vue          | 3.4.x | 前端主框架（Composition API） |
+| Vite         | 5.x   | 前端构建工具                  |
+| Vue Router   | 4.x   | 路由管理                      |
+| Pinia        | 2.x   | 状态管理                      |
+| Element Plus | 2.x   | UI 组件库                     |
+| Axios        | 1.x   | 网络请求                      |
+| ECharts      | 5.x   | 数据可视化                    |
+| wangEditor   | 5.x   | 富文本编辑                    |
+| marked       | -     | Markdown 渲染                 |
+| KaTeX        | -     | 数学公式渲染                  |
+| highlight.js | -     | 代码高亮                      |
+| Sass         | -     | 样式增强                      |
 
 ---
 
 ### 开发工具与环境
 
-| 工具/环境 | 版本   | 说明           |
-| --------- | ------ | -------------- |
-| JDK       | 17     | Java 开发环境  |
-| Maven     | 3.8+   | 项目构建工具   |
-| Node.js   | 16+    | 前端运行环境   |
-| npm/pnpm  | -      | 前端包管理工具 |
-| Git       | -      | 版本控制       |
-| IntelliJ IDEA | -  | 后端开发 IDE   |
-| VS Code   | -      | 前端开发 IDE   |
+| 工具/环境     | 版本 | 说明           |
+| ------------- | ---- | -------------- |
+| JDK           | 17   | Java 开发环境  |
+| Maven         | 3.8+ | 项目构建工具   |
+| Node.js       | 16+  | 前端运行环境   |
+| npm/pnpm      | -    | 前端包管理工具 |
+| Git           | -    | 版本控制       |
+| IntelliJ IDEA | -    | 后端开发 IDE   |
+| VS Code       | -    | 前端开发 IDE   |
 
 ---
 
@@ -317,36 +330,42 @@ public DailyStudyPlan generatePlan(Integer userId, String feedback) {
 ### 架构设计特点
 
 #### 1. 前后端分离
+
 - **前端**：Vue 3 + Vite，独立部署，支持学生端和管理端双端
 - **后端**：Spring Boot，提供 RESTful API，支持 SSE 流式响应
 - **优势**：前后端并行开发，独立部署，易于扩展
 
 #### 2. 统一聊天网关
+
 - **设计**：通过 `/chat` 接口统一处理所有 AI 请求
 - **路由**：根据 `moduleType` 参数路由到不同业务模块（院校咨询、学习规划等）
 - **优势**：接口风格统一，易于扩展新 AI 模块，统一处理鉴权、会话、流式响应
 
 #### 3. 会话记忆管理
+
 - **存储**：基于 Redis 存储会话历史，支持 TTL 配置（默认 7 天）
 - **格式**：`chat:memory:{sessionId}` → List<ChatMessage>
 - **优势**：支持多轮对话，无需重复背景信息
 
 #### 4. RAG 检索增强
+
 - **向量化**：使用 Embedding 模型将文档转换为向量（1024 维）
 - **存储**：基于 Redis Vector 存储文档向量
 - **检索**：查询时先检索相关文档（Top-K 相似度），再结合 LLM 生成回答
 - **优势**：回答更准确，更贴近业务场景
 
 #### 5. 结构化数据 + 非结构化增强
+
 - **结构化数据**：MySQL 存储院校、专业、政策、学习计划等业务数据
 - **非结构化增强**：Redis Vector 存储文档向量，支持 RAG 检索
 - **优势**：传统业务数据与 AI 能力协同工作
 
 #### 6. 流式交互
+
 - **技术**：基于 SSE（Server-Sent Events）实现流式响应
 - **优势**：AI 回答实时展示，用户体验更好
 
-------
+---
 
 ## 📁 项目结构
 
@@ -384,7 +403,7 @@ kaoyan_guide/
 └── kaoyan_guide.sql                  # 数据库初始化脚本
 ```
 
-------
+---
 
 ## 🧩 功能模块
 
@@ -411,13 +430,13 @@ kaoyan_guide/
 | 学习支持管理     | 题库管理、模拟考试支撑                         |
 | 数据统计         | 平台数据概览、可视化统计、运营辅助             |
 
-------
+---
 
 ## 🔍 核心业务逻辑
 
 这一部分是 README 的重点，也是项目最能体现“不是简单 CRUD”的地方。
 
-------
+---
 
 ### 1. AI 智能院校咨询模块
 
@@ -502,7 +521,7 @@ RAG 检索本地知识 + 大模型生成回答
 - 流式交互输出
 - 后续可扩展的工具调用能力
 
-------
+---
 
 ### 2. 智能学习规划模块
 
@@ -597,9 +616,9 @@ RAG 检索本地知识 + 大模型生成回答
 #### 模块价值
 
 这个模块体现了 AI 在垂直业务中的另一种落地方式：
- 不是只回答问题，而是直接输出**结构化业务结果**，让 AI 成为业务流程的一部分。
+不是只回答问题，而是直接输出**结构化业务结果**，让 AI 成为业务流程的一部分。
 
-------
+---
 
 ### 3. 内容管理与信息展示模块
 
@@ -644,7 +663,7 @@ AI 模块在这些数据基础上进行增强服务
 
 也就是说，本项目中的 AI 并不是悬空存在，而是建立在完整业务系统之上的增强层。
 
-------
+---
 
 ## 🗄 数据库与业务设计特点
 
@@ -672,7 +691,7 @@ Redis 可用于缓存、会话记忆、临时数据和扩展型 AI 场景存储�
 
 AI 逻辑通过统一聊天入口和网关进行模块化组织，不直接把大模型调用硬塞到各个 Controller 中，便于维护和扩展。
 
-------
+---
 
 ## 🚀 快速开始
 
@@ -735,21 +754,21 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/kaoyan_guide?useUnicode=true&characterEncoding=utf-8&serverTimezone=GMT%2B8
     username: root
-    password: your_password  # 修改为你的 MySQL 密码
+    password: your_password # 修改为你的 MySQL 密码
 
   data:
     redis:
       host: localhost
       port: 6379
-      password:  # 如果 Redis 有密码，填写密码
+      password: # 如果 Redis 有密码，填写密码
 
 # 大模型配置
 langchain4j:
   open-ai:
     chat-model:
-      base-url: https://api.openai.com/v1  # 或其他兼容 OpenAI API 的服务
-      api-key: your_api_key  # 修改为你的 API Key
-      model-name: gpt-4  # 或其他模型
+      base-url: https://api.openai.com/v1 # 或其他兼容 OpenAI API 的服务
+      api-key: your_api_key # 修改为你的 API Key
+      model-name: gpt-4 # 或其他模型
       timeout: 120s
       max-retries: 1
       max-tokens: 2000
@@ -763,12 +782,12 @@ langchain4j:
     redis:
       host: localhost
       port: 6379
-      dimension: 1024  # 向量维度，根据 Embedding 模型调整
+      dimension: 1024 # 向量维度，根据 Embedding 模型调整
 
 # 文件上传配置
 app:
   knowledge-base:
-    upload-dir: ./uploads/content  # 文件上传目录
+    upload-dir: ./uploads/content # 文件上传目录
 ```
 
 #### 4.2 创建文件上传目录
@@ -811,9 +830,9 @@ pnpm install
 
 ```javascript
 const request = axios.create({
-    baseURL: 'http://localhost:9090',  // 后端地址
-    timeout: 30000
-})
+  baseURL: "http://localhost:9090", // 后端地址
+  timeout: 30000,
+});
 ```
 
 #### 5.3 启动前端
@@ -829,14 +848,16 @@ npm run dev
 ### 6. 访问系统
 
 #### 学生端
+
 - 地址：`http://localhost:5173`
 - 默认账号：`student` / `123456`
 
 #### 管理端
+
 - 地址：`http://localhost:5173/manager`
 - 默认账号：`admin` / `123456`
 
-------
+---
 
 ## 🌟 项目特色总结
 
@@ -882,13 +903,6 @@ npm run dev
 3. **双端设计**
    - 学生端：信息获取、智能咨询、学习规划、练习支持
    - 管理端：数据维护、用户管理、知识库管理、统计分析
-
-### 项目价值
-
-- ✅ **适合毕业设计**：业务完整、技术栈丰富、有创新点
-- ✅ **适合技术实践**：涵盖前后端分离、AI 集成、RAG 检索等多个技术领域
-- ✅ **适合答辩展示**：有亮点、有难点、有解决方案
-- ✅ **适合简历项目**：技术栈主流、业务场景真实、代码质量高
 
 ---
 
@@ -953,20 +967,6 @@ npm run dev
 
 ---
 
-## 🎯 适用场景
-
-本项目适用于以下方向的展示与实践：
-
-- ✅ 软件工程 / 计算机类专业毕业设计
-- ✅ 前后端分离项目实践
-- ✅ 数据库设计与后台管理系统实践
-- ✅ AI 大模型接入与场景化问答实践
-- ✅ RAG 检索增强生成项目实践
-- ✅ 智能学习辅助系统设计实践
-- ✅ 技术栈学习与实践（Spring Boot + Vue 3 + LangChain4j）
-
----
-
 ## 📞 联系方式
 
 如有问题或建议，欢迎通过以下方式联系：
@@ -978,6 +978,3 @@ npm run dev
 > 如果这个项目对你有帮助，欢迎点一个 Star ⭐
 >
 > 如果你在使用过程中遇到问题，欢迎提 Issue 或 PR
-
-
-
