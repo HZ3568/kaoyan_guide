@@ -3,7 +3,7 @@ services:
     image: mysql:8.0
     container_name: kaoyan-guide-mysql
     env_file:
-      - ./backend/.env.example
+      - ./backend/.env
     ports:
       - "3307:3306"
     volumes:
@@ -37,7 +37,7 @@ services:
     build: ./backend
     container_name: kaoyan-guide-backend
     env_file:
-      - ./backend/.env.example
+      - ./backend/.env
     environment:
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306

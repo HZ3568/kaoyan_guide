@@ -31,6 +31,8 @@ data/ocr/*
 backend/uploads/
 
 # IDE / OS
+.codex/
+.tmp-chrome*/
 .idea/
 .vscode/
 .DS_Store
