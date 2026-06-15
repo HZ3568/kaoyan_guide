@@ -6,17 +6,30 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.exceptions import NotFoundError
-from app.models.chunk import DocumentChunk
+from app.ingestion.pipeline import DocumentImportOptions, DocumentImportPipeline, LocalImportResult
 from app.repositories.document_repository import DocumentRepository
-from app.services.ingestion_service import IngestionService, UnsupportedDocumentTypeError
 
 
 class DocumentService:
     def __init__(self, db: Session) -> None:
         self.repo = DocumentRepository(db)
-        self.ingestion = IngestionService()
+        self.pipeline = DocumentImportPipeline(db)
 
-    async def upload_and_parse(self, file: UploadFile, user_id: int | None = None):
+    async def upload_and_parse(
+        self,
+        file: UploadFile,
+        user_id: int | None = None,
+        *,
+        title: str | None = None,
+        source: str | None = None,
+        source_url: str | None = None,
+        subject: str | None = None,
+        school: str | None = None,
+        major: str | None = None,
+        tags: list[str] | None = None,
+        exam_year: int | None = None,
+        description: str | None = None,
+    ):
         raw_dir = Path(settings.RAW_DATA_DIR)
         raw_dir.mkdir(parents=True, exist_ok=True)
         suffix = Path(file.filename or "upload.txt").suffix.lower()
@@ -25,51 +38,57 @@ class DocumentService:
         content = await file.read()
         saved_path.write_bytes(content)
 
-        doc = self.repo.create_document(
-            user_id=user_id,
-            title=Path(file.filename or saved_name).stem,
-            file_name=file.filename or saved_name,
-            file_type=suffix.lstrip(".") or "unknown",
-            file_path=str(saved_path),
-            parse_status="parsing",
+        return self.pipeline.import_file(
+            saved_path,
+            DocumentImportOptions(
+                user_id=user_id,
+                title=title,
+                source=source,
+                source_type="uploaded",
+                source_url=source_url,
+                subject=subject,
+                school=school,
+                major=major,
+                tags=tags,
+                exam_year=exam_year,
+                description=description,
+                original_file_name=file.filename or saved_name,
+            ),
         )
 
-        try:
-            text = self.ingestion.parse_file(str(saved_path))
-            chunks_text = self.ingestion.split_chunks(text)
-        except UnsupportedDocumentTypeError:
-            doc.parse_status = "unsupported"
-            self.repo.db.commit()
-            self.repo.db.refresh(doc)
-            return doc
-        except Exception:
-            doc.parse_status = "failed"
-            self.repo.db.commit()
-            self.repo.db.refresh(doc)
-            return doc
-
-        if not chunks_text:
-            doc.parse_status = "empty"
-            self.repo.db.commit()
-            self.repo.db.refresh(doc)
-            return doc
-
-        chunks = [
-            DocumentChunk(
-                document_id=doc.id,
-                chunk_index=i,
-                content=chunk,
-                content_hash=self.ingestion.content_hash(chunk),
-                token_count=len(chunk),
-                metadata_json={"file_name": doc.file_name, "title": doc.title},
-            )
-            for i, chunk in enumerate(chunks_text)
-        ]
-        self.repo.add_chunks(chunks)
-        doc.parse_status = "parsed"
-        self.repo.db.commit()
-        self.repo.db.refresh(doc)
-        return doc
+    def import_local(
+        self,
+        path: str,
+        user_id: int | None = None,
+        *,
+        recursive: bool = True,
+        title: str | None = None,
+        source: str | None = None,
+        source_url: str | None = None,
+        subject: str | None = None,
+        school: str | None = None,
+        major: str | None = None,
+        tags: list[str] | None = None,
+        exam_year: int | None = None,
+        description: str | None = None,
+    ) -> LocalImportResult:
+        return self.pipeline.import_local_path(
+            path,
+            DocumentImportOptions(
+                user_id=user_id,
+                title=title,
+                source=source,
+                source_type="local",
+                source_url=source_url,
+                subject=subject,
+                school=school,
+                major=major,
+                tags=tags,
+                exam_year=exam_year,
+                description=description,
+            ),
+            recursive=recursive,
+        )
 
     def list_documents(self, user_id: int):
         return self.repo.list_documents(user_id=user_id)

@@ -1,43 +1,20 @@
-import hashlib
-import re
-from pathlib import Path
-
-
-class UnsupportedDocumentTypeError(ValueError):
-    pass
+from app.ingestion.chunkers import clean_text
+from app.ingestion.loaders import UnsupportedDocumentTypeError, load_document
+from app.ingestion.pipeline import content_hash
 
 
 class IngestionService:
-    """基础解析服务。后续可扩展 PDF、Word、OCR、表格解析。"""
-
-    TEXT_EXTENSIONS = {".txt", ".md", ".markdown", ".csv", ".json"}
-    UNSUPPORTED_EXTENSIONS = {
-        ".pdf",
-        ".doc",
-        ".docx",
-        ".png",
-        ".jpg",
-        ".jpeg",
-        ".webp",
-        ".bmp",
-        ".tif",
-        ".tiff",
-    }
+    """兼容旧调用的基础解析服务；新导入流程使用 app.ingestion.pipeline。"""
 
     def parse_file(self, file_path: str) -> str:
-        path = Path(file_path)
-        suffix = path.suffix.lower()
-        if suffix in self.TEXT_EXTENSIONS:
-            return path.read_text(encoding="utf-8", errors="ignore")
-        if suffix in self.UNSUPPORTED_EXTENSIONS:
-            raise UnsupportedDocumentTypeError(f"Unsupported document type: {suffix}")
-        raise UnsupportedDocumentTypeError(f"Unsupported document type: {suffix or 'unknown'}")
+        loaded = load_document(file_path)
+        texts = [block.text for block in loaded.text_blocks]
+        for row in loaded.table_rows:
+            texts.append(" ".join(str(value) for value in row.values.values() if value is not None))
+        return "\n\n".join(texts)
 
     def clean_text(self, text: str) -> str:
-        text = re.sub(r"\r\n?", "\n", text)
-        text = re.sub(r"[ \t]+", " ", text)
-        text = re.sub(r"\n{3,}", "\n\n", text)
-        return text.strip()
+        return clean_text(text)
 
     def split_chunks(self, text: str, chunk_size: int = 800, overlap: int = 120) -> list[str]:
         text = self.clean_text(text)
@@ -51,8 +28,8 @@ class IngestionService:
             if end == len(text):
                 break
             start = max(0, end - overlap)
-        return [c for c in chunks if c]
+        return [chunk for chunk in chunks if chunk]
 
     @staticmethod
     def content_hash(content: str) -> str:
-        return hashlib.sha256(content.encode("utf-8")).hexdigest()
+        return content_hash(content)

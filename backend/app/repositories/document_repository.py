@@ -31,9 +31,10 @@ class DocumentRepository:
             query = query.filter(Document.user_id == user_id)
         return query.first()
 
-    def add_chunks(self, chunks: list[DocumentChunk]) -> None:
+    def add_chunks(self, chunks: list[DocumentChunk], *, commit: bool = True) -> None:
         self.db.add_all(chunks)
-        self.db.commit()
+        if commit:
+            self.db.commit()
 
     def list_chunks(self, document_id: int, user_id: int) -> list[DocumentChunk]:
         return (

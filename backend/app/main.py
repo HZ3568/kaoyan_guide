@@ -1,9 +1,19 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import health
 from app.api.v1 import auth, users, documents, rag, planner, tasks, eval
 from app.core.config import settings
 from app.core.init_db import init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    init_db()
+    yield
 
 
 def create_app() -> FastAPI:
@@ -11,6 +21,7 @@ def create_app() -> FastAPI:
         title=settings.PROJECT_NAME,
         version=settings.VERSION,
         description="RAG-first postgraduate exam guide and intelligent learning planner.",
+        lifespan=lifespan,
     )
 
     app.add_middleware(
@@ -21,6 +32,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.include_router(health.router)
+
     api_prefix = settings.API_V1_PREFIX
     app.include_router(auth.router, prefix=api_prefix)
     app.include_router(users.router, prefix=api_prefix)
@@ -29,14 +42,6 @@ def create_app() -> FastAPI:
     app.include_router(planner.router, prefix=api_prefix)
     app.include_router(tasks.router, prefix=api_prefix)
     app.include_router(eval.router, prefix=api_prefix)
-
-    @app.on_event("startup")
-    def on_startup() -> None:
-        init_db()
-
-    @app.get("/health")
-    def health_check() -> dict[str, str]:
-        return {"status": "ok", "service": settings.PROJECT_NAME}
 
     return app
 

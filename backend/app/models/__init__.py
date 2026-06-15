@@ -4,6 +4,8 @@ from app.models.chunk import DocumentChunk
 from app.models.learning_profile import LearningProfile
 from app.models.learning_plan import LearningPlan, LearningTask
 from app.models.chat import ChatSession, ChatMessage
+from app.models.ocr import OcrTask, OcrTableRecord
+from app.models.rag_log import RagQueryLog
 
 __all__ = [
     "User",
@@ -14,4 +16,7 @@ __all__ = [
     "LearningTask",
     "ChatSession",
     "ChatMessage",
+    "OcrTask",
+    "OcrTableRecord",
+    "RagQueryLog",
 ]
