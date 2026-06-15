@@ -1,25 +1,252 @@
-import { Button, Card, Upload, message, Typography } from 'antd'
-import type { UploadProps } from 'antd'
-import { uploadDocument } from '../api/rag'
+import { Button, Card, Form, Input, InputNumber, Space, Table, Tag, Typography, Upload, message } from 'antd'
+import type { ColumnsType } from 'antd/es/table'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  getVectorIndexStatus,
+  indexChunks,
+  listDocumentChunks,
+  listDocuments,
+  uploadDocument,
+} from '../api/documents'
+import type { DocumentChunk, DocumentRecord, DocumentUploadMetadata, VectorIndexStatus } from '../api/documents'
+import { ChunkList } from '../components/ChunkList'
+import { ErrorMessage } from '../components/ErrorMessage'
+import { Loading } from '../components/Loading'
+
+interface DocumentRow extends DocumentRecord {
+  chunk_count: number
+  vectorized_count: number
+}
 
 export default function KnowledgeBasePage() {
-  const props: UploadProps = {
-    beforeUpload: async (file) => {
-      await uploadDocument(file)
-      message.success('上传并解析完成')
-      return false
-    },
+  const [form] = Form.useForm<DocumentUploadMetadata>()
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [documents, setDocuments] = useState<DocumentRecord[]>([])
+  const [chunksByDocument, setChunksByDocument] = useState<Record<number, DocumentChunk[]>>({})
+  const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null)
+  const [indexStatus, setIndexStatus] = useState<VectorIndexStatus | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [indexing, setIndexing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function refresh() {
+    setLoading(true)
+    setError(null)
+    try {
+      const docs = await listDocuments()
+      const chunkPairs = await Promise.all(
+        docs.map(async (doc) => {
+          try {
+            return [doc.id, await listDocumentChunks(doc.id)] as const
+          } catch {
+            return [doc.id, []] as const
+          }
+        }),
+      )
+      setDocuments(docs)
+      setChunksByDocument(Object.fromEntries(chunkPairs))
+      await refreshIndexStatus()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加载知识库失败')
+    } finally {
+      setLoading(false)
+    }
   }
+
+  async function refreshIndexStatus() {
+    try {
+      setIndexStatus(await getVectorIndexStatus())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加载索引状态失败')
+    }
+  }
+
+  useEffect(() => {
+    void refresh()
+  }, [])
+
+  const rows = useMemo<DocumentRow[]>(() => (
+    documents.map((doc) => {
+      const chunks = chunksByDocument[doc.id] || []
+      return {
+        ...doc,
+        chunk_count: chunks.length,
+        vectorized_count: chunks.filter((chunk) => chunk.is_vectorized).length,
+      }
+    })
+  ), [documents, chunksByDocument])
+
+  async function handleUpload(values: DocumentUploadMetadata) {
+    if (!uploadFile) {
+      message.warning('请选择要上传的文件')
+      return
+    }
+    setUploading(true)
+    setError(null)
+    try {
+      await uploadDocument(uploadFile, values)
+      message.success('上传并切片完成')
+      form.resetFields()
+      setUploadFile(null)
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '上传失败')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleIndex(documentId?: number, forceReindex = false) {
+    setIndexing(true)
+    setError(null)
+    try {
+      const result = await indexChunks({ document_id: documentId, force_reindex: forceReindex, limit: 1000 })
+      message.success(`向量化完成：成功 ${result.indexed}，跳过 ${result.skipped}，失败 ${result.failed}`)
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '向量化失败')
+    } finally {
+      setIndexing(false)
+    }
+  }
+
+  const columns: ColumnsType<DocumentRow> = [
+    {
+      title: '标题',
+      dataIndex: 'title',
+      render: (value: string, record) => (
+        <div>
+          <Typography.Text strong>{value}</Typography.Text>
+          <div className="muted-text">{record.file_name}</div>
+        </div>
+      ),
+    },
+    { title: '类型', dataIndex: 'file_type', width: 90 },
+    { title: '来源', dataIndex: 'source', render: (value?: string | null) => value || '-' },
+    {
+      title: '标签',
+      render: (_, record) => (
+        <Space wrap>
+          {record.school && <Tag>{record.school}</Tag>}
+          {record.major && <Tag>{record.major}</Tag>}
+          {record.subject && <Tag>{record.subject}</Tag>}
+        </Space>
+      ),
+    },
+    {
+      title: '处理状态',
+      dataIndex: 'parse_status',
+      width: 120,
+      render: (value: string) => <Tag color={value === 'completed' ? 'green' : 'orange'}>{value}</Tag>,
+    },
+    {
+      title: 'Chunk',
+      width: 140,
+      render: (_, record) => `${record.vectorized_count}/${record.chunk_count} 已向量化`,
+    },
+    {
+      title: '操作',
+      width: 220,
+      render: (_, record) => (
+        <Space wrap>
+          <Button size="small" onClick={() => setSelectedDocumentId(record.id)}>查看 chunks</Button>
+          <Button size="small" loading={indexing} onClick={() => handleIndex(record.id)}>向量化</Button>
+          <Button size="small" loading={indexing} onClick={() => handleIndex(record.id, true)}>重建</Button>
+        </Space>
+      ),
+    },
+  ]
+
+  const selectedChunks = selectedDocumentId ? chunksByDocument[selectedDocumentId] || [] : []
 
   return (
     <div className="page">
-      <Typography.Title level={2}>知识库管理</Typography.Title>
-      <Card>
-        <Upload {...props} maxCount={1}>
-          <Button type="primary">上传文档</Button>
-        </Upload>
-        <p>支持 TXT/Markdown 直接解析；PDF、Word、图片 OCR 当前为占位逻辑，后续在 IngestionService 中扩展。</p>
+      <div className="page-title-row">
+        <Typography.Title level={2}>知识库管理</Typography.Title>
+        <Space>
+          <Button onClick={refresh} loading={loading}>刷新</Button>
+          <Button type="primary" onClick={() => handleIndex()} loading={indexing}>增量向量化</Button>
+          <Button onClick={() => handleIndex(undefined, true)} loading={indexing}>重建索引</Button>
+        </Space>
+      </div>
+
+      <ErrorMessage message={error} />
+
+      <Card title="上传资料">
+        <Form form={form} layout="vertical" onFinish={handleUpload}>
+          <div className="form-grid">
+            <Form.Item label="标题" name="title">
+              <Input placeholder="默认使用文件名" />
+            </Form.Item>
+            <Form.Item label="来源" name="source">
+              <Input placeholder="例如：院校官网、经验贴、真题资料" />
+            </Form.Item>
+            <Form.Item label="来源链接" name="source_url">
+              <Input placeholder="可选" />
+            </Form.Item>
+            <Form.Item label="科目" name="subject">
+              <Input placeholder="例如：数学、英语、专业课" />
+            </Form.Item>
+            <Form.Item label="院校" name="school">
+              <Input placeholder="目标院校" />
+            </Form.Item>
+            <Form.Item label="专业" name="major">
+              <Input placeholder="目标专业" />
+            </Form.Item>
+            <Form.Item label="标签" name="tags">
+              <Input placeholder="用逗号分隔" />
+            </Form.Item>
+            <Form.Item label="年份" name="exam_year">
+              <InputNumber min={2000} max={2100} style={{ width: '100%' }} />
+            </Form.Item>
+          </div>
+          <Form.Item label="说明" name="description">
+            <Input.TextArea rows={2} maxLength={500} />
+          </Form.Item>
+          <Space wrap>
+            <Upload
+              beforeUpload={(file) => {
+                setUploadFile(file)
+                return false
+              }}
+              maxCount={1}
+              onRemove={() => setUploadFile(null)}
+              accept=".txt,.md,.pdf,.json"
+            >
+              <Button>选择 txt / md / pdf / json</Button>
+            </Upload>
+            <Button type="primary" htmlType="submit" loading={uploading}>上传并生成 chunk</Button>
+          </Space>
+        </Form>
+      </Card>
+
+      <Card className="block-gap" title="Redis Vector 索引状态">
+        {indexStatus ? (
+          <Space wrap>
+            <Tag>索引名：{String(indexStatus.redis.index_name || '-')}</Tag>
+            <Tag color="blue">总 chunk：{indexStatus.total_chunks}</Tag>
+            <Tag color="green">已向量化：{indexStatus.indexed_chunks}</Tag>
+            <Tag color="orange">待向量化：{indexStatus.pending_chunks}</Tag>
+            <Tag color={indexStatus.failed_chunks > 0 ? 'red' : 'default'}>失败：{indexStatus.failed_chunks}</Tag>
+          </Space>
+        ) : (
+          <Typography.Text type="secondary">暂无索引状态</Typography.Text>
+        )}
+      </Card>
+
+      {loading ? (
+        <Loading tip="正在加载文档和 chunk" />
+      ) : (
+        <Card className="block-gap" title="文档列表">
+          <Table rowKey="id" columns={columns} dataSource={rows} pagination={{ pageSize: 8 }} />
+        </Card>
+      )}
+
+      <Card className="block-gap" title={selectedDocumentId ? `文档 ${selectedDocumentId} 的 chunks` : 'Chunk 展示'}>
+        <ChunkList chunks={selectedChunks} />
       </Card>
     </div>
   )
 }
+

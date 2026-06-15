@@ -1,4 +1,4 @@
-import { http } from './http'
+import { request } from './client'
 
 export interface LoginPayload {
   username: string
@@ -6,11 +6,17 @@ export interface LoginPayload {
 }
 
 export async function login(payload: LoginPayload) {
-  const { data } = await http.post('/auth/login', payload)
-  return data as { access_token: string; token_type: string }
+  return request<{ access_token: string; token_type: string }>({
+    method: 'POST',
+    url: '/auth/login',
+    data: payload,
+  })
 }
 
 export async function register(payload: LoginPayload & { email?: string }) {
-  const { data } = await http.post('/auth/register', payload)
-  return data
+  return request({
+    method: 'POST',
+    url: '/auth/register',
+    data: payload,
+  })
 }
