@@ -101,7 +101,7 @@ class DailyPlanService:
         for plan_task in plan.tasks:
             if plan_task.status == "suggested":
                 plan_task.status = "accepted"
-            if plan_task.task and plan_task.task.status in {"backlog", "delayed"}:
+            if plan_task.task and plan_task.task.status in {"pending", "scheduled", "delayed"}:
                 plan_task.task.status = "pending"
         self.db.commit()
         return self._read_plan(user_id, daily_plan_id)
@@ -184,7 +184,7 @@ class DailyPlanService:
         query = (
             self.db.query(TaskItem)
             .filter(TaskItem.user_id == user_id)
-            .filter(TaskItem.status.in_(["backlog", "pending", "in_progress", "delayed"]))
+            .filter(TaskItem.status.in_(["pending", "scheduled", "in_progress", "delayed", "overdue"]))
         )
         if not include_overdue:
             query = query.filter((TaskItem.deadline.is_(None)) | (TaskItem.deadline >= plan_date))
@@ -247,7 +247,7 @@ class DailyPlanService:
         if task.deadline:
             deadline_days = (task.deadline - plan_date).days
             overdue = 0 if deadline_days < 0 else 1
-        status_weight = {"delayed": 0, "in_progress": 1, "pending": 2, "backlog": 3}.get(task.status, 9)
+        status_weight = {"delayed": 0, "overdue": 0, "in_progress": 1, "scheduled": 2, "pending": 3}.get(task.status, 9)
         priority_weight = PRIORITY_WEIGHT.get(task.priority, 2)
         difficulty_weight = DIFFICULTY_WEIGHT.get(task.difficulty or "normal", 1)
         return (overdue, max(deadline_days, -30), priority_weight, status_weight, difficulty_weight, task.id)
@@ -301,8 +301,8 @@ class DailyPlanService:
     def _summary(selected: list[dict[str, Any]], available_minutes: int) -> str:
         total = sum(item["planned_minutes"] for item in selected)
         if not selected:
-            return "任务池中没有可安排任务，请先创建任务或恢复已归档任务。"
-        return f"今日建议安排 {len(selected)} 个任务，预计 {total} 分钟，可用时间 {available_minutes} 分钟。"
+            return "当前没有可安排任务，请先在学习日历中创建任务或恢复已归档任务。"
+        return f"建议安排 {len(selected)} 个任务，预计 {total} 分钟，可用时间 {available_minutes} 分钟。"
 
     def _persist_optional_suggestions(self, user_id: int, suggestions_payload: Any) -> None:
         if not isinstance(suggestions_payload, list):

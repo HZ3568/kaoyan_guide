@@ -20,7 +20,7 @@ class TaskItem(Base):
     difficulty: Mapped[str | None] = mapped_column(String(32), index=True)
     estimated_minutes: Mapped[int] = mapped_column(Integer, default=60, nullable=False)
     deadline: Mapped[date | None] = mapped_column(Date, index=True)
-    status: Mapped[str] = mapped_column(String(32), index=True, default="backlog", nullable=False)
+    status: Mapped[str] = mapped_column(String(32), index=True, default="pending", nullable=False)
     parent_task_id: Mapped[int | None] = mapped_column(ForeignKey("task_items.id"), index=True)
     is_splittable: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_ai_generated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

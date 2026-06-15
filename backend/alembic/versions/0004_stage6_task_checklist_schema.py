@@ -80,7 +80,7 @@ def upgrade() -> None:
         sa.Column("difficulty", sa.String(length=32), nullable=True),
         sa.Column("estimated_minutes", sa.Integer(), server_default="60", nullable=False),
         sa.Column("deadline", sa.Date(), nullable=True),
-        sa.Column("status", sa.String(length=32), server_default="backlog", nullable=False),
+        sa.Column("status", sa.String(length=32), server_default="pending", nullable=False),
         sa.Column("parent_task_id", sa.Integer(), nullable=True),
         sa.Column("is_splittable", sa.Boolean(), server_default=sa.text("1"), nullable=False),
         sa.Column("is_ai_generated", sa.Boolean(), server_default=sa.text("0"), nullable=False),

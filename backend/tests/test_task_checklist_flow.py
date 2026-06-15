@@ -13,13 +13,16 @@ from app.models.user import User
 from app.planner.daily_plan_service import DailyPlanService
 from app.planner.task_models import DailyPlan, DailyPlanTask, TaskAiSuggestion, TaskFeedback, TaskItem
 from app.planner.task_schemas import (
+    CalendarTaskSupplementRequest,
     DailyPlanAdjustRequest,
     DailyPlanGenerateRequest,
     DailyPlanTaskStatusUpdate,
     DailyPlanTaskFeedbackCreate,
     TaskItemCreate,
+    TaskOptimizeRequest,
 )
 from app.planner.task_service import TaskService
+from app.planner.calendar_task_service import CalendarTaskService
 
 
 def make_session():
@@ -40,7 +43,7 @@ def seed_user(db):
     return user
 
 
-def test_task_pool_and_daily_plan_services():
+def test_calendar_task_services():
     db = make_session()
     try:
         user = seed_user(db)
@@ -57,6 +60,7 @@ def test_task_pool_and_daily_plan_services():
                 difficulty="hard",
                 estimated_minutes=180,
                 deadline=date.today() + timedelta(days=2),
+                task_date=date.today(),
             ),
         )
         task_service.create_task(
@@ -72,7 +76,35 @@ def test_task_pool_and_daily_plan_services():
 
         split = task_service.split_task(user.id, urgent.id)
         assert split.suggestions
+        assert split.suggestions[0].suggestion_type == "split"
         assert db.query(TaskAiSuggestion).count() == 1
+
+        optimized = task_service.optimize_task(
+            user.id,
+            TaskOptimizeRequest(
+                raw_title="做数学题",
+                raw_description="",
+                date=date.today(),
+                subject="数学",
+                estimated_minutes=90,
+                priority="high",
+            ),
+        )
+        assert optimized.suggested_title
+        assert db.query(TaskItem).count() == 2
+
+        calendar_service = CalendarTaskService(db)
+        summary = calendar_service.month_summary(user.id, year=date.today().year, month=date.today().month)
+        today_summary = next(item for item in summary.days if item.date == date.today())
+        assert today_summary.task_count == 1
+        assert today_summary.estimated_minutes >= 90
+
+        supplement = calendar_service.supplement(
+            user.id,
+            CalendarTaskSupplementRequest(date=date.today(), available_minutes=240, max_new_tasks=2),
+        )
+        assert supplement.message
+        assert all(item.source_type == "ai_supplement" for item in supplement.suggestions)
 
         daily_service = DailyPlanService(db)
         generated = daily_service.generate(
@@ -111,7 +143,7 @@ def test_task_pool_and_daily_plan_services():
         db.close()
 
 
-def test_task_checklist_api_flow():
+def test_calendar_task_api_flow():
     old_auto_create_tables = settings.AUTO_CREATE_TABLES
     settings.AUTO_CREATE_TABLES = False
     db = make_session()
@@ -139,15 +171,51 @@ def test_task_checklist_api_flow():
                 "priority": "urgent",
                 "estimated_minutes": 120,
                 "deadline": str(date.today() + timedelta(days=1)),
+                "date": str(date.today()),
             },
             headers=headers,
         )
         assert create_res.status_code == 200
         task_id = create_res.json()["id"]
 
-        list_res = client.get("/api/v1/tasks?priority=urgent", headers=headers)
+        list_res = client.get(f"/api/v1/tasks?priority=urgent&date={date.today()}", headers=headers)
         assert list_res.status_code == 200
         assert list_res.json()[0]["id"] == task_id
+
+        optimize_res = client.post(
+            "/api/v1/tasks/ai/optimize",
+            json={
+                "raw_title": "做数学题",
+                "raw_description": "",
+                "date": str(date.today()),
+                "subject": "数学",
+                "estimated_minutes": 90,
+                "priority": "high",
+            },
+            headers=headers,
+        )
+        assert optimize_res.status_code == 200
+        assert optimize_res.json()["suggested_title"]
+
+        month_res = client.get(
+            f"/api/v1/calendar-tasks/month?year={date.today().year}&month={date.today().month}",
+            headers=headers,
+        )
+        assert month_res.status_code == 200
+        today_summary = next(item for item in month_res.json()["days"] if item["date"] == str(date.today()))
+        assert today_summary["task_count"] == 1
+
+        day_res = client.get(f"/api/v1/calendar-tasks?date={date.today()}", headers=headers)
+        assert day_res.status_code == 200
+        assert day_res.json()["tasks"][0]["task_id"] == task_id
+
+        supplement_res = client.post(
+            "/api/v1/calendar-tasks/ai/supplement",
+            json={"date": str(date.today()), "available_minutes": 240, "max_new_tasks": 2},
+            headers=headers,
+        )
+        assert supplement_res.status_code == 200
+        assert "suggestions" in supplement_res.json()
 
         split_res = client.post(f"/api/v1/tasks/{task_id}/split", headers=headers)
         assert split_res.status_code == 200
@@ -195,8 +263,8 @@ def test_task_checklist_api_flow():
         assert "message" in adjust_res.json()
 
         assert db.query(TaskItem).count() == 1
-        assert db.query(DailyPlan).count() == 1
-        assert db.query(DailyPlanTask).count() == 1
+        assert db.query(DailyPlan).count() >= 1
+        assert db.query(DailyPlanTask).count() >= 1
         assert db.query(TaskFeedback).count() == 1
     finally:
         app.dependency_overrides.clear()

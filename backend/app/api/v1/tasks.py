@@ -7,16 +7,19 @@ from app.api.v1.deps import get_current_user
 from app.core.database import get_db
 from app.models.user import User
 from app.planner.task_schemas import (
-    RagTaskRecommendationRequest,
-    RagTaskRecommendationResponse,
+    DailyPlanTaskFeedbackRead,
     TaskItemBulkCreateRequest,
     TaskItemBulkCreateResponse,
     TaskItemCreate,
     TaskItemRead,
     TaskItemUpdate,
+    TaskFeedbackCreate,
+    TaskOptimizeRequest,
+    TaskOptimizeResponse,
     TaskOrganizeRequest,
     TaskOrganizeResponse,
     TaskSplitResponse,
+    TaskStatusUpdate,
 )
 from app.planner.task_service import TaskService
 
@@ -48,6 +51,7 @@ def list_tasks(
     subject: str | None = Query(default=None),
     priority: str | None = Query(default=None),
     deadline_before: date | None = Query(default=None),
+    task_date: date | None = Query(default=None, alias="date"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -58,6 +62,7 @@ def list_tasks(
         subject=subject,
         priority=priority,
         deadline_before=deadline_before,
+        task_date=task_date,
     )
 
 
@@ -70,13 +75,13 @@ def organize_tasks(
     return TaskService(db).organize_tasks(current_user.id, payload)
 
 
-@router.post("/ai/recommend-from-rag", response_model=RagTaskRecommendationResponse)
-def recommend_tasks_from_rag(
-    payload: RagTaskRecommendationRequest,
+@router.post("/ai/optimize", response_model=TaskOptimizeResponse)
+def optimize_task(
+    payload: TaskOptimizeRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return TaskService(db).recommend_from_rag(current_user.id, payload)
+    return TaskService(db).optimize_task(current_user.id, payload)
 
 
 @router.patch("/{task_id}", response_model=TaskItemRead)
@@ -87,6 +92,26 @@ def update_task(
     current_user: User = Depends(get_current_user),
 ):
     return TaskService(db).update_task(current_user.id, task_id, payload)
+
+
+@router.patch("/{task_id}/status", response_model=TaskItemRead)
+def update_task_status(
+    task_id: int,
+    payload: TaskStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return TaskService(db).update_status(current_user.id, task_id, payload)
+
+
+@router.post("/{task_id}/feedback", response_model=DailyPlanTaskFeedbackRead)
+def create_task_feedback(
+    task_id: int,
+    payload: TaskFeedbackCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return TaskService(db).create_feedback(current_user.id, task_id, payload)
 
 
 @router.delete("/{task_id}", response_model=TaskItemRead)

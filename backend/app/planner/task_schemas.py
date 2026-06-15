@@ -1,13 +1,25 @@
-from datetime import date, datetime, time
+from __future__ import annotations
+
+from datetime import date as DateType, datetime, time
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
 
-TaskItemStatus = Literal["backlog", "pending", "in_progress", "completed", "delayed", "skipped", "archived"]
+TaskItemStatus = Literal[
+    "pending",
+    "scheduled",
+    "in_progress",
+    "completed",
+    "delayed",
+    "skipped",
+    "overdue",
+    "cancelled",
+    "archived",
+]
 TaskPriority = Literal["low", "medium", "high", "urgent"]
 TaskDifficulty = Literal["easy", "normal", "hard", "very_hard"]
-TaskSourceType = Literal["manual", "ai_split", "rag_recommendation", "imported", "planner"]
+TaskSourceType = Literal["manual", "ai_optimized", "ai_supplement", "ai_split", "imported", "planner"]
 DailyPlanStatus = Literal["suggested", "confirmed", "finished"]
 DailyPlanCreatedBy = Literal["user", "ai"]
 DailyPlanTaskStatus = Literal[
@@ -22,8 +34,10 @@ DailyPlanTaskStatus = Literal[
 ]
 SuggestionType = Literal[
     "estimate_time",
-    "split_task",
+    "split",
     "adjust_priority",
+    "optimize",
+    "supplement",
     "today_plan",
     "reschedule",
     "summarize",
@@ -39,13 +53,16 @@ class TaskItemCreate(BaseModel):
     priority: TaskPriority = "medium"
     difficulty: TaskDifficulty | None = "normal"
     estimated_minutes: int = Field(default=60, ge=5, le=10000)
-    deadline: date | None = None
-    status: TaskItemStatus = "backlog"
+    deadline: DateType | None = None
+    status: TaskItemStatus = "pending"
     parent_task_id: int | None = None
     is_splittable: bool = True
     is_ai_generated: bool = False
     source_type: TaskSourceType = "manual"
     source_ref: dict[str, Any] | list[Any] | str | None = None
+    task_date: DateType | None = Field(default=None, alias="date")
+
+    model_config = {"populate_by_name": True}
 
 
 class TaskItemUpdate(BaseModel):
@@ -57,12 +74,15 @@ class TaskItemUpdate(BaseModel):
     priority: TaskPriority | None = None
     difficulty: TaskDifficulty | None = None
     estimated_minutes: int | None = Field(default=None, ge=5, le=10000)
-    deadline: date | None = None
+    deadline: DateType | None = None
     status: TaskItemStatus | None = None
     parent_task_id: int | None = None
     is_splittable: bool | None = None
     source_type: TaskSourceType | None = None
     source_ref: dict[str, Any] | list[Any] | str | None = None
+    task_date: DateType | None = Field(default=None, alias="date")
+
+    model_config = {"populate_by_name": True}
 
 
 class TaskItemRead(BaseModel):
@@ -76,7 +96,7 @@ class TaskItemRead(BaseModel):
     priority: str
     difficulty: str | None = None
     estimated_minutes: int
-    deadline: date | None = None
+    deadline: DateType | None = None
     status: str
     parent_task_id: int | None = None
     is_splittable: bool
@@ -117,6 +137,36 @@ class TaskOrganizeResponse(BaseModel):
     message: str
 
 
+class TaskStatusUpdate(BaseModel):
+    status: TaskItemStatus
+
+
+class TaskFeedbackCreate(BaseModel):
+    actual_minutes: int | None = Field(default=None, ge=0, le=1440)
+    difficulty_feedback: TaskDifficulty | None = None
+    completion_note: str | None = None
+
+
+class TaskOptimizeRequest(BaseModel):
+    raw_title: str = Field(min_length=1, max_length=255)
+    raw_description: str | None = None
+    date: DateType | None = None
+    subject: str | None = Field(default=None, max_length=64)
+    estimated_minutes: int | None = Field(default=None, ge=5, le=10000)
+    priority: TaskPriority = "medium"
+    context: dict[str, Any] | str | None = None
+
+
+class TaskOptimizeResponse(BaseModel):
+    suggested_title: str
+    suggested_description: str | None = None
+    suggested_subject: str | None = None
+    suggested_estimated_minutes: int
+    suggested_priority: TaskPriority
+    reason: str
+    warnings: list[str] = Field(default_factory=list)
+
+
 class DailyPlanPreferences(BaseModel):
     max_tasks: int = Field(default=5, ge=1, le=20)
     prefer_mixed_categories: bool = True
@@ -124,7 +174,7 @@ class DailyPlanPreferences(BaseModel):
 
 
 class DailyPlanGenerateRequest(BaseModel):
-    plan_date: date = Field(alias="date")
+    plan_date: DateType = Field(alias="date")
     available_minutes: int = Field(ge=15, le=1440)
     preferences: DailyPlanPreferences = Field(default_factory=DailyPlanPreferences)
 
@@ -151,7 +201,7 @@ class DailyPlanTaskRead(BaseModel):
 class DailyPlanRead(BaseModel):
     id: int
     user_id: int
-    plan_date: date
+    plan_date: DateType
     available_minutes: int
     summary: str | None = None
     status: str
@@ -195,7 +245,7 @@ class DailyPlanTaskFeedbackRead(BaseModel):
 
 
 class DailyPlanAdjustRequest(BaseModel):
-    from_date: date | None = None
+    from_date: DateType | None = None
     days: int = Field(default=7, ge=1, le=30)
 
 
@@ -205,14 +255,52 @@ class DailyPlanAdjustResponse(BaseModel):
     message: str
 
 
-class RagTaskRecommendationRequest(BaseModel):
-    query: str = Field(min_length=1, max_length=500)
-    top_k: int = Field(default=5, ge=1, le=10)
-    max_tasks: int = Field(default=5, ge=1, le=10)
+class CalendarDaySummary(BaseModel):
+    date: DateType
+    task_count: int = 0
+    completed_count: int = 0
+    unfinished_count: int = 0
+    estimated_minutes: int = 0
+    completion_rate: int = 0
+    has_delayed: bool = False
+    titles: list[str] = Field(default_factory=list)
 
 
-class RagTaskRecommendationResponse(BaseModel):
-    suggestions: list[TaskAiSuggestionRead]
+class CalendarMonthSummaryResponse(BaseModel):
+    year: int
+    month: int
+    days: list[CalendarDaySummary]
+
+
+class CalendarTaskSupplementPreferences(BaseModel):
+    prefer_mixed_categories: bool = True
+    include_delayed: bool = True
+
+
+class CalendarTaskSupplementRequest(BaseModel):
+    plan_date: DateType = Field(alias="date")
+    available_minutes: int = Field(ge=15, le=1440)
+    max_new_tasks: int = Field(default=3, ge=1, le=5)
+    preferences: CalendarTaskSupplementPreferences = Field(default_factory=CalendarTaskSupplementPreferences)
+
+    model_config = {"populate_by_name": True}
+
+
+class CalendarTaskSuggestion(BaseModel):
+    title: str
+    description: str | None = None
+    category: str | None = None
+    subject: str | None = None
+    estimated_minutes: int
+    priority: TaskPriority
+    reason: str
+    source_type: Literal["ai_supplement"] = "ai_supplement"
+    confidence: float | None = None
+    risk_level: Literal["low", "medium", "high"] | None = None
+
+
+class CalendarTaskSupplementResponse(BaseModel):
+    suggestions: list[CalendarTaskSuggestion]
     message: str
 
 

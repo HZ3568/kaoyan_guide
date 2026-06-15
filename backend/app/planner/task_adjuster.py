@@ -19,7 +19,7 @@ class TaskAdjuster:
         overdue_or_delayed = (
             self.db.query(TaskItem)
             .filter(TaskItem.user_id == user_id)
-            .filter(TaskItem.status.in_(["delayed", "pending", "in_progress", "backlog"]))
+            .filter(TaskItem.status.in_(["delayed", "overdue", "pending", "scheduled", "in_progress"]))
             .filter(TaskItem.deadline.is_not(None), TaskItem.deadline <= window_end)
             .all()
         )
@@ -62,7 +62,7 @@ class TaskAdjuster:
                     self._add_suggestion(
                         user_id=user_id,
                         task_id=task_id,
-                        suggestion_type="split_task",
+                        suggestion_type="split",
                         content={
                             "reason": "该任务近期多次延期或跳过，建议拆成更小的 30-60 分钟任务。",
                             "recent_unfinished_count": count,
