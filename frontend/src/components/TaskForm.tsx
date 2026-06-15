@@ -28,7 +28,7 @@ const DEFAULT_VALUES: TaskFormValues = {
   priority: 'medium',
   difficulty: 'normal',
   estimated_minutes: 60,
-  status: 'backlog',
+  status: 'pending',
   is_splittable: true,
 }
 
@@ -121,12 +121,13 @@ export function TaskForm({ initialTask, loading = false, submitText = '保存任
         <Form.Item label="状态" name="status">
           <Select
             options={[
-              { value: 'backlog', label: '待整理' },
               { value: 'pending', label: '待完成' },
+              { value: 'scheduled', label: '已安排' },
               { value: 'in_progress', label: '进行中' },
               { value: 'completed', label: '已完成' },
               { value: 'delayed', label: '已延期' },
               { value: 'skipped', label: '已跳过' },
+              { value: 'cancelled', label: '已取消' },
             ]}
           />
         </Form.Item>

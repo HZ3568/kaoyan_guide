@@ -1,9 +1,18 @@
 import { request } from './client'
 
-export type TaskItemStatus = 'backlog' | 'pending' | 'in_progress' | 'completed' | 'delayed' | 'skipped' | 'archived'
+export type TaskItemStatus =
+  | 'pending'
+  | 'scheduled'
+  | 'in_progress'
+  | 'completed'
+  | 'delayed'
+  | 'skipped'
+  | 'overdue'
+  | 'cancelled'
+  | 'archived'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type TaskDifficulty = 'easy' | 'normal' | 'hard' | 'very_hard'
-export type TaskSourceType = 'manual' | 'ai_split' | 'rag_recommendation' | 'imported' | 'planner'
+export type TaskSourceType = 'manual' | 'ai_optimized' | 'ai_supplement' | 'ai_split' | 'imported' | 'planner'
 
 export interface TaskItemCreate {
   title: string
@@ -21,6 +30,7 @@ export interface TaskItemCreate {
   is_ai_generated?: boolean
   source_type?: TaskSourceType
   source_ref?: Record<string, unknown> | unknown[] | string | null
+  date?: string | null
 }
 
 export interface TaskItem extends TaskItemCreate {
@@ -53,6 +63,7 @@ export interface TaskListParams {
   subject?: string
   priority?: TaskPriority
   deadline_before?: string
+  date?: string
 }
 
 export interface TaskOrganizeRequest {
@@ -60,15 +71,30 @@ export interface TaskOrganizeRequest {
   limit?: number
 }
 
-export interface RagTaskRecommendationRequest {
-  query: string
-  top_k?: number
-  max_tasks?: number
+export interface TaskOptimizeRequest {
+  raw_title: string
+  raw_description?: string | null
+  date?: string | null
+  subject?: string | null
+  estimated_minutes?: number | null
+  priority?: TaskPriority
+  context?: Record<string, unknown> | string | null
 }
 
-export interface RagTaskRecommendationResponse {
-  suggestions: TaskAiSuggestion[]
-  message: string
+export interface TaskOptimizeResponse {
+  suggested_title: string
+  suggested_description?: string | null
+  suggested_subject?: string | null
+  suggested_estimated_minutes: number
+  suggested_priority: TaskPriority
+  reason: string
+  warnings: string[]
+}
+
+export interface TaskItemFeedbackCreate {
+  actual_minutes?: number
+  difficulty_feedback?: TaskDifficulty
+  completion_note?: string
 }
 
 export function createTask(payload: TaskItemCreate) {
@@ -110,14 +136,22 @@ export function organizeTasks(payload: TaskOrganizeRequest = {}) {
   })
 }
 
-export function recommendTasksFromRag(payload: RagTaskRecommendationRequest) {
-  return request<RagTaskRecommendationResponse>({
+export function optimizeTask(payload: TaskOptimizeRequest) {
+  return request<TaskOptimizeResponse>({
     method: 'POST',
-    url: '/tasks/ai/recommend-from-rag',
-    data: {
-      top_k: 5,
-      max_tasks: 5,
-      ...payload,
-    },
+    url: '/tasks/ai/optimize',
+    data: payload,
+  })
+}
+
+export function updateTaskStatus(taskId: number, status: TaskItemStatus) {
+  return request<TaskItem>({ method: 'PATCH', url: `/tasks/${taskId}/status`, data: { status } })
+}
+
+export function submitTaskFeedback(taskId: number, payload: TaskItemFeedbackCreate) {
+  return request({
+    method: 'POST',
+    url: `/tasks/${taskId}/feedback`,
+    data: payload,
   })
 }

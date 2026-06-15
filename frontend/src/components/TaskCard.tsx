@@ -12,6 +12,15 @@ const PRIORITY_COLOR: Record<string, string> = {
   low: 'default',
 }
 
+const SOURCE_LABEL: Record<string, string> = {
+  manual: '手动',
+  ai_optimized: 'AI 优化',
+  ai_supplement: 'AI 补充',
+  ai_split: 'AI 拆分',
+  imported: '导入',
+  planner: '日历',
+}
+
 interface TaskCardProps {
   planTask?: DailyPlanTask
   task?: TaskItem
@@ -44,7 +53,7 @@ export function TaskCard({ planTask, task: taskProp, onStatusChange, onSubmitFee
             {task?.subject && <Tag>{task.subject}</Tag>}
             {task?.project && <Tag>{task.project}</Tag>}
             {task?.priority && <Tag color={PRIORITY_COLOR[task.priority]}>{task.priority}</Tag>}
-            {task?.source_type && <Tag>{task.source_type}</Tag>}
+            {task?.source_type && <Tag>{SOURCE_LABEL[task.source_type] || task.source_type}</Tag>}
           </Space>
           <Typography.Paragraph className="task-desc">
             {task?.description || planTask?.reason || '暂无说明'}

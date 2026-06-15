@@ -8,8 +8,8 @@ export function MainLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const logout = useAuthStore((s) => s.logout)
-  const selectedKey = location.pathname === '/planner' || location.pathname === '/tasks/today'
-    ? location.pathname === '/planner' ? '/tasks' : '/today'
+  const selectedKey = ['/planner', '/tasks', '/tasks/today', '/today'].includes(location.pathname)
+    ? '/calendar'
     : location.pathname
 
   return (
@@ -23,10 +23,7 @@ export function MainLayout() {
             { key: '/', label: '工作台', onClick: () => navigate('/') },
             { key: '/knowledge-base', label: '知识库', onClick: () => navigate('/knowledge-base') },
             { key: '/rag-chat', label: 'RAG 问答', onClick: () => navigate('/rag-chat') },
-            { key: '/tasks', label: '任务池', onClick: () => navigate('/tasks') },
-            { key: '/today', label: '今日任务', onClick: () => navigate('/today') },
-            { key: '/calendar', label: '任务日历', onClick: () => navigate('/calendar') },
-            { key: '/rag-task-recommend', label: 'RAG 推荐任务', onClick: () => navigate('/rag-task-recommend') },
+            { key: '/calendar', label: '学习日历', onClick: () => navigate('/calendar') },
             { key: '/rag-debug', label: '检索调试', onClick: () => navigate('/rag-debug') },
           ]}
         />

@@ -38,8 +38,8 @@ export function DailyPlanCard({ plan, title, onStatusChange, onSubmitFeedback, o
       {!plan || plan.tasks.length === 0 ? (
         <EmptyState
           title="暂无任务"
-          description="当前日期还没有每日计划。可以先去任务池添加任务，再生成今日任务建议。"
-          actionText={onEmptyAction ? '去任务池添加任务' : undefined}
+          description="当前日期还没有任务。可以在学习日历中手动添加，或使用 AI 补充任务建议。"
+          actionText={onEmptyAction ? '去添加任务' : undefined}
           onAction={onEmptyAction}
         />
       ) : (

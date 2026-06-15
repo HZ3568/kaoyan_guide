@@ -87,6 +87,10 @@ body {
   align-items: start;
 }
 
+.calendar-layout {
+  grid-template-columns: minmax(520px, 1.6fr) minmax(360px, 0.9fr);
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -268,6 +272,10 @@ body {
   font-weight: 700;
 }
 
+.calendar-cell.has-delayed {
+  border-color: #f59e0b;
+}
+
 .calendar-cell.muted {
   opacity: 0.5;
   background: #fafafa;
@@ -298,6 +306,21 @@ body {
   white-space: nowrap;
 }
 
+.calendar-tag {
+  margin: 4px 0;
+}
+
+.compact-divider {
+  margin: 12px 0;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .compact-form-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: end;
@@ -318,8 +341,10 @@ body {
 
   .form-grid,
   .two-column-layout,
+  .calendar-layout,
   .stats-grid,
   .suggestion-grid,
+  .compare-grid,
   .compact-form-grid {
     grid-template-columns: 1fr;
   }

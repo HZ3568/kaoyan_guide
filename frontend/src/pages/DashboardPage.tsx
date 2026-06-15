@@ -32,7 +32,7 @@ export default function DashboardPage() {
       <div className="page-title-row">
         <div>
           <Typography.Title level={2}>工作台</Typography.Title>
-          <Typography.Text type="secondary">RAG 知识库和 AI 每日任务清单的操作入口。</Typography.Text>
+          <Typography.Text type="secondary">院校信息 RAG 查询与 AI 学习任务日历的操作入口。</Typography.Text>
         </div>
       </div>
       <ErrorMessage message={error} />
@@ -48,11 +48,10 @@ export default function DashboardPage() {
         <Card className="block-gap">
           <EmptyState
             title="今日暂无计划"
-            description="可以先去任务池添加任务，也可以直接生成今日任务建议。"
+            description="可以在学习日历中按日期添加任务，也可以让 AI 根据历史完成情况补充少量建议。"
             extra={
               <div className="inline-row">
-                <Button type="primary" onClick={() => navigate('/today')}>生成今日任务建议</Button>
-                <Button onClick={() => navigate('/tasks')}>去任务池添加任务</Button>
+                <Button type="primary" onClick={() => navigate('/calendar')}>打开学习日历</Button>
               </div>
             }
           />
@@ -61,7 +60,7 @@ export default function DashboardPage() {
 
       <Card className="block-gap" title="核心流程">
         <Typography.Paragraph>
-          推荐演示路径：上传资料并向量化，使用 RAG 问答和检索调试确认来源，再维护任务池并生成今日任务建议。
+          推荐演示路径：上传资料并向量化，使用 RAG 问答和检索调试确认来源；学习任务则在日历中按日期维护，并由 AI 优化表达或补充当天任务。
         </Typography.Paragraph>
         <SpaceLinks />
       </Card>
@@ -74,16 +73,7 @@ export default function DashboardPage() {
           <QuickCard title="RAG 问答" description="基于知识库回答考研资料问题，并展示引用来源。" to="/rag-chat" />
         </Col>
         <Col xs={24} md={12} xl={8}>
-          <QuickCard title="任务池" description="手动创建任务，使用 AI 整理或拆分大任务。" to="/tasks" />
-        </Col>
-        <Col xs={24} md={12} xl={8}>
-          <QuickCard title="今日任务" description="根据可用时间生成 suggested 计划，确认后执行和反馈。" to="/today" />
-        </Col>
-        <Col xs={24} md={12} xl={8}>
-          <QuickCard title="任务日历" description="按日期查看每日任务安排和完成状态。" to="/calendar" />
-        </Col>
-        <Col xs={24} md={12} xl={8}>
-          <QuickCard title="RAG 推荐任务" description="从知识库依据中提炼候选任务，确认后加入任务池。" to="/rag-task-recommend" />
+          <QuickCard title="学习日历" description="按日期新增、编辑和反馈任务，AI 只提供优化与补充建议。" to="/calendar" />
         </Col>
       </Row>
     </div>
@@ -95,10 +85,7 @@ function SpaceLinks() {
     <div className="inline-row">
       <Link to="/knowledge-base">知识库管理</Link>
       <Link to="/rag-chat">RAG 问答</Link>
-      <Link to="/tasks">任务池</Link>
-      <Link to="/today">今日任务</Link>
-      <Link to="/calendar">任务日历</Link>
-      <Link to="/rag-task-recommend">RAG 推荐任务</Link>
+      <Link to="/calendar">学习日历</Link>
       <Link to="/rag-debug">检索调试</Link>
     </div>
   )
