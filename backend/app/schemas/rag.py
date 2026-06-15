@@ -55,6 +55,39 @@ class VectorIndexStatus(BaseModel):
     redis: dict = Field(default_factory=dict)
 
 
+class RagAskRequest(BaseModel):
+    question: str = Field(min_length=1)
+    top_k: int = Field(default=5, ge=1, le=20)
+    filters: RetrievalFilter | None = None
+    session_id: int | None = None
+    stream: bool = False
+
+
+class RagSource(BaseModel):
+    chunk_id: int
+    document_id: int
+    score: float
+    title: str | None = None
+    source: str | None = None
+    source_type: str | None = None
+    source_url: str | None = None
+    file_name: str | None = None
+    page_number: int | None = None
+    location: dict = Field(default_factory=dict)
+    content_preview: str
+    metadata: dict = Field(default_factory=dict)
+
+
+class RagAskResponse(BaseModel):
+    answer: str
+    sources: list[RagSource] = Field(default_factory=list)
+    hit_source: bool = False
+    model_provider: str | None = None
+    model_name: str | None = None
+    log_id: int | None = None
+    retrieval_debug: dict = Field(default_factory=dict)
+
+
 class RetrievedChunk(BaseModel):
     chunk_id: int
     document_id: int | None = None

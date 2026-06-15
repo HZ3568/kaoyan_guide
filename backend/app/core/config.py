@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "mock"
     LLM_API_KEY: str | None = None
     LLM_BASE_URL: str | None = None
+    LLM_MODEL: str = "gpt-4o-mini"
+    LLM_TIMEOUT_SECONDS: int = 60
+    LLM_TEMPERATURE: float = 0.2
+    LLM_MAX_TOKENS: int = 1200
     EMBEDDING_PROVIDER: str = "mock"
     EMBEDDING_API_KEY: str | None = None
     EMBEDDING_BASE_URL: str | None = None

@@ -6,6 +6,8 @@ from app.core.database import get_db
 from app.models.user import User
 from app.rag.vector_store import VectorStoreError
 from app.schemas.rag import (
+    RagAskRequest,
+    RagAskResponse,
     ChatRequest,
     ChatResponse,
     RagSearchRequest,
@@ -16,6 +18,7 @@ from app.schemas.rag import (
     VectorIndexResponse,
     VectorIndexStatus,
 )
+from app.llm.client import LLMError
 from app.services.embedding_service import EmbeddingError
 from app.services.rag_service import RagService
 from app.services.retrieval_service import RetrievalService
@@ -98,6 +101,28 @@ def search(
         )
         for item in results
     ]
+
+
+@router.post("/ask", response_model=RagAskResponse)
+def ask(
+    payload: RagAskRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        return RagService(db).ask(
+            payload.question,
+            user_id=current_user.id,
+            top_k=payload.top_k,
+            filters=payload.filters,
+            session_id=payload.session_id,
+            stream=payload.stream,
+        )
+    except (EmbeddingError, VectorStoreError, LLMError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
 
 
 @router.post("/retrieve", response_model=list[RetrievedChunk])
