@@ -1,6 +1,6 @@
 # kaoyan-guide
 
-基于 **Python + FastAPI + React + MySQL + Redis Vector** 的考研 RAG 知识库与智能学习规划系统骨架。
+基于 **Python + FastAPI + React + MySQL + Redis Vector** 的考研院校信息 RAG 查询与 AI 学习任务日历系统。
 
 ## 当前包含
 
@@ -14,7 +14,7 @@
 - Word / 图片等暂未解析格式会标记为 `unsupported`，不会写入占位 chunk
 - Embedding 抽象接口与 Redis Vector chunk 索引、TopK 检索接口
 - RAG Ask 问答链路：向量检索、提示词构建、LLM 调用、来源返回、查询日志入库
-- AI 每日任务清单链路：任务池、AI 整理/拆分、今日任务建议、计划确认、执行反馈和轻量调整
+- AI 学习任务日历链路：用户按日期管理任务，AI 支持任务表述优化、任务拆分建议、基于历史完成情况的当天任务补充、执行反馈和轻量调整
 
 ## 后端启动
 
@@ -268,145 +268,89 @@ curl -X POST http://localhost:8000/api/v1/rag/ask \
 - `408 计算机专业课应该复习哪些科目？`
 - `这个院校的人工智能方向招生人数是多少？`
 
-## AI 每日任务清单
+## AI 学习任务日历
 
-新的 Planner 主流程不再一次性生成长期阶段计划，而是围绕任务池和每日计划展开。接口前缀为 `/api/v1/tasks` 与 `/api/v1/daily-plans`，所有接口都需要登录后携带 `Authorization: Bearer <token>`。
+学习任务模块不再从 RAG 资料生成任务。RAG 只负责院校信息、专业信息、招生人数、分数线、考试科目、参考资料等知识库检索问答。任务模块围绕“按日期维护任务”展开，接口前缀为 `/api/v1/tasks`、`/api/v1/calendar-tasks`，兼容保留 `/api/v1/daily-plans` 的状态更新与反馈接口。
 
-创建任务：
+在指定日期创建任务：
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/tasks \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"title":"黑马 RAG 和 Agent 项目","description":"学习项目结构，整理可迁移到考研 RAG 系统的设计","category":"项目","subject":"RAG","priority":"high","difficulty":"normal","estimated_minutes":120,"deadline":"2026-06-20","status":"backlog","is_splittable":true,"source_type":"manual"}'
+  -d '{"title":"完成高数极限专题 20 道选择题","description":"记录错题并总结 3 个易错点","category":"考研复习","subject":"数学","priority":"high","difficulty":"normal","estimated_minutes":90,"deadline":"2026-06-20","status":"pending","date":"2026-06-15","source_type":"manual"}'
 ```
 
-获取任务池：
+按日期查询任务：
 
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  "http://localhost:8000/api/v1/tasks?status=backlog&priority=high"
+  "http://localhost:8000/api/v1/calendar-tasks?date=2026-06-15"
 ```
 
-更新任务：
+月历统计：
+
+```bash
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:8000/api/v1/calendar-tasks/month?year=2026&month=6"
+```
+
+AI 优化用户输入任务。该接口只返回建议，不会保存正式任务：
+
+```bash
+curl -X POST http://localhost:8000/api/v1/tasks/ai/optimize \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"raw_title":"做数学题","raw_description":"","date":"2026-06-15","subject":"数学","estimated_minutes":90,"priority":"high"}'
+```
+
+AI 根据历史任务和当天已有任务补充建议。该接口不调用 RAG / Redis Vector，也不会直接创建正式任务：
+
+```bash
+curl -X POST http://localhost:8000/api/v1/calendar-tasks/ai/supplement \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"date":"2026-06-15","available_minutes":240,"max_new_tasks":3}'
+```
+
+用户采用 AI 建议后再创建正式任务：
+
+```bash
+curl -X POST http://localhost:8000/api/v1/calendar-tasks/accept-suggestion \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"整理今日学习复盘","description":"记录实际用时、阻塞点和下一步动作","category":"复盘","priority":"medium","estimated_minutes":30,"date":"2026-06-15","status":"pending","source_type":"ai_supplement","is_ai_generated":true}'
+```
+
+更新任务与状态：
 
 ```bash
 curl -X PATCH http://localhost:8000/api/v1/tasks/1 \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"status":"in_progress","estimated_minutes":90}'
-```
+  -d '{"estimated_minutes":90,"priority":"urgent"}'
 
-归档任务：
-
-```bash
-curl -X PATCH http://localhost:8000/api/v1/tasks/1/archive \
-  -H "Authorization: Bearer <token>"
-```
-
-AI 拆分任务。返回建议，不会覆盖原任务：
-
-```bash
-curl -X POST http://localhost:8000/api/v1/tasks/1/split \
-  -H "Authorization: Bearer <token>"
-```
-
-AI 整理任务池。返回分类、优先级、耗时和拆分建议，不会自动修改任务：
-
-```bash
-curl -X POST http://localhost:8000/api/v1/tasks/ai/organize \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"limit":50}'
-```
-
-基于 RAG 推荐候选任务：
-
-```bash
-curl -X POST http://localhost:8000/api/v1/tasks/ai/recommend-from-rag \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"query":"根据数据结构考试内容推荐本周任务","top_k":5,"max_tasks":5}'
-```
-
-生成今日任务建议：
-
-```bash
-curl -X POST http://localhost:8000/api/v1/daily-plans/generate \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"date":"2026-06-15","available_minutes":240,"preferences":{"max_tasks":5,"prefer_mixed_categories":true,"include_overdue":true}}'
-```
-
-返回示例：
-
-```json
-{
-  "daily_plan_id": 3,
-  "status": "suggested",
-  "suggested_tasks": [
-    {
-      "id": 10,
-      "daily_plan_id": 3,
-      "task_id": 1,
-      "order_index": 1,
-      "planned_minutes": 90,
-      "reason": "截止日期临近；优先级为 high",
-      "status": "suggested"
-    }
-  ],
-  "total_planned_minutes": 90,
-  "reason": "今日计划由规则系统按截止日期、优先级、估计耗时和任务状态生成。"
-}
-```
-
-确认今日计划：
-
-```bash
-curl -X POST http://localhost:8000/api/v1/daily-plans/3/confirm \
-  -H "Authorization: Bearer <token>"
-```
-
-查看今日计划或指定日期计划：
-
-```bash
-curl -H "Authorization: Bearer <token>" http://localhost:8000/api/v1/daily-plans/today
-curl -H "Authorization: Bearer <token>" "http://localhost:8000/api/v1/daily-plans?date=2026-06-15"
-```
-
-更新每日计划中的任务状态：
-
-```bash
-curl -X PATCH http://localhost:8000/api/v1/daily-plans/3/tasks/10/status \
+curl -X PATCH http://localhost:8000/api/v1/tasks/1/status \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"status":"completed"}'
 ```
 
-提交任务反馈：
+提交反馈：
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/daily-plans/3/tasks/10/feedback \
+curl -X POST http://localhost:8000/api/v1/tasks/1/feedback \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"actual_minutes":85,"difficulty_feedback":"normal","completion_note":"节奏合适，但后续需要二刷"}'
 ```
 
-根据完成情况轻量调整：
-
-```bash
-curl -X POST http://localhost:8000/api/v1/daily-plans/adjust \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"from_date":"2026-06-15","days":7}'
-```
-
 生成边界：
 
-- 规则系统负责过滤已完成任务、排序、控制总时长、限制任务数量和避免高难度任务过度堆积。
-- LLM 负责解释安排原因、整理任务池、拆分大任务和从 RAG 结果中提炼候选任务；LLM 不可用时有规则兜底。
-- RAG 只提供资料依据，推荐任务需要用户确认后才会进入任务池。
-- Redis 只用于向量检索；任务池、每日计划、反馈和 AI 建议都落 MySQL。
+- RAG 模块只负责知识库检索问答，继续保留 `sources`、`hit_source`、`retrieval_debug` 和无依据拒答。
+- 学习任务模块只基于 MySQL 中的用户任务、日期安排、反馈和近期完成情况做任务日历管理。
+- LLM 只负责任务表述优化、拆分建议、补充建议和自然语言原因说明；所有 AI 建议都需要用户确认后才会成为正式任务。
+- Redis 只用于 RAG 向量检索，不参与学习任务补充。
 
 ## 数据库迁移
 
@@ -434,12 +378,12 @@ $env:MYSQL_DATABASE="kaoyan_guide"
 - `documents` / `document_chunks`：文档元数据、切片、向量化状态和来源追踪字段。
 - `ocr_tasks` / `ocr_table_records`：OCR 原始结果与院校专业表格结构化记录。
 - `rag_query_logs`：RAG 问题、检索 chunk、模型回答和来源命中日志。
-- `task_items`：用户任务池。
-- `daily_plans` / `daily_plan_tasks`：每日任务建议、确认后的计划和计划内任务。
-- `task_feedback` / `task_ai_suggestions`：任务反馈和 AI 整理、拆分、推荐建议。
+- `task_items`：用户任务表。
+- `daily_plans` / `daily_plan_tasks`：按日期聚合的任务安排和日期内任务关联。
+- `task_feedback` / `task_ai_suggestions`：任务反馈、AI 优化、拆分和补充建议。
 - `chat_sessions` / `chat_messages`：问答会话和消息记录。
 
-旧版 `learning_profiles` / `learning_plans` / `learning_tasks` 与长期规划强绑定的 `study_*`、`weekly_plans`、`daily_tasks` 表已经通过迁移移除；每日任务统一使用 `/api/v1/tasks` 和 `/api/v1/daily-plans`。
+旧版 `learning_profiles` / `learning_plans` / `learning_tasks` 与长期规划强绑定的 `study_*`、`weekly_plans`、`daily_tasks` 表已经通过迁移移除；学习任务统一使用 `/api/v1/tasks`、`/api/v1/calendar-tasks` 和保留兼容的 `/api/v1/daily-plans` 状态/反馈接口。
 
 ## 测试
 
@@ -462,8 +406,8 @@ cd backend
 - `/api/v1/rag/index`、`/api/v1/rag/search`、`/api/v1/rag/index/status` 接口契约
 - `/api/v1/rag/ask` 问答接口契约
 - RAG Chain 提示词构建、LLM 调用、无依据拒答和 `rag_query_logs` 日志写入
-- AI 任务池、任务拆分、RAG 推荐候选任务和批量创建接口契约
-- 每日计划生成、确认、状态更新、任务反馈和轻量调整接口契约
+- AI 任务优化、任务拆分、AI 补充任务、月历统计和批量创建接口契约
+- 日期任务查询、状态更新、任务反馈和轻量调整接口契约
 - RAG 检索和回答来源返回
 - 不支持格式不写入占位 chunk
 - 用户之间文档、chunk、检索结果隔离
@@ -473,5 +417,5 @@ cd backend
 1. 为导入流程增加解析错误详情字段和导入任务表，便于批量导入的失败重试与质量评估。
 2. 为向量化增加后台任务、导入后自动索引、失败重试和索引一致性巡检。
 3. 增加 RAG 评估集、命中率、引用覆盖率和无依据拒答率统计。
-4. 为任务清单增加完成率、延期率、实际用时偏差和长期任务推进统计。
-5. 将日历页查询优化为按月批量接口，减少前端逐日请求。
+4. 为任务日历增加完成率、延期率、实际用时偏差和长期任务推进统计。
+5. 为任务日历增加周视图和拖拽调整顺序。
