@@ -1,24 +1,22 @@
-from datetime import date
+from datetime import date, datetime, timedelta
+from math import ceil
 
-from fastapi import HTTPException, status
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
+from app.core.exceptions import BadRequestError, NotFoundError
 from app.planner.ai_task_assistant import AiTaskAssistant
-from app.planner.task_models import DailyPlan, DailyPlanTask, TaskAiSuggestion, TaskFeedback, TaskItem
+from app.planner.task_models import TaskExecutionSession, TaskItem
 from app.planner.task_schemas import (
-    TaskAiSuggestionRead,
-    TaskFeedbackCreate,
-    TaskItemBulkCreateRequest,
-    TaskItemBulkCreateResponse,
+    CalendarDaySummary,
+    CalendarMonthSummaryResponse,
+    TaskCompleteRequest,
     TaskItemCreate,
-    TaskItemRead,
     TaskItemUpdate,
     TaskOptimizeRequest,
     TaskOptimizeResponse,
-    TaskOrganizeRequest,
-    TaskOrganizeResponse,
-    TaskSplitResponse,
-    TaskStatusUpdate,
+    TaskSupplementRequest,
+    TaskSupplementResponse,
+    TaskSuggestion,
 )
 
 
@@ -27,273 +25,208 @@ class TaskService:
         self.db = db
         self.ai_assistant = ai_assistant or AiTaskAssistant()
 
-    def create_task(self, user_id: int, payload: TaskItemCreate) -> TaskItemRead:
-        task_date = payload.task_date
-        data = payload.model_dump(exclude={"task_date"})
-        task = TaskItem(user_id=user_id, **data)
+    def create_task(self, user_id: int, payload: TaskItemCreate) -> TaskItem:
+        task = TaskItem(user_id=user_id, **payload.model_dump())
+        if task.planned_date and task.status == "pending":
+            task.status = "scheduled"
         self.db.add(task)
-        self.db.flush()
-        if task_date:
-            self._schedule_task_on_date(user_id, task, task_date)
         self.db.commit()
         self.db.refresh(task)
-        return TaskItemRead.model_validate(task)
-
-    def bulk_create(self, user_id: int, payload: TaskItemBulkCreateRequest) -> TaskItemBulkCreateResponse:
-        tasks: list[TaskItem] = []
-        for item in payload.tasks:
-            task_date = item.task_date
-            task = TaskItem(user_id=user_id, **item.model_dump(exclude={"task_date"}))
-            self.db.add(task)
-            self.db.flush()
-            if task_date:
-                self._schedule_task_on_date(user_id, task, task_date)
-            tasks.append(task)
-        self.db.commit()
-        for task in tasks:
-            self.db.refresh(task)
-        return TaskItemBulkCreateResponse(tasks=[TaskItemRead.model_validate(task) for task in tasks])
+        return task
 
     def list_tasks(
         self,
         user_id: int,
         *,
+        goal_id: int | None = None,
+        planned_date: date | None = None,
         status_filter: str | None = None,
         category: str | None = None,
-        subject: str | None = None,
-        priority: str | None = None,
-        deadline_before: date | None = None,
-        task_date: date | None = None,
-    ) -> list[TaskItemRead]:
-        if task_date:
-            query = (
-                self.db.query(TaskItem)
-                .join(DailyPlanTask, DailyPlanTask.task_id == TaskItem.id)
-                .join(DailyPlan, DailyPlan.id == DailyPlanTask.daily_plan_id)
-                .filter(DailyPlan.user_id == user_id, DailyPlan.plan_date == task_date)
-                .filter(DailyPlanTask.status != "removed")
-            )
-        else:
-            query = self.db.query(TaskItem).filter(TaskItem.user_id == user_id)
+    ) -> list[TaskItem]:
+        query = self.db.query(TaskItem).filter(TaskItem.user_id == user_id)
+        if goal_id is not None:
+            query = query.filter(TaskItem.goal_id == goal_id)
+        if planned_date is not None:
+            query = query.filter(TaskItem.planned_date == planned_date)
         if status_filter:
-            query = query.filter(TaskItem.status == self._normalize_status(status_filter))
+            query = query.filter(TaskItem.status == status_filter)
         if category:
             query = query.filter(TaskItem.category == category)
-        if subject:
-            query = query.filter(TaskItem.subject == subject)
-        if priority:
-            query = query.filter(TaskItem.priority == priority)
-        if deadline_before:
-            query = query.filter(TaskItem.deadline <= deadline_before)
-        tasks = query.order_by(TaskItem.status.asc(), TaskItem.deadline.asc(), TaskItem.id.desc()).all()
-        return [TaskItemRead.model_validate(task) for task in tasks]
+        return query.order_by(TaskItem.planned_date.asc(), TaskItem.id.desc()).all()
 
-    def update_task(self, user_id: int, task_id: int, payload: TaskItemUpdate) -> TaskItemRead:
-        task = self._get_task(user_id, task_id)
-        data = payload.model_dump(exclude_unset=True, exclude={"task_date"})
-        if "parent_task_id" in data and data["parent_task_id"] == task.id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Task cannot be its own parent")
-        if "status" in data and data["status"]:
-            data["status"] = self._normalize_status(data["status"])
-        for key, value in data.items():
-            setattr(task, key, value)
-        if payload.task_date:
-            self._schedule_task_on_date(user_id, task, payload.task_date)
-        self.db.commit()
-        self.db.refresh(task)
-        return TaskItemRead.model_validate(task)
-
-    def update_status(self, user_id: int, task_id: int, payload: TaskStatusUpdate) -> TaskItemRead:
-        task = self._get_task(user_id, task_id)
-        task.status = self._normalize_status(payload.status)
-        for plan_task in task.daily_plan_tasks:
-            if plan_task.status != "removed":
-                plan_task.status = self._task_status_to_plan_task_status(task.status)
-        self.db.commit()
-        self.db.refresh(task)
-        return TaskItemRead.model_validate(task)
-
-    def create_feedback(self, user_id: int, task_id: int, payload: TaskFeedbackCreate) -> TaskFeedback:
-        task = self._get_task(user_id, task_id)
-        feedback = TaskFeedback(
-            task_id=task.id,
-            daily_plan_task_id=None,
-            user_id=user_id,
-            actual_minutes=payload.actual_minutes,
-            difficulty=payload.difficulty_feedback,
-            feedback_text=payload.completion_note,
-            difficulty_feedback=payload.difficulty_feedback,
-            completion_note=payload.completion_note,
-        )
-        self.db.add(feedback)
-        self.db.commit()
-        self.db.refresh(feedback)
-        return feedback
-
-    def archive_task(self, user_id: int, task_id: int) -> TaskItemRead:
-        task = self._get_task(user_id, task_id)
-        task.status = "archived"
-        for plan_task in task.daily_plan_tasks:
-            if plan_task.status not in {"completed", "removed"}:
-                plan_task.status = "removed"
-        self.db.commit()
-        self.db.refresh(task)
-        return TaskItemRead.model_validate(task)
-
-    def optimize_task(self, user_id: int, payload: TaskOptimizeRequest) -> TaskOptimizeResponse:
-        result = self.ai_assistant.optimize_task(payload.model_dump())
-        suggestion = TaskAiSuggestion(
-            user_id=user_id,
-            task_id=None,
-            suggestion_type="optimize",
-            suggestion_content=result,
-            accepted=False,
-        )
-        self.db.add(suggestion)
-        self.db.commit()
-        return TaskOptimizeResponse.model_validate(result)
-
-    def split_task(self, user_id: int, task_id: int) -> TaskSplitResponse:
-        task = self._get_task(user_id, task_id)
-        payload = self._task_payload(task)
-        split_result = self.ai_assistant.split_task(payload)
-        suggestion = TaskAiSuggestion(
-            user_id=user_id,
-            task_id=task.id,
-            suggestion_type="split",
-            suggestion_content=split_result,
-            accepted=False,
-        )
-        self.db.add(suggestion)
-        self.db.commit()
-        self.db.refresh(task)
-        self.db.refresh(suggestion)
-        return TaskSplitResponse(
-            task=TaskItemRead.model_validate(task),
-            suggestions=[TaskAiSuggestionRead.model_validate(suggestion)],
-            message="已生成拆分建议，原任务未被覆盖。",
-        )
-
-    def organize_tasks(self, user_id: int, payload: TaskOrganizeRequest) -> TaskOrganizeResponse:
-        query = self.db.query(TaskItem).filter(TaskItem.user_id == user_id)
-        if payload.status:
-            query = query.filter(TaskItem.status.in_([self._normalize_status(item) for item in payload.status]))
-        tasks = query.order_by(TaskItem.deadline.asc(), TaskItem.priority.desc(), TaskItem.id.asc()).limit(payload.limit).all()
-        suggestions_payload = self.ai_assistant.organize_tasks(
-            {"tasks": [self._task_payload(task) for task in tasks], "limit": payload.limit}
-        )
-        suggestions: list[TaskAiSuggestion] = []
-        task_ids = {task.id for task in tasks}
-        for item in suggestions_payload:
-            task_id = item.get("task_id")
-            if task_id not in task_ids:
-                continue
-            suggestion = TaskAiSuggestion(
-                user_id=user_id,
-                task_id=task_id,
-                suggestion_type=item.get("suggestion_type") or "summarize",
-                suggestion_content=item.get("content") or {},
-                accepted=False,
-            )
-            self.db.add(suggestion)
-            suggestions.append(suggestion)
-        self.db.commit()
-        for suggestion in suggestions:
-            self.db.refresh(suggestion)
-        return TaskOrganizeResponse(
-            suggestions=[TaskAiSuggestionRead.model_validate(suggestion) for suggestion in suggestions],
-            message="已生成任务整理建议，未自动覆盖原任务。",
-        )
-
-    def _schedule_task_on_date(self, user_id: int, task: TaskItem, task_date: date) -> DailyPlanTask:
-        plan = (
-            self.db.query(DailyPlan)
-            .options(selectinload(DailyPlan.tasks))
-            .filter(DailyPlan.user_id == user_id, DailyPlan.plan_date == task_date)
-            .order_by(DailyPlan.created_at.desc(), DailyPlan.id.desc())
-            .first()
-        )
-        if plan is None:
-            plan = DailyPlan(
-                user_id=user_id,
-                plan_date=task_date,
-                available_minutes=max(task.estimated_minutes or 0, 0),
-                summary="用户手动维护的日期任务安排。",
-                status="confirmed",
-                created_by="user",
-            )
-            self.db.add(plan)
-            self.db.flush()
-        else:
-            plan.status = "confirmed" if plan.status == "suggested" else plan.status
-            plan.available_minutes = max(plan.available_minutes or 0, task.estimated_minutes or 0)
-
-        existing = (
-            self.db.query(DailyPlanTask)
-            .filter(DailyPlanTask.daily_plan_id == plan.id, DailyPlanTask.task_id == task.id)
-            .first()
-        )
-        if existing:
-            existing.planned_minutes = task.estimated_minutes or existing.planned_minutes
-            if existing.status == "removed":
-                existing.status = "pending"
-            return existing
-
-        order_index = len(plan.tasks or []) + 1
-        plan_task = DailyPlanTask(
-            daily_plan_id=plan.id,
-            task_id=task.id,
-            order_index=order_index,
-            planned_minutes=task.estimated_minutes or 60,
-            reason="用户手动添加到该日期。",
-            status=self._task_status_to_plan_task_status(task.status),
-        )
-        if task.status in {"pending", "scheduled"}:
-            task.status = "scheduled"
-        self.db.add(plan_task)
-        return plan_task
-
-    def _get_task(self, user_id: int, task_id: int) -> TaskItem:
-        task = (
-            self.db.query(TaskItem)
-            .options(selectinload(TaskItem.daily_plan_tasks))
-            .filter(TaskItem.id == task_id, TaskItem.user_id == user_id)
-            .first()
-        )
-        if task is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    def get_task(self, user_id: int, task_id: int) -> TaskItem:
+        task = self.db.query(TaskItem).filter(TaskItem.id == task_id, TaskItem.user_id == user_id).first()
+        if not task:
+            raise NotFoundError("Task not found")
         return task
 
-    @staticmethod
-    def _normalize_status(value: str) -> str:
-        return "pending" if value == "back" + "log" else value
+    def update_task(self, user_id: int, task_id: int, payload: TaskItemUpdate) -> TaskItem:
+        task = self.get_task(user_id, task_id)
+        for key, value in payload.model_dump(exclude_unset=True).items():
+            setattr(task, key, value)
+        self.db.commit()
+        self.db.refresh(task)
+        return task
 
-    @staticmethod
-    def _task_status_to_plan_task_status(value: str) -> str:
-        if value == "scheduled":
-            return "pending"
-        if value == "cancelled":
-            return "removed"
-        if value in {"pending", "in_progress", "completed", "delayed", "skipped"}:
-            return value
-        return "pending"
+    def update_status(self, user_id: int, task_id: int, status: str) -> TaskItem:
+        task = self.get_task(user_id, task_id)
+        task.status = status
+        self.db.commit()
+        self.db.refresh(task)
+        return task
+
+    def delete_task(self, user_id: int, task_id: int) -> TaskItem:
+        task = self.get_task(user_id, task_id)
+        task.status = "archived"
+        self.db.commit()
+        self.db.refresh(task)
+        return task
+
+    def postpone_task(self, user_id: int, task_id: int) -> TaskItem:
+        task = self.get_task(user_id, task_id)
+        if self._running_session(user_id, task_id=task.id):
+            raise BadRequestError("当前任务正在计时，请先完成或暂停后再延期")
+        task.status = "delayed"
+        task.planned_date = (task.planned_date or date.today()) + timedelta(days=1)
+        self.db.commit()
+        self.db.refresh(task)
+        return task
+
+    def start_task(self, user_id: int, task_id: int) -> TaskExecutionSession:
+        task = self.get_task(user_id, task_id)
+        running = self._running_session(user_id)
+        if running and running.task_id != task_id:
+            raise BadRequestError("当前已有任务正在计时，请先完成当前任务")
+        if running and running.task_id == task_id:
+            return running
+        now = datetime.utcnow()
+        task.status = "in_progress"
+        task.actual_start_time = task.actual_start_time or now
+        session = TaskExecutionSession(user_id=user_id, task_id=task.id, started_at=now, status="running")
+        self.db.add(session)
+        self.db.commit()
+        self.db.refresh(session)
+        return session
+
+    def pause_task(self, user_id: int, task_id: int) -> TaskExecutionSession:
+        task = self.get_task(user_id, task_id)
+        session = self._running_session(user_id, task_id=task.id)
+        if not session:
+            raise NotFoundError("Running task session not found")
+        now = datetime.utcnow()
+        session.ended_at = now
+        session.duration_minutes = max(0, ceil((now - session.started_at).total_seconds() / 60))
+        session.status = "paused"
+        task.status = "pending"
+        self.db.commit()
+        self.db.refresh(session)
+        return session
+
+    def complete_task(self, user_id: int, task_id: int, payload: TaskCompleteRequest | None = None) -> TaskItem:
+        task = self.get_task(user_id, task_id)
+        now = datetime.utcnow()
+        session = self._running_session(user_id, task_id=task.id)
+        if session:
+            session.ended_at = now
+            session.duration_minutes = max(0, ceil((now - session.started_at).total_seconds() / 60))
+            session.status = "completed"
+            actual_minutes = session.duration_minutes
+        else:
+            actual_minutes = payload.actual_minutes if payload and payload.actual_minutes is not None else 0
+        task.status = "completed"
+        task.actual_minutes = actual_minutes
+        task.actual_end_time = now
+        task.actual_start_time = task.actual_start_time or (session.started_at if session else None)
+        self.db.commit()
+        self.db.refresh(task)
+        return task
+
+    def optimize_task(self, user_id: int, payload: TaskOptimizeRequest) -> TaskOptimizeResponse:
+        data = payload.model_dump()
+        suggestion = self.ai_assistant.optimize_task(data)
+        return TaskOptimizeResponse(**suggestion)
+
+    def supplement_tasks(self, user_id: int, payload: TaskSupplementRequest) -> TaskSupplementResponse:
+        today_tasks = [
+            self._task_payload(task)
+            for task in self.list_tasks(user_id, goal_id=payload.goal_id, planned_date=payload.planned_date)
+            if task.status not in {"completed", "archived", "cancelled"}
+        ]
+        recent_start = payload.planned_date - timedelta(days=30)
+        recent_tasks = (
+            self.db.query(TaskItem)
+            .filter(TaskItem.user_id == user_id)
+            .filter(TaskItem.planned_date >= recent_start, TaskItem.planned_date <= payload.planned_date)
+            .order_by(TaskItem.planned_date.desc(), TaskItem.id.desc())
+            .limit(100)
+            .all()
+        )
+        request_payload = {
+            **payload.model_dump(),
+            "today_tasks": today_tasks,
+            "recent_tasks": [self._task_payload(task) for task in recent_tasks],
+        }
+        raw = self.ai_assistant.supplement_tasks(request_payload)
+        suggestions = [TaskSuggestion.model_validate(item) for item in raw[: payload.max_new_tasks]]
+        message = "已生成任务补充建议，用户确认后才会创建正式任务。"
+        if self.ai_assistant.last_error:
+            message = f"模型调用失败，已使用规则兜底：{self.ai_assistant.last_error}"
+        return TaskSupplementResponse(suggestions=suggestions, message=message)
+
+    def month_summary(self, user_id: int, *, year: int, month: int) -> CalendarMonthSummaryResponse:
+        import calendar
+
+        _, last_day = calendar.monthrange(year, month)
+        summaries = {
+            date(year, month, day): CalendarDaySummary(date=date(year, month, day))
+            for day in range(1, last_day + 1)
+        }
+        tasks = (
+            self.db.query(TaskItem)
+            .filter(TaskItem.user_id == user_id)
+            .filter(TaskItem.planned_date >= date(year, month, 1), TaskItem.planned_date <= date(year, month, last_day))
+            .filter(TaskItem.status != "archived")
+            .all()
+        )
+        for task in tasks:
+            if not task.planned_date or task.planned_date not in summaries:
+                continue
+            summary = summaries[task.planned_date]
+            summary.task_count += 1
+            summary.estimated_minutes += task.estimated_minutes or 0
+            summary.actual_minutes += task.actual_minutes or 0
+            summary.has_delayed = summary.has_delayed or task.status == "delayed"
+            if task.status == "completed":
+                summary.completed_count += 1
+            if len(summary.titles) < 2:
+                summary.titles.append(task.content[:24])
+        for summary in summaries.values():
+            summary.unfinished_count = max(summary.task_count - summary.completed_count, 0)
+            summary.completion_rate = round((summary.completed_count / summary.task_count) * 100) if summary.task_count else 0
+        return CalendarMonthSummaryResponse(year=year, month=month, days=list(summaries.values()))
+
+    def _running_session(self, user_id: int, *, task_id: int | None = None) -> TaskExecutionSession | None:
+        query = self.db.query(TaskExecutionSession).filter(
+            TaskExecutionSession.user_id == user_id,
+            TaskExecutionSession.status == "running",
+        )
+        if task_id is not None:
+            query = query.filter(TaskExecutionSession.task_id == task_id)
+        return query.order_by(TaskExecutionSession.started_at.desc()).first()
 
     @staticmethod
     def _task_payload(task: TaskItem) -> dict:
         return {
             "id": task.id,
-            "title": task.title,
-            "description": task.description,
+            "goal_id": task.goal_id,
+            "content": task.content,
+            "domain": task.domain,
             "category": task.category,
-            "subject": task.subject,
-            "project": task.project,
-            "priority": task.priority,
-            "difficulty": task.difficulty,
-            "estimated_minutes": task.estimated_minutes,
-            "deadline": task.deadline,
+            "task_type": task.task_type,
+            "planned_date": task.planned_date,
             "status": task.status,
-            "parent_task_id": task.parent_task_id,
-            "is_splittable": task.is_splittable,
+            "priority": task.priority,
+            "estimated_minutes": task.estimated_minutes,
+            "actual_minutes": task.actual_minutes,
             "source_type": task.source_type,
-            "source_ref": task.source_ref,
         }

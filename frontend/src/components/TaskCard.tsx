@@ -50,7 +50,6 @@ export function TaskCard({ planTask, task: taskProp, onStatusChange, onSubmitFee
             {planTask && <TaskStatusBadge status={planTask.status} />}
             {!planTask && task?.status && <TaskStatusBadge status={task.status} />}
             {task?.category && <Tag>{task.category}</Tag>}
-            {task?.subject && <Tag>{task.subject}</Tag>}
             {task?.project && <Tag>{task.project}</Tag>}
             {task?.priority && <Tag color={PRIORITY_COLOR[task.priority]}>{task.priority}</Tag>}
             {task?.source_type && <Tag>{SOURCE_LABEL[task.source_type] || task.source_type}</Tag>}

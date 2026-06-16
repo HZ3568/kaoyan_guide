@@ -7,27 +7,6 @@ from app.ingestion.loaders import LoadedDocument, LoadedTableRow, LoadedTextBloc
 from app.rag.chunk_schema import ChunkRecord, SourceInfo
 
 
-FIELD_ALIASES = {
-    "school": ("院校", "学校", "招生单位", "school", "university", "college"),
-    "major": ("专业", "专业名称", "major", "program"),
-    "research_direction": ("研究方向", "方向", "research_direction", "direction"),
-    "exam_subjects": ("考试科目", "科目", "初试科目", "exam_subjects", "subjects"),
-    "score_line": ("分数线", "复试线", "国家线", "score_line", "score"),
-    "enrollment_count": ("招生人数", "拟招生人数", "统招人数", "enrollment_count", "quota"),
-    "note": ("备注", "说明", "note", "remark"),
-}
-
-TABLE_LABELS = {
-    "school": "院校",
-    "major": "专业",
-    "research_direction": "研究方向",
-    "exam_subjects": "考试科目",
-    "score_line": "分数线",
-    "enrollment_count": "招生人数",
-    "note": "备注",
-}
-
-
 def chunk_loaded_document(
     loaded: LoadedDocument,
     source_info: SourceInfo,
@@ -118,30 +97,22 @@ def chunk_text_block(
 
 
 def chunk_table_row(row: LoadedTableRow, source_info: SourceInfo, *, row_index: int) -> ChunkRecord:
-    normalized = normalize_table_fields(row.values)
-    lines = [
-        f"{TABLE_LABELS[key]}：{value}"
-        for key, value in normalized.items()
-        if key in TABLE_LABELS and value not in (None, "")
-    ]
-    if not lines:
-        lines = [f"{key}：{value}" for key, value in row.values.items() if value not in (None, "")]
-
-    content = "\n".join(lines)
+    visible_items = [(str(key).strip(), value) for key, value in row.values.items() if value not in (None, "")]
+    lines = [f"{key}: {value}" for key, value in visible_items]
+    content = "\n".join(lines) if lines else "Empty table row"
     page_number = row.page_number or _as_int(row.metadata.get("page_number")) or source_info.page_number
     metadata = source_info.as_metadata()
     metadata.update(
         {
             "chunk_type": "table",
             "row_index": row_index,
-            "table_fields": normalized,
             "raw_row": row.values,
             "source_image_path": row.source_image_path,
+            "page_number": page_number,
             **row.metadata,
         }
     )
     metadata = {key: value for key, value in metadata.items() if value is not None}
-
     return ChunkRecord(
         content=content,
         chunk_type="table",
@@ -152,20 +123,7 @@ def chunk_table_row(row: LoadedTableRow, source_info: SourceInfo, *, row_index: 
 
 
 def normalize_table_fields(row: dict[str, Any]) -> dict[str, Any]:
-    normalized: dict[str, Any] = {}
-    lower_to_key = {str(key).strip().lower(): key for key in row.keys()}
-    raw_to_key = {str(key).strip(): key for key in row.keys()}
-
-    for canonical, aliases in FIELD_ALIASES.items():
-        value = None
-        for alias in aliases:
-            key = raw_to_key.get(alias) or lower_to_key.get(alias.lower())
-            if key is not None:
-                value = row.get(key)
-                break
-        if value is not None:
-            normalized[canonical] = value
-    return normalized
+    return {str(key).strip(): value for key, value in row.items() if value not in (None, "")}
 
 
 def clean_text(text: str) -> str:
@@ -195,7 +153,7 @@ def _paragraphs_with_offsets(text: str) -> list[tuple[str, int, int]]:
 
 
 def _split_long_paragraph(paragraph: str, base_start: int, max_tokens: int) -> list[tuple[str, int, int]]:
-    sentences = re.split(r"(?<=[。！？.!?])\s*", paragraph)
+    sentences = re.split(r"(?<=[。！？!?])\s*", paragraph)
     segments: list[tuple[str, int, int]] = []
     current = ""
     current_start = base_start
@@ -221,7 +179,6 @@ def _split_long_paragraph(paragraph: str, base_start: int, max_tokens: int) -> l
             if not current:
                 current_start = absolute_start
             current = f"{current}{sentence}"
-
         cursor = sentence_start + len(sentence)
 
     if current.strip():

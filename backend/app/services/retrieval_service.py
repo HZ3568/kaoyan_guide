@@ -1,31 +1,26 @@
 import re
+from dataclasses import dataclass, field
 
 from sqlalchemy.orm import Session
 
 from app.models.chunk import DocumentChunk
-from app.models.document import Document
-from app.schemas.rag import RetrievalFilter, RetrievedChunk
+from app.schemas.rag import RetrievalFilter
 from app.services.embedding_service import get_embedding_provider
 
 
+@dataclass
+class RetrievedChunk:
+    chunk_id: int
+    document_id: int | None
+    content: str
+    score: float
+    metadata: dict = field(default_factory=dict)
+
+
 class RetrievalService:
-    """第一版检索服务。
+    """Small keyword fallback retriever for local diagnostics."""
 
-    当前使用关键词粗召回占位，后续替换为 Redis Vector + BM25 + Rerank。
-    """
-
-    STOP_TERMS = {
-        "怎么",
-        "如何",
-        "复习",
-        "学习",
-        "备考",
-        "资料",
-        "重点",
-        "计划",
-        "应该",
-        "什么",
-    }
+    STOP_TERMS = {"怎么", "如何", "学习", "资料", "重点", "计划", "应该", "什么"}
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -34,9 +29,9 @@ class RetrievalService:
     @staticmethod
     def _query_terms(query: str) -> list[str]:
         query_lower = query.lower().strip()
-        terms = [t for t in query_lower.split() if t]
+        terms = [item for item in query_lower.split() if item]
         for phrase in re.findall(r"[\u4e00-\u9fff]{2,}", query_lower):
-            terms.extend(phrase[i : i + 2] for i in range(len(phrase) - 1))
+            terms.extend(phrase[index : index + 2] for index in range(len(phrase) - 1))
         return [term for term in dict.fromkeys(terms) if term not in RetrievalService.STOP_TERMS]
 
     def retrieve(
@@ -50,34 +45,33 @@ class RetrievalService:
         query_terms = self._query_terms(query)
         if not query_terms:
             return []
-        chunks_query = self.db.query(DocumentChunk).join(Document, Document.id == DocumentChunk.document_id)
+        chunks_query = self.db.query(DocumentChunk)
         if user_id is not None:
-            chunks_query = chunks_query.filter(Document.user_id == user_id)
+            chunks_query = chunks_query.filter(DocumentChunk.user_id == user_id)
         if filters:
-            if filters.subject:
-                chunks_query = chunks_query.filter(Document.subject == filters.subject)
-            if filters.school:
-                chunks_query = chunks_query.filter(Document.school == filters.school)
-            if filters.major:
-                chunks_query = chunks_query.filter(Document.major == filters.major)
-            if filters.year:
-                chunks_query = chunks_query.filter(Document.exam_year == filters.year)
+            if filters.goal_id is not None:
+                chunks_query = chunks_query.filter(DocumentChunk.goal_id == filters.goal_id)
+            if filters.knowledge_base_id is not None:
+                chunks_query = chunks_query.filter(DocumentChunk.knowledge_base_id == filters.knowledge_base_id)
+            if filters.domain:
+                chunks_query = chunks_query.filter(DocumentChunk.domain == filters.domain)
+            if filters.category:
+                chunks_query = chunks_query.filter(DocumentChunk.category == filters.category)
 
-        chunks = chunks_query.limit(200).all()
         scored = []
-        for chunk in chunks:
+        for chunk in chunks_query.limit(200).all():
             content_lower = chunk.content.lower()
             score = sum(1 for term in query_terms if term in content_lower)
             if score > 0:
                 scored.append((score, chunk))
-        scored.sort(key=lambda x: x[0], reverse=True)
+        scored.sort(key=lambda item: item[0], reverse=True)
         return [
             RetrievedChunk(
-                chunk_id=c.id,
-                document_id=c.document_id,
-                content=c.content,
+                chunk_id=chunk.id,
+                document_id=chunk.document_id,
+                content=chunk.content,
                 score=float(score),
-                metadata=c.metadata_json or {},
+                metadata=chunk.metadata_json or {},
             )
-            for score, c in scored[:top_k]
+            for score, chunk in scored[:top_k]
         ]

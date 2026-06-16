@@ -1,7 +1,7 @@
 [project]
-name = "kaoyan-guide-backend"
+name = "learning-growth-backend"
 version = "0.1.0"
-description = "FastAPI backend for RAG-first kaoyan guide system"
+description = "FastAPI backend for a RAG and task planning learning growth system"
 requires-python = ">=3.11"
 
 [tool.ruff]

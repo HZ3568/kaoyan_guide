@@ -1,14 +1,19 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.chunk import DocumentChunk
 from app.models.document import Document
 from app.rag.vector_store import RedisVectorHit, RedisVectorStore, VectorStoreError
 from app.schemas.rag import RetrievalFilter
-from app.services.embedding_service import EmbeddingError, EmbeddingProvider, get_embedding_provider
+from app.services.embedding_service import (
+    DIMENSION_REBUILD_NOTICE,
+    EmbeddingError,
+    EmbeddingProvider,
+    embedding_runtime_config,
+    get_embedding_provider,
+)
 
 
 @dataclass
@@ -19,6 +24,7 @@ class VectorIndexResult:
     errors: list[str] = field(default_factory=list)
     index_name: str = ""
     embedding_dim: int = 0
+    dimension_notice: str = DIMENSION_REBUILD_NOTICE
 
 
 @dataclass
@@ -28,8 +34,6 @@ class VectorSearchResult:
     score: float
     content: str
     source: dict[str, Any]
-    page_number: int | None
-    location: dict[str, int | None]
     metadata: dict[str, Any]
 
 
@@ -50,23 +54,23 @@ class VectorIndexService:
         *,
         user_id: int,
         document_id: int | None = None,
+        knowledge_base_id: int | None = None,
+        goal_id: int | None = None,
         limit: int = 100,
         batch_size: int = 32,
         force_reindex: bool = False,
     ) -> VectorIndexResult:
         self.vector_store.ensure_index()
-        result = VectorIndexResult(
-            index_name=self.vector_store.index_name,
-            embedding_dim=self.embedding_provider.dim,
-        )
+        result = VectorIndexResult(index_name=self.vector_store.index_name, embedding_dim=self.embedding_provider.dim)
         chunks = self._chunks_for_indexing(
             user_id=user_id,
             document_id=document_id,
+            knowledge_base_id=knowledge_base_id,
+            goal_id=goal_id,
             limit=limit,
             force_reindex=force_reindex,
         )
         if not chunks:
-            result.skipped = 0
             return result
 
         safe_batch_size = max(1, batch_size)
@@ -95,6 +99,7 @@ class VectorIndexService:
                     chunk.embedding_status = "failed"
                     result.failed += 1
                     result.errors.append(f"chunk {chunk.id}: {exc}")
+            self._refresh_document_embedding_status(batch)
             self.db.commit()
         return result
 
@@ -106,12 +111,13 @@ class VectorIndexService:
         top_k: int = 5,
         filters: RetrievalFilter | None = None,
     ) -> list[VectorSearchResult]:
+        filter_dict = filters.model_dump(exclude_none=True) if filters else {}
         embedding = self.embedding_provider.embed_query(query)
         redis_hits = self.vector_store.search(
             embedding=embedding,
             top_k=min(max(top_k * 5, top_k), 100),
             user_id=user_id,
-            filters={},
+            filters=filter_dict,
         )
         if not redis_hits:
             return []
@@ -128,21 +134,15 @@ class VectorIndexService:
                     score=hit.score,
                     content=chunk.content,
                     source=self._source_for_chunk(chunk),
-                    page_number=chunk.page_number,
-                    location={
-                        "position_start": chunk.position_start,
-                        "position_end": chunk.position_end,
-                    },
                     metadata=chunk.metadata_json or {},
                 )
             )
         return results[:top_k]
 
     def status(self, *, user_id: int) -> dict[str, Any]:
-        base_query = self.db.query(DocumentChunk).join(Document, Document.id == DocumentChunk.document_id)
-        base_query = base_query.filter(Document.user_id == user_id)
+        base_query = self.db.query(DocumentChunk).filter(DocumentChunk.user_id == user_id)
         total_chunks = base_query.count()
-        indexed_chunks = base_query.filter(DocumentChunk.is_vectorized.is_(True)).count()
+        indexed_chunks = base_query.filter(DocumentChunk.embedding_status == "indexed").count()
         pending_chunks = base_query.filter(DocumentChunk.embedding_status == "pending").count()
         failed_chunks = base_query.filter(DocumentChunk.embedding_status == "failed").count()
         return {
@@ -151,6 +151,8 @@ class VectorIndexService:
             "pending_chunks": pending_chunks,
             "failed_chunks": failed_chunks,
             "redis": self.vector_store.index_info(),
+            "embedding": embedding_runtime_config(),
+            "dimension_notice": DIMENSION_REBUILD_NOTICE,
         }
 
     def _chunks_for_indexing(
@@ -158,46 +160,44 @@ class VectorIndexService:
         *,
         user_id: int,
         document_id: int | None,
+        knowledge_base_id: int | None,
+        goal_id: int | None,
         limit: int,
         force_reindex: bool,
     ) -> list[DocumentChunk]:
         query = (
             self.db.query(DocumentChunk)
             .options(joinedload(DocumentChunk.document))
-            .join(Document, Document.id == DocumentChunk.document_id)
-            .filter(Document.user_id == user_id)
+            .filter(DocumentChunk.user_id == user_id)
         )
         if document_id is not None:
             query = query.filter(DocumentChunk.document_id == document_id)
+        if knowledge_base_id is not None:
+            query = query.filter(DocumentChunk.knowledge_base_id == knowledge_base_id)
+        if goal_id is not None:
+            query = query.filter(DocumentChunk.goal_id == goal_id)
         if not force_reindex:
-            query = query.filter(
-                or_(
-                    DocumentChunk.is_vectorized.is_(False),
-                    DocumentChunk.embedding_status.in_(["pending", "failed"]),
-                )
-            )
+            query = query.filter(DocumentChunk.embedding_status.in_(["pending", "failed"]))
         return query.order_by(DocumentChunk.id.asc()).limit(max(1, limit)).all()
 
     def _index_chunk(self, chunk: DocumentChunk, embedding: list[float]) -> None:
-        document = chunk.document
         metadata = self._metadata_for_redis(chunk)
         key = self.vector_store.upsert_chunk(
             chunk_id=chunk.id,
             document_id=chunk.document_id,
-            user_id=document.user_id if document else None,
+            user_id=chunk.user_id,
+            goal_id=chunk.goal_id,
+            knowledge_base_id=chunk.knowledge_base_id,
+            domain=chunk.domain,
+            category=chunk.category,
             embedding=embedding,
             content_preview=chunk.content,
             metadata=metadata,
-            source=document.source if document else None,
-            subject=document.subject if document else None,
-            school=document.school if document else None,
-            major=document.major if document else None,
-            exam_year=document.exam_year if document else None,
-            chunk_type=chunk.chunk_type,
         )
         chunk.embedding_status = "indexed"
-        chunk.is_vectorized = True
-        chunk.vector_index_key = key
+        chunk.embedding_id = key
+        if chunk.document:
+            chunk.document.embedding_status = "indexed"
 
     def _mark_batch_failed(self, chunks: list[DocumentChunk], message: str) -> None:
         for chunk in chunks:
@@ -205,7 +205,28 @@ class VectorIndexService:
             metadata = dict(chunk.metadata_json or {})
             metadata["embedding_error"] = message
             chunk.metadata_json = metadata
+            if chunk.document:
+                chunk.document.embedding_status = "failed"
         self.db.commit()
+
+    def _refresh_document_embedding_status(self, chunks: list[DocumentChunk]) -> None:
+        document_ids = {chunk.document_id for chunk in chunks}
+        for document_id in document_ids:
+            statuses = {
+                status
+                for (status,) in self.db.query(DocumentChunk.embedding_status)
+                .filter(DocumentChunk.document_id == document_id)
+                .all()
+            }
+            document = self.db.query(Document).filter(Document.id == document_id).first()
+            if not document:
+                continue
+            if statuses == {"indexed"}:
+                document.embedding_status = "indexed"
+            elif "failed" in statuses:
+                document.embedding_status = "partial_failed"
+            else:
+                document.embedding_status = "pending"
 
     def _load_authorized_chunks(
         self,
@@ -218,36 +239,28 @@ class VectorIndexService:
         query = (
             self.db.query(DocumentChunk)
             .options(joinedload(DocumentChunk.document))
-            .join(Document, Document.id == DocumentChunk.document_id)
-            .filter(DocumentChunk.id.in_(chunk_ids))
-            .filter(Document.user_id == user_id)
+            .filter(DocumentChunk.id.in_(chunk_ids), DocumentChunk.user_id == user_id)
         )
         if filters:
-            if filters.subject:
-                query = query.filter(Document.subject == filters.subject)
-            if filters.school:
-                query = query.filter(Document.school == filters.school)
-            if filters.major:
-                query = query.filter(Document.major == filters.major)
-            if filters.year:
-                query = query.filter(Document.exam_year == filters.year)
+            if filters.goal_id is not None:
+                query = query.filter(DocumentChunk.goal_id == filters.goal_id)
+            if filters.knowledge_base_id is not None:
+                query = query.filter(DocumentChunk.knowledge_base_id == filters.knowledge_base_id)
+            if filters.domain:
+                query = query.filter(DocumentChunk.domain == filters.domain)
+            if filters.category:
+                query = query.filter(DocumentChunk.category == filters.category)
         return {chunk.id: chunk for chunk in query.all()}
 
     def _source_for_chunk(self, chunk: DocumentChunk) -> dict[str, Any]:
         document = chunk.document
-        if not document:
-            return {"document_id": chunk.document_id}
         return {
-            "document_id": document.id,
-            "title": document.title,
-            "source": document.source,
-            "source_type": document.source_type,
-            "source_url": document.source_url,
-            "file_name": document.file_name,
-            "file_type": document.file_type,
-            "page_number": chunk.page_number,
-            "position_start": chunk.position_start,
-            "position_end": chunk.position_end,
+            "knowledge_base_id": chunk.knowledge_base_id,
+            "goal_id": chunk.goal_id,
+            "filename": document.filename if document else None,
+            "original_filename": document.original_filename if document else None,
+            "domain": chunk.domain,
+            "category": chunk.category,
         }
 
     def _metadata_for_redis(self, chunk: DocumentChunk) -> dict[str, Any]:
@@ -255,30 +268,22 @@ class VectorIndexService:
         metadata = dict(chunk.metadata_json or {})
         metadata.update(
             {
-                "chunk_id": chunk.id,
+                "user_id": chunk.user_id,
+                "goal_id": chunk.goal_id,
+                "knowledge_base_id": chunk.knowledge_base_id,
                 "document_id": chunk.document_id,
+                "chunk_id": chunk.id,
                 "chunk_index": chunk.chunk_index,
-                "chunk_type": chunk.chunk_type,
-                "page_number": chunk.page_number,
-                "position_start": chunk.position_start,
-                "position_end": chunk.position_end,
-                "token_count": chunk.token_count,
+                "domain": chunk.domain,
+                "category": chunk.category,
             }
         )
         if document:
             metadata.update(
                 {
-                    "title": document.title,
-                    "source": document.source,
-                    "source_type": document.source_type,
-                    "source_url": document.source_url,
-                    "file_name": document.file_name,
+                    "filename": document.filename,
+                    "original_filename": document.original_filename,
                     "file_type": document.file_type,
-                    "subject": document.subject,
-                    "school": document.school,
-                    "major": document.major,
-                    "exam_year": document.exam_year,
-                    "tags": document.tags_json or [],
                 }
             )
         return metadata

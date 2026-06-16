@@ -3,17 +3,17 @@ import logging
 from app.core.config import settings
 from app.core.database import Base, engine
 
-# 导入所有模型，保证 Base.metadata 能收集到表结构
+# Import all models so Base.metadata can see the development schema when AUTO_CREATE_TABLES is enabled.
 from app import models  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
 
 def init_db() -> None:
-    """开发环境自动建表。
+    """Optionally create tables for local development.
 
-    后续进入正式开发阶段，建议使用 Alembic 替代 create_all。
-    如果数据库尚未启动，只记录 warning，不阻断 /health 或 API 文档启动。
+    Normal environments should use Alembic migrations instead of create_all.
+    If the database is unavailable, log a warning without blocking /health or docs.
     """
     if not settings.AUTO_CREATE_TABLES:
         return

@@ -1,29 +1,26 @@
 import json
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.v1.deps import get_current_user
 from app.core.database import get_db
 from app.core.exceptions import BadRequestError
 from app.models.user import User
-from app.schemas.document import ChunkRead, DocumentRead, LocalImportRequest, LocalImportResponse
+from app.schemas.document import DocumentChunkOut, DocumentOut, LocalImportRequest, LocalImportResponse
 from app.services.document_service import DocumentService
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
-@router.post("/upload", response_model=DocumentRead)
+@router.post("/upload", response_model=DocumentOut)
 async def upload_document(
     file: UploadFile = File(...),
-    title: str | None = Form(default=None),
-    source: str | None = Form(default=None),
-    source_url: str | None = Form(default=None),
-    subject: str | None = Form(default=None),
-    school: str | None = Form(default=None),
-    major: str | None = Form(default=None),
+    knowledge_base_id: int | None = Form(default=None),
+    goal_id: int | None = Form(default=None),
+    domain: str | None = Form(default=None),
+    category: str | None = Form(default=None),
     tags: str | None = Form(default=None),
-    exam_year: int | None = Form(default=None),
     description: str | None = Form(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -31,14 +28,11 @@ async def upload_document(
     return await DocumentService(db).upload_and_parse(
         file,
         user_id=current_user.id,
-        title=title,
-        source=source,
-        source_url=source_url,
-        subject=subject,
-        school=school,
-        major=major,
+        knowledge_base_id=knowledge_base_id,
+        goal_id=goal_id,
+        domain=domain,
+        category=category,
         tags=_parse_tags(tags),
-        exam_year=exam_year,
         description=description,
     )
 
@@ -53,41 +47,46 @@ def import_local_documents(
         payload.path,
         user_id=current_user.id,
         recursive=payload.recursive,
-        title=payload.title,
-        source=payload.source,
-        source_url=payload.source_url,
-        subject=payload.subject,
-        school=payload.school,
-        major=payload.major,
+        knowledge_base_id=payload.knowledge_base_id,
+        goal_id=payload.goal_id,
+        domain=payload.domain,
+        category=payload.category,
         tags=payload.tags,
-        exam_year=payload.exam_year,
         description=payload.description,
     )
     return LocalImportResponse(imported=result.imported, errors=result.errors)
 
 
-@router.get("", response_model=list[DocumentRead])
-def list_documents(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return DocumentService(db).list_documents(user_id=current_user.id)
+@router.get("", response_model=list[DocumentOut])
+def list_documents(
+    knowledge_base_id: int | None = Query(default=None),
+    goal_id: int | None = Query(default=None),
+    domain: str | None = Query(default=None),
+    category: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return DocumentService(db).list_documents(
+        user_id=current_user.id,
+        knowledge_base_id=knowledge_base_id,
+        goal_id=goal_id,
+        domain=domain,
+        category=category,
+    )
 
 
-@router.get("/{document_id}/chunks", response_model=list[ChunkRead])
+@router.get("/{document_id}", response_model=DocumentOut)
+def get_document(document_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return DocumentService(db).get_document(document_id, user_id=current_user.id)
+
+
+@router.get("/{document_id}/chunks", response_model=list[DocumentChunkOut])
 def list_chunks(
     document_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     return DocumentService(db).list_chunks(document_id, user_id=current_user.id)
-
-
-@router.post("/{document_id}/embed")
-def embed_document(
-    document_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    DocumentService(db).get_document(document_id, user_id=current_user.id)
-    return {"document_id": document_id, "status": "embedding placeholder"}
 
 
 def _parse_tags(tags: str | None) -> list[str] | None:

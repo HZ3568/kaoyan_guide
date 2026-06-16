@@ -54,7 +54,7 @@ export default function RagChatPage() {
             <Input.TextArea
               rows={5}
               onKeyDown={handleKeyDown}
-              placeholder="例如：某院校这个专业的考试科目和复习重点是什么？"
+              placeholder="例如：这份资料建议我优先实践哪些步骤？"
             />
           </Form.Item>
           <Form.Item label="TopK" name="top_k" rules={[{ required: true, type: 'number', min: 1, max: 20 }]}>

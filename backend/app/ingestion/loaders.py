@@ -248,24 +248,8 @@ def _rows_from_matrix(matrix: list[Any], metadata: dict[str, Any]) -> list[Loade
 def _looks_like_table_row(value: Any) -> bool:
     if not isinstance(value, dict):
         return False
-    keys = {str(key).strip().lower() for key in value.keys()}
-    markers = {
-        "院校",
-        "学校",
-        "专业",
-        "研究方向",
-        "考试科目",
-        "分数线",
-        "招生人数",
-        "school",
-        "university",
-        "major",
-        "exam_subjects",
-        "subjects",
-        "score_line",
-        "enrollment_count",
-    }
-    return bool(keys & markers)
+    visible_values = [item for item in value.values() if item not in (None, "", [], {})]
+    return len(value) >= 2 and len(visible_values) >= 1
 
 
 def _as_int(value: Any) -> int | None:

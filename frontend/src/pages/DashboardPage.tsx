@@ -32,7 +32,7 @@ export default function DashboardPage() {
       <div className="page-title-row">
         <div>
           <Typography.Title level={2}>工作台</Typography.Title>
-          <Typography.Text type="secondary">院校信息 RAG 查询与 AI 学习任务日历的操作入口。</Typography.Text>
+          <Typography.Text type="secondary">知识库 RAG 查询与 AI 学习任务日历的操作入口。</Typography.Text>
         </div>
       </div>
       <ErrorMessage message={error} />

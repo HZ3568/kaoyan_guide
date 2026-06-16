@@ -44,7 +44,7 @@ class LLMClient(ABC):
 class MockLLMClient(LLMClient):
     provider = "mock"
 
-    def __init__(self, model: str = "mock-rag") -> None:
+    def __init__(self, model: str = "mock-learning") -> None:
         self.model = model
 
     def generate(
@@ -65,12 +65,11 @@ class MockLLMClient(LLMClient):
         evidence = "；".join(context_lines[:3])[:500]
         if evidence:
             answer = (
-                "根据当前知识库检索到的资料，"
-                f"针对“{question}”，可以依据以下信息回答：{evidence}\n\n"
-                "涉及院校、专业、分数线、招生人数等事实时，请以前端展示的来源列表为准。"
+                f"根据当前知识库检索到的资料，针对“{question}”，可以依据以下信息回答："
+                f"{evidence}\n\n请以前端展示的来源列表为准核对细节。"
             )
         else:
-            answer = "当前知识库没有找到依据，无法基于资料回答该问题。"
+            answer = "当前知识库没有找到可靠依据，无法基于资料回答该问题。"
         return LLMResponse(content=answer, provider=self.provider, model=self.model)
 
     @staticmethod

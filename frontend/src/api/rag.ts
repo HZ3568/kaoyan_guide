@@ -1,49 +1,48 @@
 import { request } from './client'
 
 export interface RetrievalFilter {
-  subject?: string
-  school?: string
-  major?: string
-  year?: number
+  goal_id?: number
+  knowledge_base_id?: number
+  domain?: string
+  category?: string
 }
 
 export interface RagSearchRequest {
-  query: string
+  question?: string
+  query?: string
+  knowledge_base_id?: number
+  goal_id?: number
   top_k?: number
   filters?: RetrievalFilter
-}
-
-export interface RagSearchResult {
-  chunk_id: number
-  document_id: number
-  score: number
-  content: string
-  source: Record<string, unknown>
-  page_number?: number | null
-  location: Record<string, unknown>
-  metadata: Record<string, unknown>
 }
 
 export interface RagSource {
   chunk_id: number
   document_id: number
+  knowledge_base_id?: number | null
+  goal_id?: number | null
   score: number
-  title?: string | null
-  source?: string | null
-  source_type?: string | null
-  source_url?: string | null
-  file_name?: string | null
-  page_number?: number | null
-  location: Record<string, unknown>
+  filename?: string | null
+  original_filename?: string | null
+  domain?: string | null
+  category?: string | null
   content_preview: string
   metadata: Record<string, unknown>
 }
 
+export interface RagSearchResult extends RagSource {
+  content: string
+  source: Record<string, unknown>
+  page_number?: number | null
+  location?: Record<string, unknown>
+}
+
 export interface RagAskRequest {
   question: string
+  knowledge_base_id?: number
+  goal_id?: number
   top_k?: number
   filters?: RetrievalFilter
-  session_id?: number
   stream?: boolean
 }
 
@@ -64,8 +63,18 @@ export function searchRag(payload: RagSearchRequest) {
     data: {
       top_k: 5,
       ...payload,
+      question: payload.question ?? payload.query,
     },
-  })
+  }).then((items) =>
+    items.map((item) => ({
+      ...item,
+      source: item.source ?? {
+        title: item.original_filename ?? item.filename,
+        source: item.category ?? item.domain,
+        file_name: item.filename,
+      },
+    })),
+  )
 }
 
 export function askRag(payload: RagAskRequest) {
@@ -83,4 +92,3 @@ export function askRag(payload: RagAskRequest) {
 export function ragChat(question: string) {
   return askRag({ question })
 }
-

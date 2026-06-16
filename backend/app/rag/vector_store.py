@@ -9,15 +9,20 @@ from redis.exceptions import ResponseError
 from app.core.config import settings
 from app.core.redis import get_redis
 
+DIMENSION_REBUILD_NOTICE = (
+    "如果 EMBEDDING_DIMENSION 发生变化，需要删除旧 Redis Vector Index 并重新向量化文档，"
+    "否则旧索引维度可能与新 embedding 不一致。"
+)
+
 try:
     from redis.commands.search.field import NumericField, TagField, TextField, VectorField
     from redis.commands.search.query import Query
-except ImportError as exc:  # pragma: no cover - import is validated in runtime environments.
+except ImportError as exc:  # pragma: no cover
     raise RuntimeError("redis-py RediSearch support is required for Redis Vector") from exc
 
 try:
     from redis.commands.search.index_definition import IndexDefinition, IndexType
-except ImportError:  # redis-py 5.x keeps the historical camelCase module name.
+except ImportError:  # pragma: no cover
     from redis.commands.search.indexDefinition import IndexDefinition, IndexType
 
 
@@ -47,7 +52,7 @@ class RedisVectorStore:
         self.redis = redis_client or get_redis()
         self.index_name = index_name or settings.REDIS_VECTOR_INDEX_NAME
         self.key_prefix = (key_prefix or settings.REDIS_VECTOR_KEY_PREFIX).rstrip(":")
-        self.dim = dim or settings.EMBEDDING_DIM
+        self.dim = dim or settings.embedding_dimension
         self.distance_metric = (distance_metric or settings.REDIS_VECTOR_DISTANCE_METRIC).upper()
 
     def key_for_chunk(self, chunk_id: int) -> str:
@@ -55,7 +60,14 @@ class RedisVectorStore:
 
     def ensure_index(self) -> None:
         try:
-            self.redis.ft(self.index_name).info()
+            raw_info = self.redis.ft(self.index_name).info()
+            existing_dim = self._extract_vector_dimension(raw_info)
+            if existing_dim is not None and existing_dim != self.dim:
+                raise VectorStoreError(
+                    "Redis Vector index dimension mismatch: "
+                    f"index={self.index_name}, existing_dim={existing_dim}, "
+                    f"configured_dim={self.dim}. {DIMENSION_REBUILD_NOTICE}"
+                )
             return
         except ResponseError as exc:
             message = str(exc).lower()
@@ -66,13 +78,11 @@ class RedisVectorStore:
             NumericField("chunk_id"),
             NumericField("document_id"),
             NumericField("user_id"),
-            TagField("subject"),
-            TagField("school"),
-            TagField("major"),
-            NumericField("exam_year"),
-            TagField("chunk_type"),
+            NumericField("goal_id"),
+            NumericField("knowledge_base_id"),
+            TagField("domain"),
+            TagField("category"),
             TextField("content_preview"),
-            TextField("source"),
             TextField("metadata"),
             VectorField(
                 "embedding",
@@ -118,12 +128,16 @@ class RedisVectorStore:
                 }
             raise VectorStoreError(f"Redis Vector index info failed: {exc}") from exc
 
+        actual_dim = self._extract_vector_dimension(raw_info)
         info = {self._to_text(key): self._to_text(value) for key, value in raw_info.items()}
         return {
             "exists": True,
             "index_name": self.index_name,
             "key_prefix": self.key_prefix,
-            "embedding_dim": self.dim,
+            "embedding_dim": actual_dim or self.dim,
+            "configured_embedding_dim": self.dim,
+            "dimension_mismatch": actual_dim is not None and actual_dim != self.dim,
+            "dimension_notice": DIMENSION_REBUILD_NOTICE,
             "distance_metric": self.distance_metric,
             "num_docs": int(float(info.get("num_docs", 0))),
             "indexing": info.get("indexing"),
@@ -135,30 +149,26 @@ class RedisVectorStore:
         *,
         chunk_id: int,
         document_id: int,
-        user_id: int | None,
+        user_id: int,
+        goal_id: int | None,
+        knowledge_base_id: int | None,
+        domain: str | None,
+        category: str | None,
         embedding: list[float],
         content_preview: str,
         metadata: dict[str, Any],
-        source: str | None = None,
-        subject: str | None = None,
-        school: str | None = None,
-        major: str | None = None,
-        exam_year: int | None = None,
-        chunk_type: str | None = None,
     ) -> str:
         self._validate_embedding(embedding)
         key = self.key_for_chunk(chunk_id)
         mapping: dict[str, Any] = {
             "chunk_id": chunk_id,
             "document_id": document_id,
-            "user_id": user_id or 0,
-            "subject": subject or "",
-            "school": school or "",
-            "major": major or "",
-            "exam_year": exam_year or 0,
-            "chunk_type": chunk_type or "",
+            "user_id": user_id,
+            "goal_id": goal_id or 0,
+            "knowledge_base_id": knowledge_base_id or 0,
+            "domain": domain or "",
+            "category": category or "",
             "content_preview": content_preview[:500],
-            "source": source or "",
             "metadata": json.dumps(metadata, ensure_ascii=False, default=str),
             "embedding": self.embedding_to_bytes(embedding),
         }
@@ -173,7 +183,7 @@ class RedisVectorStore:
         *,
         embedding: list[float],
         top_k: int,
-        user_id: int | None = None,
+        user_id: int,
         filters: dict[str, Any] | None = None,
     ) -> list[RedisVectorHit]:
         self._validate_embedding(embedding)
@@ -209,20 +219,17 @@ class RedisVectorStore:
             )
         return [hit for hit in hits if hit.chunk_id > 0]
 
-    def _build_query(self, top_k: int, *, user_id: int | None, filters: dict[str, Any]) -> str:
-        clauses: list[str] = []
-        if user_id is not None:
-            clauses.append(f"@user_id:[{int(user_id)} {int(user_id)}]")
-        for field in ("subject", "school", "major", "chunk_type"):
+    def _build_query(self, top_k: int, *, user_id: int, filters: dict[str, Any]) -> str:
+        clauses = [f"@user_id:[{int(user_id)} {int(user_id)}]"]
+        for field in ("goal_id", "knowledge_base_id"):
+            value = filters.get(field)
+            if value:
+                clauses.append(f"@{field}:[{int(value)} {int(value)}]")
+        for field in ("domain", "category"):
             value = filters.get(field)
             if value:
                 clauses.append(f"@{field}:{{{self._escape_tag(value)}}}")
-        year = filters.get("year") or filters.get("exam_year")
-        if year:
-            clauses.append(f"@exam_year:[{int(year)} {int(year)}]")
-        filter_expr = " ".join(clauses) if clauses else "*"
-        if filter_expr == "*":
-            return f"*=>[KNN {top_k} @embedding $vec AS score]"
+        filter_expr = " ".join(clauses)
         return f"({filter_expr})=>[KNN {top_k} @embedding $vec AS score]"
 
     def _distance_to_score(self, distance: float) -> float:
@@ -258,3 +265,26 @@ class RedisVectorStore:
         if value is None:
             return None
         return cls._to_text(value)
+
+    @classmethod
+    def _extract_vector_dimension(cls, raw_info: dict[str, Any]) -> int | None:
+        attributes = raw_info.get("attributes") or raw_info.get(b"attributes")
+        if attributes is None:
+            return None
+        flat_values = cls._flatten(attributes)
+        for index, value in enumerate(flat_values):
+            if cls._to_text(value).upper() == "DIM" and index + 1 < len(flat_values):
+                try:
+                    return int(float(cls._to_text(flat_values[index + 1])))
+                except ValueError:
+                    return None
+        return None
+
+    @classmethod
+    def _flatten(cls, value: Any) -> list[Any]:
+        if isinstance(value, (list, tuple)):
+            items: list[Any] = []
+            for item in value:
+                items.extend(cls._flatten(item))
+            return items
+        return [value]

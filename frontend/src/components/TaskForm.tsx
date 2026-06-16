@@ -6,7 +6,6 @@ export interface TaskFormValues {
   title: string
   description?: string
   category?: string
-  subject?: string
   project?: string
   priority: TaskPriority
   difficulty?: TaskDifficulty
@@ -37,7 +36,6 @@ function normalizeValues(values: TaskFormValues): TaskItemCreate {
     title: values.title.trim(),
     description: values.description?.trim() || null,
     category: values.category?.trim() || null,
-    subject: values.subject?.trim() || null,
     project: values.project?.trim() || null,
     priority: values.priority,
     difficulty: values.difficulty || 'normal',
@@ -58,7 +56,6 @@ export function TaskForm({ initialTask, loading = false, submitText = '保存任
         title: initialTask.title,
         description: initialTask.description || undefined,
         category: initialTask.category || undefined,
-        subject: initialTask.subject || undefined,
         project: initialTask.project || undefined,
         priority: initialTask.priority,
         difficulty: initialTask.difficulty || 'normal',
@@ -85,9 +82,6 @@ export function TaskForm({ initialTask, loading = false, submitText = '保存任
         </Form.Item>
         <Form.Item label="分类" name="category">
           <Input placeholder="项目 / 论文 / 考试 / 课程" />
-        </Form.Item>
-        <Form.Item label="学科" name="subject">
-          <Input placeholder="RAG / 英语 / 数学 / 论文" />
         </Form.Item>
         <Form.Item label="项目" name="project">
           <Input placeholder="可选" />

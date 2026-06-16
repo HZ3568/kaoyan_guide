@@ -15,7 +15,7 @@ export function MainLayout() {
   return (
     <Layout className="layout">
       <Sider theme="light" width={232} breakpoint="lg" collapsedWidth={0}>
-        <div className="brand">kaoyan-guide</div>
+        <div className="brand">Learning Growth</div>
         <Menu
           mode="inline"
           selectedKeys={[selectedKey]}

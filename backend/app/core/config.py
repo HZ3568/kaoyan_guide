@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "kaoyan-guide"
+    PROJECT_NAME: str = "learning-growth-system"
     VERSION: str = "0.1.0"
     API_V1_PREFIX: str = "/api/v1"
 
@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str | None = None
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
-    MYSQL_USER: str = "kaoyan_app"
+    MYSQL_USER: str = "learning_app"
     MYSQL_PASSWORD: str = ""
-    MYSQL_DATABASE: str = "kaoyan_guide"
+    MYSQL_DATABASE: str = "learning_growth"
 
     REDIS_URL: str | None = None
     REDIS_HOST: str = "localhost"
@@ -46,14 +46,15 @@ class Settings(BaseSettings):
     EMBEDDING_PROVIDER: str = "mock"
     EMBEDDING_API_KEY: str | None = None
     EMBEDDING_BASE_URL: str | None = None
-    EMBEDDING_MODEL: str = "text-embedding-3-small"
-    EMBEDDING_DIM: int = 1536
+    EMBEDDING_MODEL: str = "text-embedding-v4"
+    EMBEDDING_DIMENSION: int | None = None
+    EMBEDDING_DIM: int | None = None
     EMBEDDING_BATCH_SIZE: int = 32
     EMBEDDING_TIMEOUT_SECONDS: int = 30
-    REDIS_VECTOR_INDEX_NAME: str = "idx:kaoyan:chunks"
-    REDIS_VECTOR_KEY_PREFIX: str = "rag:chunk"
+    REDIS_VECTOR_INDEX_NAME: str = "idx:learning:chunks"
+    REDIS_VECTOR_KEY_PREFIX: str = "learning:chunk"
     REDIS_VECTOR_DISTANCE_METRIC: str = "COSINE"
-    AUTO_CREATE_TABLES: bool = True
+    AUTO_CREATE_TABLES: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -72,6 +73,10 @@ class Settings(BaseSettings):
             return self.REDIS_URL
         auth = f":{quote_plus(self.REDIS_PASSWORD)}@" if self.REDIS_PASSWORD else ""
         return f"redis://{auth}{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+
+    @property
+    def embedding_dimension(self) -> int:
+        return self.EMBEDDING_DIMENSION or self.EMBEDDING_DIM or 1024
 
 
 @lru_cache

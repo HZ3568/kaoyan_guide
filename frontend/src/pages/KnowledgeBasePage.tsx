@@ -1,4 +1,4 @@
-import { Button, Card, Form, Input, InputNumber, Space, Table, Tag, Typography, Upload, message } from 'antd'
+import { Alert, Button, Card, Form, Input, Space, Table, Tag, Typography, Upload, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useMemo, useState } from 'react'
 import {
@@ -7,8 +7,16 @@ import {
   listDocumentChunks,
   listDocuments,
   uploadDocument,
+  checkEmbeddingHealth,
 } from '../api/documents'
-import type { DocumentChunk, DocumentRecord, DocumentUploadMetadata, VectorIndexStatus } from '../api/documents'
+import type {
+  DocumentChunk,
+  DocumentRecord,
+  DocumentUploadMetadata,
+  EmbeddingHealthResponse,
+  VectorIndexResponse,
+  VectorIndexStatus,
+} from '../api/documents'
 import { ChunkList } from '../components/ChunkList'
 import { ErrorMessage } from '../components/ErrorMessage'
 import { Loading } from '../components/Loading'
@@ -18,6 +26,28 @@ interface DocumentRow extends DocumentRecord {
   vectorized_count: number
 }
 
+function formatIndexFailure(result: VectorIndexResponse) {
+  const lines = [
+    `向量化失败 ${result.failed} 个 chunk，成功 ${result.indexed} 个。`,
+    ...result.errors,
+  ]
+  if (result.dimension_notice) {
+    lines.push(result.dimension_notice)
+  }
+  return lines.filter(Boolean).join('\n')
+}
+
+function formatEmbeddingHealth(result: EmbeddingHealthResponse) {
+  const lines = [
+    result.message,
+    result.status_code ? `HTTP 状态码：${result.status_code}` : '',
+    result.hints?.length ? `可能原因：${result.hints.join('；')}` : '',
+    result.error_body ? `服务商返回：${result.error_body}` : '',
+    result.dimension_notice || '',
+  ]
+  return lines.filter(Boolean).join('\n')
+}
+
 export default function KnowledgeBasePage() {
   const [form] = Form.useForm<DocumentUploadMetadata>()
   const [uploadFile, setUploadFile] = useState<File | null>(null)
@@ -25,9 +55,11 @@ export default function KnowledgeBasePage() {
   const [chunksByDocument, setChunksByDocument] = useState<Record<number, DocumentChunk[]>>({})
   const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null)
   const [indexStatus, setIndexStatus] = useState<VectorIndexStatus | null>(null)
+  const [embeddingHealth, setEmbeddingHealth] = useState<EmbeddingHealthResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [indexing, setIndexing] = useState(false)
+  const [checkingEmbedding, setCheckingEmbedding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function refresh() {
@@ -102,12 +134,37 @@ export default function KnowledgeBasePage() {
     setError(null)
     try {
       const result = await indexChunks({ document_id: documentId, force_reindex: forceReindex, limit: 1000 })
-      message.success(`向量化完成：成功 ${result.indexed}，跳过 ${result.skipped}，失败 ${result.failed}`)
+      if (result.failed > 0 || result.errors.length > 0) {
+        const detail = formatIndexFailure(result)
+        setError(detail)
+        message.warning(`向量化完成但存在失败：成功 ${result.indexed}，失败 ${result.failed}`)
+      } else {
+        message.success(`向量化完成：成功 ${result.indexed}，跳过 ${result.skipped}，失败 ${result.failed}`)
+      }
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : '向量化失败')
     } finally {
       setIndexing(false)
+    }
+  }
+
+  async function handleCheckEmbedding() {
+    setCheckingEmbedding(true)
+    setError(null)
+    try {
+      const result = await checkEmbeddingHealth()
+      setEmbeddingHealth(result)
+      if (result.ok) {
+        message.success(`Embedding 连通性正常：${result.model} / ${result.dimension}`)
+      } else {
+        setError(formatEmbeddingHealth(result))
+        message.error('Embedding 连通性失败')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Embedding 连通性测试失败')
+    } finally {
+      setCheckingEmbedding(false)
     }
   }
 
@@ -128,9 +185,9 @@ export default function KnowledgeBasePage() {
       title: '标签',
       render: (_, record) => (
         <Space wrap>
-          {record.school && <Tag>{record.school}</Tag>}
-          {record.major && <Tag>{record.major}</Tag>}
-          {record.subject && <Tag>{record.subject}</Tag>}
+          {record.domain && <Tag>{record.domain}</Tag>}
+          {record.category && <Tag>{record.category}</Tag>}
+          {(record.tags_json || []).map((tag) => <Tag key={tag}>{tag}</Tag>)}
         </Space>
       ),
     },
@@ -166,6 +223,7 @@ export default function KnowledgeBasePage() {
         <Typography.Title level={2}>知识库管理</Typography.Title>
         <Space>
           <Button onClick={refresh} loading={loading}>刷新</Button>
+          <Button onClick={handleCheckEmbedding} loading={checkingEmbedding}>测试 Embedding</Button>
           <Button type="primary" onClick={() => handleIndex()} loading={indexing}>增量向量化</Button>
           <Button onClick={() => handleIndex(undefined, true)} loading={indexing}>重建索引</Button>
         </Space>
@@ -179,26 +237,14 @@ export default function KnowledgeBasePage() {
             <Form.Item label="标题" name="title">
               <Input placeholder="默认使用文件名" />
             </Form.Item>
-            <Form.Item label="来源" name="source">
-              <Input placeholder="例如：院校官网、经验贴、真题资料" />
+            <Form.Item label="领域" name="domain">
+              <Input placeholder="例如：软件工程、写作训练、产品设计" />
             </Form.Item>
-            <Form.Item label="来源链接" name="source_url">
-              <Input placeholder="可选" />
-            </Form.Item>
-            <Form.Item label="科目" name="subject">
-              <Input placeholder="例如：数学、英语、专业课" />
-            </Form.Item>
-            <Form.Item label="院校" name="school">
-              <Input placeholder="目标院校" />
-            </Form.Item>
-            <Form.Item label="专业" name="major">
-              <Input placeholder="目标专业" />
+            <Form.Item label="分类" name="category">
+              <Input placeholder="例如：后端、阅读、项目、复盘" />
             </Form.Item>
             <Form.Item label="标签" name="tags">
               <Input placeholder="用逗号分隔" />
-            </Form.Item>
-            <Form.Item label="年份" name="exam_year">
-              <InputNumber min={2000} max={2100} style={{ width: '100%' }} />
             </Form.Item>
           </div>
           <Form.Item label="说明" name="description">
@@ -223,13 +269,36 @@ export default function KnowledgeBasePage() {
 
       <Card className="block-gap" title="Redis Vector 索引状态">
         {indexStatus ? (
-          <Space wrap>
-            <Tag>索引名：{String(indexStatus.redis.index_name || '-')}</Tag>
-            <Tag color="blue">总 chunk：{indexStatus.total_chunks}</Tag>
-            <Tag color="green">已向量化：{indexStatus.indexed_chunks}</Tag>
-            <Tag color="orange">待向量化：{indexStatus.pending_chunks}</Tag>
-            <Tag color={indexStatus.failed_chunks > 0 ? 'red' : 'default'}>失败：{indexStatus.failed_chunks}</Tag>
-          </Space>
+          <>
+            <Space wrap>
+              <Tag>索引名：{String(indexStatus.redis.index_name || '-')}</Tag>
+              <Tag>Provider：{String(indexStatus.embedding?.provider || '-')}</Tag>
+              <Tag>模型：{String(indexStatus.embedding?.model || '-')}</Tag>
+              <Tag>维度：{String(indexStatus.embedding?.dimension || indexStatus.redis.embedding_dim || '-')}</Tag>
+              <Tag color="blue">总 chunk：{indexStatus.total_chunks}</Tag>
+              <Tag color="green">已向量化：{indexStatus.indexed_chunks}</Tag>
+              <Tag color="orange">待向量化：{indexStatus.pending_chunks}</Tag>
+              <Tag color={indexStatus.failed_chunks > 0 ? 'red' : 'default'}>失败：{indexStatus.failed_chunks}</Tag>
+            </Space>
+            {indexStatus.dimension_notice && (
+              <Alert
+                className="block-gap"
+                type="warning"
+                showIcon
+                message="Embedding 维度变更提示"
+                description={indexStatus.dimension_notice}
+              />
+            )}
+            {embeddingHealth && (
+              <Alert
+                className="block-gap"
+                type={embeddingHealth.ok ? 'success' : 'error'}
+                showIcon
+                message={embeddingHealth.ok ? 'Embedding 连通性正常' : 'Embedding 连通性失败'}
+                description={formatEmbeddingHealth(embeddingHealth)}
+              />
+            )}
+          </>
         ) : (
           <Typography.Text type="secondary">暂无索引状态</Typography.Text>
         )}
@@ -249,4 +318,3 @@ export default function KnowledgeBasePage() {
     </div>
   )
 }
-

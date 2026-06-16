@@ -6,6 +6,5 @@ interface ErrorMessageProps {
 
 export function ErrorMessage({ message }: ErrorMessageProps) {
   if (!message) return null
-  return <Alert className="block-gap" type="error" showIcon message={message} />
+  return <Alert className="block-gap" type="error" showIcon message={<span style={{ whiteSpace: 'pre-line' }}>{message}</span>} />
 }
-
