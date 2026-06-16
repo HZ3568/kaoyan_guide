@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.v1.deps import get_current_user
+from app.api.v1.resource_guards import validate_goal_id
 from app.core.database import get_db
 from app.models.user import User
 from app.planner.task_schemas import (
@@ -30,6 +31,7 @@ def create_task(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    validate_goal_id(db, current_user.id, payload.goal_id)
     return TaskService(db).create_task(current_user.id, payload)
 
 
@@ -42,6 +44,7 @@ def list_tasks(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    validate_goal_id(db, current_user.id, goal_id)
     return TaskService(db).list_tasks(
         current_user.id,
         goal_id=goal_id,
@@ -55,10 +58,12 @@ def list_tasks(
 def task_month_summary(
     year: int = Query(ge=1970, le=2100),
     month: int = Query(ge=1, le=12),
+    goal_id: int | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return TaskService(db).month_summary(current_user.id, year=year, month=month)
+    validate_goal_id(db, current_user.id, goal_id)
+    return TaskService(db).month_summary(current_user.id, year=year, month=month, goal_id=goal_id)
 
 
 @router.post("/ai/optimize", response_model=TaskOptimizeResponse)
@@ -76,6 +81,7 @@ def supplement_tasks(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    validate_goal_id(db, current_user.id, payload.goal_id)
     return TaskService(db).supplement_tasks(current_user.id, payload)
 
 
@@ -91,6 +97,7 @@ def update_task(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    validate_goal_id(db, current_user.id, payload.goal_id)
     return TaskService(db).update_task(current_user.id, task_id, payload)
 
 

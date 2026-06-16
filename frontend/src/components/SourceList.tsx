@@ -28,7 +28,13 @@ export function SourceList({ sources = [], emptyText = '暂无来源' }: SourceL
       size="small"
       dataSource={sources}
       renderItem={(source, index) => {
-        const title = readString(source, 'title') || readString(source, 'file_name') || readString(source, 'source') || `来源 ${index + 1}`
+        const title =
+          readString(source, 'title') ||
+          readString(source, 'original_filename') ||
+          readString(source, 'filename') ||
+          readString(source, 'file_name') ||
+          readString(source, 'source') ||
+          `来源 ${index + 1}`
         const score = readNumber(source, 'score')
         const chunkId = readNumber(source, 'chunk_id')
         const documentId = readNumber(source, 'document_id')
@@ -44,6 +50,8 @@ export function SourceList({ sources = [], emptyText = '暂无来源' }: SourceL
                 {documentId !== undefined && <Tag>doc {documentId}</Tag>}
                 {chunkId !== undefined && <Tag>chunk {chunkId}</Tag>}
                 {pageNumber !== undefined && <Tag>page {pageNumber}</Tag>}
+                {readString(source, 'category') && <Tag>{readString(source, 'category')}</Tag>}
+                {readString(source, 'domain') && <Tag color="blue">{readString(source, 'domain')}</Tag>}
               </div>
               {preview && <Typography.Paragraph className="source-preview">{preview}</Typography.Paragraph>}
             </div>
@@ -53,4 +61,3 @@ export function SourceList({ sources = [], emptyText = '暂无来源' }: SourceL
     />
   )
 }
-

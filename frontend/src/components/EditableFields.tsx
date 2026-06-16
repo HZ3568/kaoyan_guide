@@ -1,5 +1,5 @@
 import { Input, InputNumber, Select, Typography, message } from 'antd'
-import type { ReactNode } from 'react'
+import type { ChangeEvent, KeyboardEvent, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
 interface SelectOption {
@@ -57,52 +57,26 @@ export function EditableText({
   }
 
   if (editing) {
-    if (multiline) {
-      return (
-        <Input.TextArea
-          autoFocus
-          className={className}
-          disabled={saving}
-          value={draft}
-          autoSize={{ minRows: 2, maxRows: 5 }}
-          onBlur={() => void commit()}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-              event.preventDefault()
-              void commit()
-            }
-            if (event.key === 'Escape') {
-              event.preventDefault()
-              setDraft(value)
-              setEditing(false)
-            }
-          }}
-        />
-      )
+    const commonProps = {
+      autoFocus: true,
+      className,
+      disabled: saving,
+      value: draft,
+      onBlur: () => void commit(),
+      onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(event.target.value),
+      onKeyDown: (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (event.key === 'Enter' && (!multiline || event.metaKey || event.ctrlKey)) {
+          event.preventDefault()
+          void commit()
+        }
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          setDraft(value)
+          setEditing(false)
+        }
+      },
     }
-
-    return (
-      <Input
-        autoFocus
-        className={className}
-        disabled={saving}
-        value={draft}
-        onBlur={() => void commit()}
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault()
-            void commit()
-          }
-          if (event.key === 'Escape') {
-            event.preventDefault()
-            setDraft(value)
-            setEditing(false)
-          }
-        }}
-      />
-    )
+    return multiline ? <Input.TextArea {...commonProps} autoSize={{ minRows: 2, maxRows: 5 }} /> : <Input {...commonProps} />
   }
 
   return (

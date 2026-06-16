@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores/authStore'
 export default function LoginPage() {
   const [form] = Form.useForm()
   const navigate = useNavigate()
-  const setToken = useAuthStore((s) => s.setToken)
+  const setToken = useAuthStore((state) => state.setToken)
 
   async function handleLogin() {
     const values = await form.validateFields()
@@ -15,7 +15,7 @@ export default function LoginPage() {
       setToken(res.access_token)
       navigate('/')
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '登录失败，请先注册或检查账号密码')
+      message.error(error instanceof Error ? error.message : '登录失败，请检查账号和密码')
     }
   }
 
@@ -32,21 +32,35 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <Card className="login-card">
-        <Typography.Title level={3}>考研 RAG 学习系统</Typography.Title>
+        <Typography.Title level={3}>Learning Growth</Typography.Title>
+        <Typography.Paragraph type="secondary">
+          基于 RAG 与任务规划的通用学习成长系统
+        </Typography.Paragraph>
         <Form form={form} layout="vertical">
-          <Form.Item label="用户名" name="username" rules={[{ required: true, min: 3, message: '请输入至少 3 位用户名' }]}>
+          <Form.Item
+            label="用户名"
+            name="username"
+            rules={[{ required: true, min: 3, message: '请输入至少 3 位用户名' }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item label="密码" name="password" rules={[{ required: true, min: 6, message: '请输入至少 6 位密码' }]}>
+          <Form.Item
+            label="密码"
+            name="password"
+            rules={[{ required: true, min: 6, message: '请输入至少 6 位密码' }]}
+          >
             <Input.Password />
           </Form.Item>
           <Space className="full-width" direction="vertical">
-            <Button type="primary" block onClick={handleLogin}>登录</Button>
-            <Button block onClick={handleRegister}>注册</Button>
+            <Button type="primary" block onClick={handleLogin}>
+              登录
+            </Button>
+            <Button block onClick={handleRegister}>
+              注册
+            </Button>
           </Space>
         </Form>
       </Card>
     </div>
   )
 }
-

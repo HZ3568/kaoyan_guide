@@ -2,61 +2,67 @@ import { request } from './client'
 
 export type TaskItemStatus = 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'delayed' | 'cancelled' | 'archived'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
-export type TaskDifficulty = 'easy' | 'normal' | 'hard' | 'very_hard'
 export type TaskSourceType = 'manual' | 'ai_optimized' | 'ai_supplement' | 'imported' | 'planner'
+export type TaskSessionStatus = 'running' | 'paused' | 'completed'
 
-export interface TaskItemCreate {
+export interface TaskItemPayload {
   content?: string
   title?: string
-  description?: string | null
   goal_id?: number | null
   domain?: string | null
   category?: string | null
   task_type?: string | null
-  project?: string | null
-  deadline?: string | null
-  is_splittable?: boolean
-  is_ai_generated?: boolean
-  priority?: TaskPriority
-  difficulty?: TaskDifficulty | null
-  estimated_minutes?: number
+  planned_date?: string | null
+  date?: string | null
   status?: TaskItemStatus
+  priority?: TaskPriority
+  estimated_minutes?: number
+  actual_minutes?: number | null
   source_type?: TaskSourceType
   ai_reason?: string | null
-  source_ref?: Record<string, unknown> | unknown[] | string | null
   context_json?: Record<string, unknown> | unknown[] | null
-  date?: string | null
-  planned_date?: string | null
 }
 
-export interface TaskItem extends TaskItemCreate {
+export interface TaskItem {
   id: number
   user_id: number
+  goal_id?: number | null
   content: string
-  title: string
+  domain?: string | null
   category?: string | null
-  project?: string | null
-  deadline?: string | null
-  is_splittable?: boolean
-  is_ai_generated?: boolean
+  task_type?: string | null
+  planned_date?: string | null
+  status: TaskItemStatus
   priority: TaskPriority
   estimated_minutes: number
   actual_minutes?: number | null
-  status: TaskItemStatus
-  source_type: TaskSourceType
   actual_start_time?: string | null
   actual_end_time?: string | null
+  source_type: TaskSourceType
+  ai_reason?: string | null
+  context_json?: Record<string, unknown> | unknown[] | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+export interface TaskExecutionSession {
+  id: number
+  user_id: number
+  task_id: number
+  started_at: string
+  ended_at?: string | null
+  duration_minutes?: number | null
+  status: TaskSessionStatus
   created_at?: string | null
   updated_at?: string | null
 }
 
 export interface TaskListParams {
-  status?: TaskItemStatus
-  category?: string
-  priority?: TaskPriority
+  goal_id?: number
   date?: string
   planned_date?: string
-  goal_id?: number
+  status?: TaskItemStatus
+  category?: string
 }
 
 export interface TaskOptimizeRequest {
@@ -72,86 +78,145 @@ export interface TaskOptimizeRequest {
 
 export interface TaskOptimizeResponse {
   suggested_content: string
-  suggested_title: string
   suggested_category?: string | null
-  suggested_description?: string | null
   suggested_estimated_minutes: number
   suggested_priority: TaskPriority
   reason: string
   warnings: string[]
 }
 
-function normalizeOutgoing(payload: Partial<TaskItemCreate>) {
+export interface TaskSuggestion {
+  content: string
+  category?: string | null
+  task_type?: string | null
+  estimated_minutes: number
+  priority: TaskPriority
+  reason: string
+  source_type: 'ai_supplement'
+  confidence?: number | null
+  risk_level?: 'low' | 'medium' | 'high' | null
+}
+
+export interface TaskSupplementRequest {
+  planned_date?: string
+  date?: string
+  goal_id?: number | null
+  available_minutes: number
+  max_new_tasks?: number
+  preferences?: Record<string, unknown>
+}
+
+export interface TaskSupplementResponse {
+  suggestions: TaskSuggestion[]
+  message: string
+}
+
+export interface CalendarDaySummary {
+  date: string
+  task_count: number
+  completed_count: number
+  unfinished_count: number
+  estimated_minutes: number
+  actual_minutes: number
+  completion_rate: number
+  has_delayed: boolean
+  titles: string[]
+}
+
+export interface CalendarMonthSummaryResponse {
+  year: number
+  month: number
+  days: CalendarDaySummary[]
+}
+
+function normalizePayload(payload: Partial<TaskItemPayload>) {
   const content = payload.content ?? payload.title
   return {
     ...payload,
     content,
-    category: payload.category ?? null,
     planned_date: payload.planned_date ?? payload.date ?? null,
   }
 }
 
-export function normalizeTask(raw: any): TaskItem {
-  return {
-    ...raw,
-    title: raw.title ?? raw.content,
-    description: raw.description ?? raw.ai_reason ?? null,
-    project: raw.project ?? raw.domain,
-    deadline: raw.deadline ?? null,
-    is_splittable: raw.is_splittable ?? true,
-    is_ai_generated: raw.is_ai_generated ?? Boolean(raw.source_type?.startsWith('ai_')),
-  }
-}
-
-export function createTask(payload: TaskItemCreate) {
-  return request<any>({ method: 'POST', url: '/tasks', data: normalizeOutgoing(payload) }).then(normalizeTask)
+export function createTask(payload: TaskItemPayload) {
+  return request<TaskItem>({ method: 'POST', url: '/tasks', data: normalizePayload(payload) })
 }
 
 export function listTasks(params: TaskListParams = {}) {
-  const normalizedParams = {
-    ...params,
-    date: params.date ?? params.planned_date,
-  }
-  return request<any[]>({ method: 'GET', url: '/tasks', params: normalizedParams }).then((items) => items.map(normalizeTask))
+  return request<TaskItem[]>({
+    method: 'GET',
+    url: '/tasks',
+    params: {
+      ...params,
+      date: params.date ?? params.planned_date,
+    },
+  })
 }
 
-export function updateTask(taskId: number, payload: Partial<TaskItemCreate>) {
-  return request<any>({ method: 'PATCH', url: `/tasks/${taskId}`, data: normalizeOutgoing(payload) }).then(normalizeTask)
+export function getTask(taskId: number) {
+  return request<TaskItem>({ method: 'GET', url: `/tasks/${taskId}` })
+}
+
+export function updateTask(taskId: number, payload: Partial<TaskItemPayload>) {
+  return request<TaskItem>({ method: 'PATCH', url: `/tasks/${taskId}`, data: normalizePayload(payload) })
 }
 
 export function deleteTask(taskId: number) {
-  return request<any>({ method: 'DELETE', url: `/tasks/${taskId}` }).then(normalizeTask)
+  return request<TaskItem>({ method: 'DELETE', url: `/tasks/${taskId}` })
 }
 
-export function archiveTask(taskId: number) {
-  return deleteTask(taskId)
+export function updateTaskStatus(taskId: number, status: TaskItemStatus) {
+  return request<TaskItem>({ method: 'PATCH', url: `/tasks/${taskId}/status`, data: { status } })
+}
+
+export function postponeTask(taskId: number) {
+  return request<TaskItem>({ method: 'POST', url: `/tasks/${taskId}/postpone` })
+}
+
+export function startTask(taskId: number) {
+  return request<TaskExecutionSession>({ method: 'POST', url: `/tasks/${taskId}/start` })
+}
+
+export function pauseTask(taskId: number) {
+  return request<TaskExecutionSession>({ method: 'POST', url: `/tasks/${taskId}/pause` })
+}
+
+export function completeTask(taskId: number, payload: { actual_minutes?: number } = {}) {
+  return request<TaskItem>({ method: 'POST', url: `/tasks/${taskId}/complete`, data: payload })
 }
 
 export function optimizeTask(payload: TaskOptimizeRequest) {
-  return request<any>({
+  return request<TaskOptimizeResponse>({
     method: 'POST',
     url: '/tasks/ai/optimize',
     data: {
       ...payload,
       raw_content: payload.raw_content ?? payload.raw_title,
-      category: payload.category,
     },
-  }).then((item): TaskOptimizeResponse => ({
-    ...item,
-    suggested_title: item.suggested_title ?? item.suggested_content,
-    suggested_content: item.suggested_content ?? item.suggested_title,
-    suggested_description: item.suggested_description ?? item.suggested_content,
-  }))
+  })
 }
 
-export function updateTaskStatus(taskId: number, status: TaskItemStatus) {
-  return request<any>({ method: 'PATCH', url: `/tasks/${taskId}/status`, data: { status } }).then(normalizeTask)
-}
-
-export function submitTaskFeedback(taskId: number, payload: { actual_minutes?: number }) {
-  return request<any>({
+export function supplementTasks(payload: TaskSupplementRequest) {
+  return request<TaskSupplementResponse>({
     method: 'POST',
-    url: `/tasks/${taskId}/complete`,
-    data: { actual_minutes: payload.actual_minutes ?? 0 },
-  }).then(normalizeTask)
+    url: '/tasks/ai/supplement',
+    data: {
+      ...payload,
+      planned_date: payload.planned_date ?? payload.date,
+      max_new_tasks: payload.max_new_tasks ?? 3,
+      preferences: payload.preferences ?? {},
+    },
+  })
+}
+
+export function getTaskMonthSummary(year: number, month: number, goalId?: number | null) {
+  return request<CalendarMonthSummaryResponse>({
+    method: 'GET',
+    url: '/tasks/month',
+    params: {
+      year,
+      month,
+      goal_id: goalId ?? undefined,
+    },
+  })
 }

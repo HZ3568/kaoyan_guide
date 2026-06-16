@@ -1,6 +1,6 @@
 """reset domain models for general learning system
 
-Revision ID: 0008_general_learning_system_reset
+Revision ID: 0008_general_reset
 Revises:
 Create Date: 2026-06-16
 """
@@ -9,7 +9,7 @@ from alembic import context, op
 import sqlalchemy as sa
 
 
-revision = "0008_general_learning_system_reset"
+revision = "0008_general_reset"
 down_revision = None
 branch_labels = None
 depends_on = None

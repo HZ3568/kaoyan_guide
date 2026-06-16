@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.v1.deps import get_current_user
+from app.api.v1.resource_guards import validate_learning_context
 from app.core.database import get_db
 from app.core.exceptions import BadRequestError
 from app.models.user import User
@@ -25,6 +26,12 @@ async def upload_document(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    goal_id, knowledge_base_id = validate_learning_context(
+        db,
+        current_user.id,
+        goal_id=goal_id,
+        knowledge_base_id=knowledge_base_id,
+    )
     return await DocumentService(db).upload_and_parse(
         file,
         user_id=current_user.id,
@@ -43,12 +50,18 @@ def import_local_documents(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    goal_id, knowledge_base_id = validate_learning_context(
+        db,
+        current_user.id,
+        goal_id=payload.goal_id,
+        knowledge_base_id=payload.knowledge_base_id,
+    )
     result = DocumentService(db).import_local(
         payload.path,
         user_id=current_user.id,
         recursive=payload.recursive,
-        knowledge_base_id=payload.knowledge_base_id,
-        goal_id=payload.goal_id,
+        knowledge_base_id=knowledge_base_id,
+        goal_id=goal_id,
         domain=payload.domain,
         category=payload.category,
         tags=payload.tags,
@@ -66,6 +79,12 @@ def list_documents(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    validate_learning_context(
+        db,
+        current_user.id,
+        goal_id=goal_id,
+        knowledge_base_id=knowledge_base_id,
+    )
     return DocumentService(db).list_documents(
         user_id=current_user.id,
         knowledge_base_id=knowledge_base_id,

@@ -4,6 +4,16 @@ import { useAuthStore } from '../stores/authStore'
 
 const DEFAULT_BASE_URL = '/api/v1'
 
+export class ApiError extends Error {
+  status?: number
+
+  constructor(message: string, status?: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
 function resolveBaseUrl() {
   return import.meta.env.VITE_API_BASE_URL || DEFAULT_BASE_URL
 }
@@ -40,7 +50,10 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(new Error(resolveErrorMessage(error))),
+  (error) => {
+    const axiosError = error as AxiosError
+    return Promise.reject(new ApiError(resolveErrorMessage(error), axiosError.response?.status))
+  },
 )
 
 export async function request<T>(config: AxiosRequestConfig) {
@@ -62,4 +75,3 @@ export async function upload<T>(url: string, formData: FormData, config: AxiosRe
 export function getApiBaseUrl() {
   return resolveBaseUrl()
 }
-

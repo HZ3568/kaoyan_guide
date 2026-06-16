@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.v1.deps import get_current_user
+from app.api.v1.resource_guards import validate_goal_id
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
 from app.models.user import User
@@ -20,6 +21,7 @@ def list_reviews(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    validate_goal_id(db, current_user.id, goal_id)
     query = db.query(DailyReview).filter(DailyReview.user_id == current_user.id)
     if goal_id is not None:
         query = query.filter(DailyReview.goal_id == goal_id)
@@ -34,6 +36,7 @@ def create_review(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    validate_goal_id(db, current_user.id, payload.goal_id)
     review = DailyReview(user_id=current_user.id, **payload.model_dump())
     db.add(review)
     db.commit()
@@ -64,10 +67,11 @@ def review_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    validate_goal_id(db, current_user.id, goal_id)
     query = db.query(TaskItem).filter(TaskItem.user_id == current_user.id)
     if goal_id is not None:
         query = query.filter(TaskItem.goal_id == goal_id)
-    tasks = query.all()
+    tasks = query.filter(TaskItem.status.notin_(["archived", "cancelled"])).all()
     total = len(tasks)
     completed = len([task for task in tasks if task.status == "completed"])
     delayed = len([task for task in tasks if task.status == "delayed"])

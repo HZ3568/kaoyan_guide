@@ -2,9 +2,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.v1.deps import get_current_user
+from app.api.v1.resource_guards import get_owned_goal
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
+from app.models.chunk import DocumentChunk
+from app.models.document import Document
 from app.models.knowledge_base import KnowledgeBase
+from app.models.rag_log import RagQueryLog
 from app.models.user import User
 from app.schemas.knowledge_base import KnowledgeBaseCreate, KnowledgeBaseOut, KnowledgeBaseUpdate
 
@@ -27,6 +31,8 @@ def create_knowledge_base(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if payload.goal_id is not None:
+        get_owned_goal(db, current_user.id, payload.goal_id)
     kb = KnowledgeBase(user_id=current_user.id, **payload.model_dump())
     db.add(kb)
     db.commit()
@@ -47,7 +53,10 @@ def update_knowledge_base(
     current_user: User = Depends(get_current_user),
 ):
     kb = _get_kb(db, current_user.id, kb_id)
-    for key, value in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    if data.get("goal_id") is not None:
+        get_owned_goal(db, current_user.id, data["goal_id"])
+    for key, value in data.items():
         setattr(kb, key, value)
     db.commit()
     db.refresh(kb)
@@ -57,6 +66,15 @@ def update_knowledge_base(
 @router.delete("/{kb_id}", response_model=KnowledgeBaseOut)
 def delete_knowledge_base(kb_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     kb = _get_kb(db, current_user.id, kb_id)
+    db.query(DocumentChunk).filter(DocumentChunk.user_id == current_user.id, DocumentChunk.knowledge_base_id == kb.id).delete(
+        synchronize_session=False
+    )
+    db.query(Document).filter(Document.user_id == current_user.id, Document.knowledge_base_id == kb.id).delete(
+        synchronize_session=False
+    )
+    db.query(RagQueryLog).filter(RagQueryLog.user_id == current_user.id, RagQueryLog.knowledge_base_id == kb.id).delete(
+        synchronize_session=False
+    )
     db.delete(kb)
     db.commit()
     return kb
@@ -70,6 +88,7 @@ def bind_goal(
     current_user: User = Depends(get_current_user),
 ):
     kb = _get_kb(db, current_user.id, kb_id)
+    get_owned_goal(db, current_user.id, goal_id)
     kb.goal_id = goal_id
     db.commit()
     db.refresh(kb)

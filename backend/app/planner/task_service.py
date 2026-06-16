@@ -153,14 +153,14 @@ class TaskService:
             if task.status not in {"completed", "archived", "cancelled"}
         ]
         recent_start = payload.planned_date - timedelta(days=30)
-        recent_tasks = (
+        recent_query = (
             self.db.query(TaskItem)
             .filter(TaskItem.user_id == user_id)
             .filter(TaskItem.planned_date >= recent_start, TaskItem.planned_date <= payload.planned_date)
-            .order_by(TaskItem.planned_date.desc(), TaskItem.id.desc())
-            .limit(100)
-            .all()
         )
+        if payload.goal_id is not None:
+            recent_query = recent_query.filter(TaskItem.goal_id == payload.goal_id)
+        recent_tasks = recent_query.order_by(TaskItem.planned_date.desc(), TaskItem.id.desc()).limit(100).all()
         request_payload = {
             **payload.model_dump(),
             "today_tasks": today_tasks,
@@ -173,7 +173,14 @@ class TaskService:
             message = f"模型调用失败，已使用规则兜底：{self.ai_assistant.last_error}"
         return TaskSupplementResponse(suggestions=suggestions, message=message)
 
-    def month_summary(self, user_id: int, *, year: int, month: int) -> CalendarMonthSummaryResponse:
+    def month_summary(
+        self,
+        user_id: int,
+        *,
+        year: int,
+        month: int,
+        goal_id: int | None = None,
+    ) -> CalendarMonthSummaryResponse:
         import calendar
 
         _, last_day = calendar.monthrange(year, month)
@@ -181,13 +188,15 @@ class TaskService:
             date(year, month, day): CalendarDaySummary(date=date(year, month, day))
             for day in range(1, last_day + 1)
         }
-        tasks = (
+        query = (
             self.db.query(TaskItem)
             .filter(TaskItem.user_id == user_id)
             .filter(TaskItem.planned_date >= date(year, month, 1), TaskItem.planned_date <= date(year, month, last_day))
             .filter(TaskItem.status != "archived")
-            .all()
         )
+        if goal_id is not None:
+            query = query.filter(TaskItem.goal_id == goal_id)
+        tasks = query.all()
         for task in tasks:
             if not task.planned_date or task.planned_date not in summaries:
                 continue
